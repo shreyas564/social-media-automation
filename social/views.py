@@ -879,41 +879,50 @@ def delete_linkedin_post(post_urn, access_token):
 #         "postStat.html",
 #         {"posts": posts}
 #     )
+# @login_required
+# def postStat(request):
+#     posts = Post.objects.filter(
+#         fbpostid__isnull=False
+#     ).exclude(fbpostid="")
+
+#     print("POSTS FOUND:", posts.count())
+
+#     for post in posts:
+#         print("FETCHING STATS FOR FB POST ID:", post.fbpostid)
+
+#         post.total_likes = get_facebook_likes_count(
+#             post.fbpostid, FBTOKEN
+#         )
+#         post.total_comments = get_facebook_comments_count(
+#             post.fbpostid, FBTOKEN
+#         )
+#         post.total_shares = get_share_count(
+#             post.fbpostid, FBTOKEN
+#         )
+
+#         print(
+#             "LIKES:", post.total_likes,
+#             "COMMENTS:", post.total_comments,
+#             "SHARES:", post.total_shares
+#         )
+
+#         post.save()
+
+#     return render(
+#         request,
+#         "postStat.html",
+#         {"posts": posts}
+#     )
+
 @login_required
 def postStat(request):
-    posts = Post.objects.filter(
-        fbpostid__isnull=False
-    ).exclude(fbpostid="")
-
-    print("POSTS FOUND:", posts.count())
-
-    for post in posts:
-        print("FETCHING STATS FOR FB POST ID:", post.fbpostid)
-
-        post.total_likes = get_facebook_likes_count(
-            post.fbpostid, FBTOKEN
-        )
-        post.total_comments = get_facebook_comments_count(
-            post.fbpostid, FBTOKEN
-        )
-        post.total_shares = get_share_count(
-            post.fbpostid, FBTOKEN
-        )
-
-        print(
-            "LIKES:", post.total_likes,
-            "COMMENTS:", post.total_comments,
-            "SHARES:", post.total_shares
-        )
-
-        post.save()
+    posts = Post.objects.all().order_by('-created_at')
 
     return render(
         request,
         "postStat.html",
         {"posts": posts}
     )
-
 
 def get_insta_likes_and_comments(request, ipostid, token):
     url = f"https://graph.facebook.com/v19.0/{ipostid}"
