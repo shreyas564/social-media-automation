@@ -21,6 +21,7 @@ class Pages(models.Model):
 class Post(models.Model):
     image = models.ImageField(upload_to='media/')
     caption = models.TextField()
+    post_name=models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(SuperAdmin, on_delete=models.CASCADE)
     instapostid=models.CharField(max_length=300, blank=True, null=True)

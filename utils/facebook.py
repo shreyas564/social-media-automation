@@ -1,59 +1,73 @@
 import requests
-import os
-import json
-from collections import defaultdict
+
+GRAPH_VERSION = "v19.0"
+BASE_URL = f"https://graph.facebook.com/{GRAPH_VERSION}"
+
+
+def safe_get(url, params):
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        if response.status_code != 200:
+            print("FB API ERROR:", response.text)
+            return None
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print("FB REQUEST FAILED:", e)
+        return None
+
+
+# ==========================
+# FACEBOOK POST STATS
+# ==========================
 
 def get_facebook_likes_count(post_id, access_token):
-    url = f"https://graph.facebook.com/v19.0/{post_id}"
-
+    url = f"{BASE_URL}/{post_id}/reactions"
     params = {
-        "fields": "reactions.summary(true)",
+        "summary": "true",
+        "limit": 0,
         "access_token": access_token
     }
 
-    response = requests.get(url, params=params)
-    response.raise_for_status()
+    data = safe_get(url, params)
+    return data.get("summary", {}).get("total_count", 0) if data else 0
 
-    data = response.json()
-    return data.get("reactions", {}).get("summary", {}).get("total_count", 0)
 
 def get_facebook_comments_count(post_id, access_token):
-    url = f"https://graph.facebook.com/v24.0/{post_id}/comments"
+    url = f"{BASE_URL}/{post_id}/comments"
     params = {
-        "summary":"true",
-        "limit":0,
+        "summary": "true",
+        "limit": 0,
         "access_token": access_token
     }
-    response = requests.get(url, params=params)
-    print(response)
-    response.raise_for_status()
 
-    data = response.json()
-    cnt=data.get("summary",{}).get("total_count",0)
-    print(cnt)
-    return cnt
+    data = safe_get(url, params)
+    return data.get("summary", {}).get("total_count", 0) if data else 0
+
 
 def get_share_count(post_id, access_token):
-    url = f"https://graph.facebook.com/v19.0/{post_id}"
+    url = f"{BASE_URL}/{post_id}"
     params = {
         "fields": "shares",
         "access_token": access_token
     }
-    response = requests.get(url, params=params)
-    response.raise_for_status()
 
-    data = response.json()
-    return data.get("shares", {}).get("count", 0)
+    data = safe_get(url, params)
+    return data.get("shares", {}).get("count", 0) if data else 0
 
-def get_insta_user_id(token,pagid):
-    url=f"https://graph.facebook.com/v19.0/{pagid}"
-    params={
-        "fields":"instagram_buisness_account",
-        "access_token":token
+
+# ==========================
+# INSTAGRAM BUSINESS ACCOUNT ID
+# ==========================
+
+def get_insta_user_id(token, page_id):
+    url = f"{BASE_URL}/{page_id}"
+    params = {
+        "fields": "instagram_business_account",
+        "access_token": token
     }
 
-    response = requests.get(url, params=params)
-    response.raise_for_status()
-    data = response.json()
+    data = safe_get(url, params)
+    if not data:
+        return None
 
-    return data["instagram_buisness_account"]["id"]
+    return data.get("instagram_business_account", {}).get("id")
