@@ -1,6 +1,6 @@
 import requests
 import urllib.parse
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render,redirect,get_object_or_404
 from social.serilizers import AdminSerializer
@@ -40,12 +40,13 @@ from django.views.decorators.http import require_GET
 from .models import Post, SuperAdmin, InstagramComment
 from utils.facebook import get_insta_user_id
 from django.http import JsonResponse
+import urllib.parse
 
 
 N8N_WEBHOOK_URL = "http://localhost:5678/webhook-test/social-post"
 #sending image
 
-FBTOKEN="EAAMcHkCZAkvIBQizcNQy6srhlnCNTjkghxjTSylFREOzeCoNFpyFDWO7ZA8wZCzm1cIINl919eM9o1oUbyaCwbiwE1ZC6r90wgjZA5xHlpGFEQh5LG8Gw5dvEnQqRmGXg6Fl6EmKbtL8QMqmb4jLZBcZBeZBepThlJ0iRPZCWjiAg0oMH10J8uOkJO1Jrf6jev2URpRI0bZBOh7n01rk4w7UyT4PzUlfmmS6fcGtTKI9q8V25ZA"
+FBTOKEN="EAAJJsrZBrJzwBQnPWHIE5Gooc1jvNlPktigDPWjI0AyUNaLvFWo0ASOX7kUlGTXWqlZAJZBW4OTveRjYskkZC71bs5V1UH4hsZB0dhMvhHdgxfZCS5L1Qz7M2wAWG3ZBgh2Q4kj27Yzk93NHafynoOuHxPSQZA6R6hnKly3JwYIgwDEYj7FxhwIlZAqPPlq3GbEogCMAwkSTjXezAWU5qZBL0ZC2KZAcp3SxiqEdQM2ZAY1sZD"
 
 N8N_Image_Url="http://localhost:5678/webhook-test/image-url"
 
@@ -58,7 +59,7 @@ def send_imageurl(image_url) :
         response = requests.post(
             N8N_Image_Url,
             json=payload,
-            timeout=40
+            timeout=60
         )
         print("Payload sent to N8N:", payload)
     except requests.exceptions.RequestException as e:
@@ -462,14 +463,6 @@ def usersettings(request):
     return render(request, 'affiliatesettings.html', {'affiliate': affiliate})
 
 
-# AFFILIATE PROFILE PAGE
-# def affiliate_profile(request):
-#     affiliate_id = request.session.get('affiliate_id')
-#     if not affiliate_id:
-#         return redirect('affiliate_login')
-
-#     affiliate = get_object_or_404(AffiliateProfile, id=affiliate_id)
-#     return render(request, 'affiliate_profile.html', {'affiliate': affiliate})
 
 #UPDATE AFFILIATE PROFILE (POST)
 @require_POST
@@ -534,22 +527,6 @@ def change_affiliate_password(request):
 def affiliate_logout(request):
     request.session.flush()
     return redirect('affiliate_login')
-
-
-
-
-
-# Affiliate post action
-# def affiliate_post_actoion(request):
-#     if request.method == "POST":
-#          affiliate_post_actoion.objects.create(                         #Affiliate_post_action.objects
-#              affiliate_username = request.Post.get('username'),
-#              post_id = request.POST.get('post_id'),
-#              action = request.POST.get('actio'),
-#              comment_text = request.POST.get('comment','')
-#          )
-#          return JsonResponse({'status': 'success'})
-    
 
 
 #SUPER ADMIN SIDE 
@@ -692,78 +669,84 @@ def submit_editpost(request,post_id):
         #messages.success(request, "Post updated successfully")
         return redirect('posts_list')
     
-def del_post(request,post_id):
-    post=Post.objects.get(id=post_id)
-    super_admin=SuperAdmin.objects.get(id=request.user.id)
-    user=super_admin
-    resF=delete_facebook_post(post.fbpostid,user.fbtoken)
-    resI=delete_instagram_post(post.instapostid, user.instatoken)       
-    resL=delete_linkedin_post(post.lnpostid, user.lntoken)
-    print("Facebook Deletion Response:", resF)
-    print("Instagram Deletion Response:", resI)
-    print("LinkedIn Deletion Response:", resL)
-    post.delete()
-    print("Posts deleted successfully")
-    return redirect('posts_list')
 
+from django.contrib import messages
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def del_post(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    super_admin = get_object_or_404(SuperAdmin, user=request.user)
+
+    fb_ok = True
+    ig_ok = True
+    ln_ok = True
+
+    # ---------- FACEBOOK ----------
+    if post.fbpostid and super_admin.fbtoken:
+        try:
+            delete_facebook_post(
+                post.fbpostid,
+                super_admin.fbtoken
+            )
+        except Exception as e:
+            fb_ok = False
+            print("Facebook delete failed:", e)
+
+    # ---------- INSTAGRAM ----------
+    if post.instapostid and super_admin.instatoken:
+        try:
+            delete_instagram_post(
+                post.instapostid,
+                super_admin.instatoken
+            )
+        except Exception as e:
+            ig_ok = False
+            print("Instagram delete failed:", e)
+
+    # ---------- LINKEDIN ----------
+    if post.lnpostid and super_admin.lntoken:
+        try:
+            delete_linkedin_post(
+                post.lnpostid,
+                super_admin.lntoken
+            )
+        except Exception as e:
+            ln_ok = False
+            print("LinkedIn delete failed:", e)
+
+    # ✅ ALWAYS delete from DB
+    post.delete()
+
+    failed = []
+    if not fb_ok:
+        failed.append("Facebook")
+    if not ig_ok:
+        failed.append("Instagram")
+    if not ln_ok:
+        failed.append("LinkedIn")
+
+    if failed:
+        messages.warning(
+            request,
+            f"Deleted from dashboard. Failed on: {', '.join(failed)}"
+        )
+    else:
+        messages.success(
+            request,
+            "Post deleted successfully from dashboard and all platforms."
+        )
+
+    return redirect("posts_list")
+
+
+    
 def logout_view(request):
     logout(request)
     return redirect('log_admin')
 
-# @csrf_exempt
-# def collect_post_data(request):
-#     if request.method != "POST":
-#         return JsonResponse(
-#             {"error": "Invalid method"},
-#             status=405
-#         )
 
-#     try:
-#         body = json.loads(request.body.decode("utf-8"))
-#     except json.JSONDecodeError:
-#         return JsonResponse(
-#             {"error": "Invalid JSON payload"},
-#             status=400
-#         )
-
-#     posts = body.get("posts")
-#     caption= body.get("caption")
-
-#     if not isinstance(posts, list):
-#         return JsonResponse(
-#             {"error": "`posts` must be a list"},
-#             status=400
-#         )
-
-#     for post in posts:
-#         platform = post.get("platform")
-#         pst=Post.objects.get(id=post.get("postid"))
-#         pst.caption=caption
-#         pst.Ipost_url=post.get("Ipost_url")
-#         pst.Fposturl=post.get("Fposturl")
-#         pst.Lposturl=post.get("Lposturl")
-
-#         print(post.get("Ipost_url"))
-#         print(post.get("Fposturl"))
-#         print(post.get("Lposturl"))
-#         match platform:
-#             case "facebook":
-#                 pst.fbpostid=post.get("post_id")
-#                 pst.save()
-#             case "instagram":
-#                 pst.instapostid=post.get("post_id")
-#                 pst.save()
-#             case "linkedin":
-#                 pst.lnpostid=post.get("post_id")
-#                 pst.save()
-
-#     return JsonResponse(
-#         {
-#             "status": "success",
-#             "data": posts
-#         },
-#         status=200
-#     )
 @csrf_exempt
 def collect_post_data(request):
     if request.method != "POST":
@@ -771,36 +754,36 @@ def collect_post_data(request):
 
     payload = json.loads(request.body)
     posts = payload.get("posts", [])
-    caption = payload.get("caption")  # 🔥 AI GENERATED caption
+    caption = payload.get("caption")
 
     updated = set()
 
     for item in posts:
         post_id = item.get("postid")
         platform = item.get("platform")
+        post_url = item.get("post_url")  # ✅ CORRECT KEY
 
         try:
             post = Post.objects.get(id=post_id)
         except Post.DoesNotExist:
             continue
 
-        # ✅ update caption ONCE
+        # update caption once
         if caption and post.id not in updated:
             post.caption = caption
             updated.add(post.id)
 
-        # PLATFORM FIELDS
         if platform == "facebook":
             post.fbpostid = item.get("post_id")
-            post.Fposturl = item.get("Fposturl")
+            post.Fposturl = post_url
 
         elif platform == "instagram":
             post.instapostid = item.get("post_id")
-            post.Ipost_url = item.get("Ipost_url")
+            post.Ipost_url = post_url
 
         elif platform == "linkedin":
             post.lnpostid = item.get("post_id")
-            post.Lposturl = item.get("Lposturl")
+            post.Lposturl = post_url
 
         post.save()
 
@@ -809,110 +792,45 @@ def collect_post_data(request):
         "updated_posts": list(updated)
     })
 
-
-
 def delete_facebook_post(post_id, access_token):
-    url = f"https://graph.facebook.com/v19.0/{post_id}"
-    response = requests.delete(url, params={"access_token": access_token})
-    return response.json()
+    if not post_id:
+        return True
 
+    url = f"https://graph.facebook.com/v19.0/{post_id}"
+    res = requests.delete(url, params={"access_token": access_token})
+
+    print("FB STATUS:", res.status_code, res.text)
+    return res.status_code in [200, 204]
 
 def delete_instagram_post(media_id, access_token):
+    if not media_id:
+        return True
+
     url = f"https://graph.facebook.com/v19.0/{media_id}"
-    response = requests.delete(url, params={"access_token": access_token})
-    return response.json()
+    res = requests.delete(url, params={"access_token": access_token})
 
-
+    print("IG STATUS:", res.status_code, res.text)
+    return res.status_code in [200, 204]
 
 def delete_linkedin_post(post_urn, access_token):
     if not post_urn:
-        return {"error": "post_urn is empty"}
+        return True
 
-    # Ensure string
-    post_urn = str(post_urn)
-
-    # Ensure full URN
     if not post_urn.startswith("urn:li:"):
         post_urn = f"urn:li:ugcPost:{post_urn}"
 
-    # Encode URN
     encoded_urn = urllib.parse.quote(post_urn, safe="")
 
     url = f"https://api.linkedin.com/v2/ugcPosts/{encoded_urn}"
-
     headers = {
         "Authorization": f"Bearer {access_token}",
         "X-Restli-Protocol-Version": "2.0.0",
     }
 
-    response = requests.delete(url, headers=headers)
+    res = requests.delete(url, headers=headers)
 
-    return {
-        "status_code": response.status_code,
-        "response": response.text or "Deleted"
-    }
-
-# @login_required
-# def postStat(request):
-#     posts = Post.objects.filter(
-#         fbpostid__isnull=False
-#     ).exclude(fbpostid="")
-
-#     for post in posts:
-#         try:
-#             post.total_likes = get_facebook_likes_count(
-#                 post.fbpostid, FBTOKEN
-#             )
-#             post.total_comments = get_facebook_comments_count(
-#                 post.fbpostid, FBTOKEN
-#             )
-#             post.total_shares = get_share_count(
-#                 post.fbpostid, FBTOKEN
-#             )
-#             post.save()
-
-#         except Exception as e:
-#             print(f"Failed for post {post.id}: {e}")
-
-#     return render(
-#         request,
-#         "postStat.html",
-#         {"posts": posts}
-#     )
-# @login_required
-# def postStat(request):
-#     posts = Post.objects.filter(
-#         fbpostid__isnull=False
-#     ).exclude(fbpostid="")
-
-#     print("POSTS FOUND:", posts.count())
-
-#     for post in posts:
-#         print("FETCHING STATS FOR FB POST ID:", post.fbpostid)
-
-#         post.total_likes = get_facebook_likes_count(
-#             post.fbpostid, FBTOKEN
-#         )
-#         post.total_comments = get_facebook_comments_count(
-#             post.fbpostid, FBTOKEN
-#         )
-#         post.total_shares = get_share_count(
-#             post.fbpostid, FBTOKEN
-#         )
-
-#         print(
-#             "LIKES:", post.total_likes,
-#             "COMMENTS:", post.total_comments,
-#             "SHARES:", post.total_shares
-#         )
-
-#         post.save()
-
-#     return render(
-#         request,
-#         "postStat.html",
-#         {"posts": posts}
-#     )
+    print("LN STATUS:", res.status_code, res.text)
+    return res.status_code == 204
 
 @login_required
 def postStat(request):
@@ -1047,34 +965,6 @@ from utils.facebook import (
     get_facebook_comments_count,
     get_share_count
 )
-
-FBTOKEN="EAAMcHkCZAkvIBQmgeWZAOZAtYLn0kNdjGlkefFmYf5T5WNE9z3vMK3oCDQ6thSYxvPXJ6qjCTYsbaFjGXO28RLRbqn5aDqonTqV9UEF3O28trT2LhobR9AUcObfl0IZC8dLo9d8QnJnwVjnJ0n69qqnD1BGAL3qnkAFy2a9dnpfyCHaM1lEcgIeJF2erd2cHJ4LYnPzJ4ffuSUaFPvVlu0lcC04zHycSXK7kzSEZD"
-#FBTOKEN = OS.getenv("FBTOKEN", FBTOKEN)
-
-def fetch_post_stats(request):
-    post_id = request.GET.get("post_id")
-    platform = request.GET.get("platform")
-
-    likes = comments = shares = 0
-
-    try:
-        if platform == "Instagram":
-            likes = get_facebook_likes_count(post_id, FBTOKEN)
-            comments = get_facebook_comments_count(post_id, FBTOKEN)
-            shares = 0  # IG doesn't support shares
-        elif platform == "LinkedIn":
-            # placeholder until LinkedIn API
-            likes = comments = shares = 0
-
-        return JsonResponse({
-            "likes": likes,
-            "comments": comments,
-            "shares": shares
-        })
-
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
-
 
 
 from django.contrib.auth.decorators import login_required
@@ -1274,74 +1164,189 @@ def get_insta_user_id_view(request):
     return JsonResponse({"instagram_user_id": insta_id})
 
 
-# import json
-# from django.http import JsonResponse
-# from django.views.decorators.csrf import csrf_exempt
 
-# @csrf_exempt
-# def fetch_post_stats(request):
-#     data = json.loads(request.body)
-
-#     platform = data.get("platform")
-#     post_url = data.get("post_url")
-
-#     if platform == "instagram":
-#         return JsonResponse(get_instagram_stats(post_url))
-
-#     if platform == "facebook":
-#         return JsonResponse(get_facebook_stats(post_url))
-
-#     if platform == "linkedin":
-#         return JsonResponse(get_linkedin_stats(post_url))
-
-#     return JsonResponse({"likes": 0, "comments": 0, "shares": 0})
-import json
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
 
 from utils.facebook import (
     get_facebook_likes_count,
     get_facebook_comments_count,
     get_share_count
 )
-from utils.linkedin import get_linkedin_stats
-from utils.instagram import get_instagram_stats  # if exists
+
+from api_tokens import FACEBOOK_TOKEN, INSTAGRAM_TOKEN, LINKEDIN_TOKEN
+
+def normalize_url(url):
+    if not url:
+        return ""
+
+    url = url.strip().lower()
+    url = url.replace("www.", "")
+    url = url.split("?")[0]
+
+    if url.endswith("/"):
+        url = url[:-1]
+
+    return url
 
 
 @csrf_exempt
 def fetch_post_stats(request):
-    if request.method != "POST":
-        return JsonResponse({"error": "Invalid request"}, status=400)
+    data = json.loads(request.body)
 
-    body = json.loads(request.body)
-    platform = body.get("platform")
-    post_url = body.get("post_url")
+    platform = data.get("platform")
+    incoming_url = normalize_url(data.get("post_url"))
 
-    # SAFETY
-    if not platform or not post_url:
+    posts = Post.objects.all()
+
+    post = None
+
+    for p in posts:
+        if platform == "instagram" and normalize_url(p.Ipost_url) == incoming_url:
+            post = p
+            break
+
+        elif platform == "facebook" and normalize_url(p.Fposturl) == incoming_url:
+            post = p
+            print("Checking DB FB URL:", p.Fposturl)
+            print("Normalized DB:", normalize_url(p.Fposturl))
+            break
+
+        elif platform == "linkedin" and normalize_url(p.Lposturl) == incoming_url:
+            post = p
+            break
+
+    if not post:
+        print("POST NOT FOUND:", incoming_url)
         return JsonResponse({"likes": 0, "comments": 0, "shares": 0})
 
-    # 🔵 FACEBOOK
     if platform == "facebook":
-        post_id = post_url.split("/")[-1]  # basic extraction
-        likes = get_facebook_likes_count(post_id, request.user.super_admin.fbtoken)
-        comments = get_facebook_comments_count(post_id, request.user.super_admin.fbtoken)
-        shares = get_share_count(post_id, request.user.super_admin.fbtoken)
+        stats = fetch_facebook_stats(post)
 
-        return JsonResponse({
-            "likes": likes,
-            "comments": comments,
-            "shares": shares
-        })
+    elif platform == "instagram":
+        stats = fetch_instagram_stats(post)
 
-    # 🟣 INSTAGRAM
-    if platform == "instagram":
-        stats = get_instagram_stats(post_url)
-        return JsonResponse(stats)
+    elif platform == "linkedin":
+        stats = fetch_linkedin_stats(post)
 
-    # 🔵 LINKEDIN
-    if platform == "linkedin":
-        stats = get_linkedin_stats(post_url)
-        return JsonResponse(stats)
+    else:
+        stats = {"likes": 0, "comments": 0, "shares": 0}
 
-    return JsonResponse({"likes": 0, "comments": 0, "shares": 0})
+    return JsonResponse(stats)
+
+
+import re
+def fetch_facebook_stats(post):
+
+    if not post.Fposturl:
+        return {"likes": 0, "comments": 0, "shares": 0}
+
+    # Extract page_id and post_id from URL
+    match = re.search(r'facebook\.com/(\d+)/posts/(\d+)', post.Fposturl)
+
+    if not match:
+        print("Invalid FB URL:", post.Fposturl)
+        return {"likes": 0, "comments": 0, "shares": 0}
+
+    page_id, post_id = match.groups()
+    fb_graph_id = f"{page_id}_{post_id}"
+
+    print("Generated FB Graph ID:", fb_graph_id)
+
+    url = f"https://graph.facebook.com/v19.0/{fb_graph_id}"
+
+    params = {
+        "fields":"reactions.summary(true),comments.summary(true){from{name,id}},shares",
+
+        "access_token": FACEBOOK_TOKEN
+    }
+
+    response = requests.get(url, params=params)
+    data = response.json()
+
+    print("FB API Response:", data)
+
+    return {
+        "likes": data.get("reactions", {}).get("summary", {}).get("total_count", 0),
+        "comments": data.get("comments", {}).get("summary", {}).get("total_count", 0),
+        "shares": data.get("shares", {}).get("count", 0),
+    }
+
+
+
+
+def fetch_instagram_stats(post):
+    url = f"https://graph.facebook.com/v19.0/{post.instapostid}"
+    params = {
+        "fields": "like_count,comments_count",
+        "access_token": INSTAGRAM_TOKEN
+    }
+
+    r = requests.get(url, params=params).json()
+
+    return {
+        "likes": r.get("like_count", 0),
+        "comments": r.get("comments_count", 0),
+        "shares": 0
+    }
+
+def fetch_linkedin_stats(post):
+    
+    headers = {
+        "Authorization": f"Bearer {LINKEDIN_TOKEN}"
+    }
+
+    lnpostid = post.lnpostid
+
+    # Ensure URN format
+    if not lnpostid.startswith("urn:li:"):
+        lnpostid = f"urn:li:ugcPost:{lnpostid}"
+
+    encoded_urn = urllib.parse.quote(lnpostid)
+
+    url = f"https://api.linkedin.com/v2/socialActions/{encoded_urn}"
+
+    r = requests.get(url, headers=headers).json()
+
+    print("LinkedIn RAW:", r)
+
+    return {
+        "likes": r.get("likesSummary", {}).get("totalLikes", 0),
+        "comments": r.get("commentsSummary", {}).get("totalComments", 0),
+        "shares": 0
+    }
+
+
+
+def linkedin_callback(request):
+    code = request.GET.get("code")
+
+    token_url = "https://www.linkedin.com/oauth/v2/accessToken"
+
+    data = {
+        "grant_type": "authorization_code",
+        "code": code,
+        "client_id": "7792cig37u40k6",
+        "client_secret": "WPL_AP1.PrvuaBrA0PVJdBCs.Fi63og==",
+        "redirect_uri": "http://127.0.0.1:8000/social/linkedin/callback"
+    }
+
+    response = requests.post(token_url, data=data)
+
+    return HttpResponse(response.text)
+from django.shortcuts import redirect
+
+def linkedin_login(request):
+
+    client_id = "7792cig37u40k6"
+    redirect_uri = "http://127.0.0.1:8000/social/linkedin/callback"
+
+    scope = "openid profile email w_member_social"
+
+    auth_url = (
+        "https://www.linkedin.com/oauth/v2/authorization"
+        f"?response_type=code"
+        f"&client_id={client_id}"
+        f"&redirect_uri={redirect_uri}"
+        f"&scope={scope}"
+    )
+
+    return redirect(auth_url)

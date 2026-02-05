@@ -5,6 +5,9 @@ urlpatterns = [
     # COMMON / INTEGRATIONS
     path("upload-image/", views.send_image_to_n8n, name="upload_image"),
     path('collect-data/', views.collect_post_data, name='collect_data'),
+    path("linkedin/callback", views.linkedin_callback, name="linkedin_callback"),
+    path("social/linkedin/login", views.linkedin_login, name="linkedin_login"),
+
 
 
     # SUPER ADMIN URLS
@@ -46,8 +49,7 @@ urlpatterns = [
     path("post-stats/", views.post_stats_view, name="post_stats"),
     path("fetch-stats/", views.fetch_post_stats, name="fetch_post_stats"),
     path("fetch-post-stats/", views.fetch_post_stats, name="fetch_post_stats"),
-
-
+    #path('social/linkedin/callback/', views.linkedin_callback, name='linkedin_callback'),
 
 
     # AFFILIATE USER URLS
