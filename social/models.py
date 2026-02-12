@@ -19,8 +19,13 @@ class Pages(models.Model):
         return f"Page ID {self.pageId}"
 
 class Post(models.Model):
-    image = models.ImageField(upload_to='media/')
+    video = models.FileField(upload_to="post_videos/", blank=True, null=True)
+    image = models.ImageField(upload_to="post_images/", blank=True, null=True)
+    media_url=models.URLField(max_length=800, blank=True, null=True)
+    media_type=models.CharField(max_length=100,choices=
+    [("image","Image"),("video","Video")], default="image")
     caption = models.TextField()
+    
     post_name=models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(SuperAdmin, on_delete=models.CASCADE)
@@ -44,7 +49,7 @@ class Post(models.Model):
 #affiliated user regestration  for  storing in database
 class AffiliateProfile(models.Model):
     username = models.CharField(max_length=150,unique=True)
-    password = models.CharField(max_length=255,unique=True)
+    password = models.CharField(max_length=255)
 
     instagram_secret = models.CharField(max_length=255)
     linkedin_secret = models.CharField(max_length=255)
@@ -61,6 +66,12 @@ class Comment(models.Model):
     affiliate = models.ForeignKey(AffiliateProfile, on_delete=models.CASCADE)
     text = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    PLATFORM_CHOICES = [
+    ('instagram', 'Instagram'),
+    ('facebook', 'Facebook'),
+    ('linkedin', 'LinkedIn')]
+
+    platform = models.CharField(max_length=20,choices=PLATFORM_CHOICES,default='instagram',null=True,blank=True)
 
     def __str__(self):
         return f"Comment by {self.affiliate.username} on Post {self.post.id}" # type: ignore
@@ -70,6 +81,11 @@ class Like(models.Model):
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
     affiliate = models.ForeignKey(AffiliateProfile, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
+    PLATFORM_CHOICES = [
+        ('instagram', 'Instagram'),
+        ('facebook', 'Facebook'),
+        ('linkedin', 'LinkedIn')]
+    platform = models.CharField(max_length=20, choices=PLATFORM_CHOICES, default='instagram', null=True, blank=True)
 
     class Meta:
         unique_together = ('post', 'affiliate')
@@ -85,12 +101,16 @@ class Share(models.Model):
         choices=[
             ('instagram', 'Instagram'),
             ('linkedin', 'LinkedIn'),
-            ('facebook', 'Facebook'),
-            ('twitter', 'Twitter'),
-        ]
-    )
+            ('facebook', 'Facebook'),],
+        default='instagram',
+        null=True,
+        blank=True)
+        
+    
     created_at = models.DateTimeField(auto_now_add=True)
     
+    class Meta:
+        unique_together = ('post', 'affiliate')
     def __str__(self):
         return f"Share by {self.affiliate.username} on {self.platform}"
 

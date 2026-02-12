@@ -1,247 +1,649 @@
+{% comment %} <!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Affiliate Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+
+<style>
+body { background-color: #f4f6f8; }
+
+.sidebar {
+  height: 100vh;
+  background: #198754;
+  color: #fff;
+  position: sticky;
+  top: 0;
+}
+.sidebar a {
+  color: #fff;
+  text-decoration: none;
+  display: block;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 5px;
+}
+.sidebar a:hover { background: rgba(255,255,255,0.2); }
+
+.post-card {
+  width: 200px;
+  border-radius: 10px;
+  margin: auto;
+  transition: 0.3s;
+}
+
+.post-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+}
+
+.post-card img {
+  height: 130px;
+  object-fit: cover;
+}
+
+.post-card .card-body {
+  padding: 8px;
+  font-size: 13px;
+}
+
+.post-card p {
+  margin-bottom: 4px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- Hidden CSRF Token -->
+<form style="display:none;">
+{% csrf_token %}
+</form>
+
+<div class="container-fluid">
+<div class="row">
+
+<div class="col-md-2 sidebar p-3">
+<h4 class="text-center mb-4">Affiliate</h4>
+
+<a onclick="showSection('feedSection')">
+<i class="bi bi-house-door me-2"></i> Feed
+</a>
+
+<a onclick="showSection('postDetailsSection')">
+<i class="bi bi-table me-2"></i> Post Details
+</a>
+
+<a href="{% url 'affiliate_post_stats' %}">
+<i class="bi bi-bar-chart me-2"></i> Posts Statistics
+</a>
+
+<a href="{% url 'usersettings' %}">
+<i class="bi bi-gear me-2"></i> Settings
+</a>
+
+<a href="{% url 'affiliate_logout' %}">
+<i class="bi bi-box-arrow-right me-2"></i> Logout
+</a>
+</div>
+
+<div class="col-md-10 p-4">
+
+<!-- FEED -->
+<div id="feedSection">
+<h3 class="mb-4">Posts from Super Admin</h3>
+
+<div class="row">
+{% for post in posts %}
+<div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+
+<div class="card post-card shadow-sm mb-4">
+
+{% if post.image %}
+<img src="{{ post.image.url }}" class="card-img-top">
+{% endif %}
+
+<div class="card-body">
+<p>{{ post.caption }}</p>
+<small>{{ post.created_at|date:"d M Y" }}</small>
+
+<hr>
+
+<div class="d-flex justify-content-between">
+<button class="btn btn-outline-primary btn-sm like-btn"
+data-post-id="{{ post.id }}">Like</button>
+
+<button class="btn btn-outline-success btn-sm share-btn"
+data-post-id="{{ post.id }}">Share</button>
+
+<button class="btn btn-outline-secondary btn-sm comment-btn"
+data-post-id="{{ post.id }}">Comment</button>
+</div>
+
+</div>
+</div>
+</div>
+{% endfor %}
+</div>
+</div>
+
+<!-- POST DETAILS -->
+<div id="postDetailsSection" style="display:none;">
+<h3 class="mb-4">Post Details</h3>
+
+<table class="table table-bordered bg-white">
+<thead>
+<tr>
+<th>Post</th>
+<th class="text-center">Like</th>
+<th class="text-center">Share</th>
+<th class="text-center">Comment</th>
+</tr>
+</thead>
+
+<tbody>
+{% for post in posts %}
+<tr>
+
+<td>
+<div class="card post-card p-2 mb-2">
+{% if post.image %}
+<img src="{{ post.image.url }}">
+{% endif %}
+<p>{{ post.caption }}</p>
+</div>
+
+<div class="d-flex gap-2">
+<a class="form-control form-control-sm platform-link-input" target="_blank">
+Select platform
+</a>
+
+<select class="form-select form-select-sm platform-select"
+data-post-id="{{ post.id }}"
+data-instagram="{{ post.Ipost_url }}"
+data-facebook="{{ post.Fposturl }}"
+data-linkedin="{{ post.Lposturl }}">
+
+<option value="">Select</option>
+<option value="instagram">Instagram</option>
+<option value="facebook">Facebook</option>
+<option value="linkedin">LinkedIn</option>
+</select>
+</div>
+
+</td>
+
+<td class="text-center">
+<input type="checkbox" class="action-checkbox"
+data-post-id="{{ post.id }}"
+data-action="like" disabled>
+</td>
+
+<td class="text-center">
+<input type="checkbox" class="action-checkbox"
+data-post-id="{{ post.id }}"
+data-action="share" disabled>
+</td>
+
+<td class="text-center">
+<input type="checkbox" class="action-checkbox"
+data-post-id="{{ post.id }}"
+data-action="comment" disabled>
+</td>
+
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+
+</div>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+
+function showSection(id){
+document.getElementById("feedSection").style.display="none";
+document.getElementById("postDetailsSection").style.display="none";
+document.getElementById(id).style.display="block";
+}
+
+/* CSRF */
+function getCSRFToken() {
+return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+/* PLATFORM LINK */
+document.addEventListener("change", function(e){
+
+if(!e.target.classList.contains("platform-select")) return;
+
+let select = e.target;
+let row = select.closest("tr");
+let link = row.querySelector(".platform-link-input");
+
+let url="";
+
+if(select.value=="instagram") url=select.dataset.instagram;
+if(select.value=="facebook") url=select.dataset.facebook;
+if(select.value=="linkedin") url=select.dataset.linkedin;
+
+if(url){
+link.href=url;
+link.textContent=url;
+}else{
+link.textContent="Link not available";
+}
+
+});
+
+/* SAVE ACTION */
+document.querySelectorAll(".like-btn, .share-btn, .comment-btn")
+.forEach(btn=>{
+
+btn.addEventListener("click", function(){
+
+let postId=this.dataset.postId;
+
+let action=this.classList.contains("like-btn") ? "like" :
+this.classList.contains("share-btn") ? "share" : "comment";
+
+fetch("{% url 'save_action' %}",{
+method:"POST",
+headers:{
+"Content-Type":"application/json",
+"X-CSRFToken": getCSRFToken()
+},
+body:JSON.stringify({
+post_id:postId,
+action:action
+})
+})
+.then(r=>r.json())
+.then(data=>{
+if(data.status==="success"){
+updateCheckbox(postId,action);
+}
+});
+
+});
+
+});
+
+/* UPDATE CHECKBOX */
+function updateCheckbox(postId,action){
+
+document.querySelectorAll(".action-checkbox").forEach(cb=>{
+if(cb.dataset.postId===postId && cb.dataset.action===action){
+cb.checked=true;
+}
+});
+
+}
+
+/* LOAD SAVED ACTIONS */
+window.onload = function () {
+
+fetch("{% url 'get_affiliate_actions' %}")
+.then(r => r.json())
+.then(data => {
+
+if(data.likes){
+data.likes.forEach(postId => {
+updateCheckbox(postId.toString(), "like");
+});
+}
+
+if(data.comments){
+data.comments.forEach(postId => {
+updateCheckbox(postId.toString(), "comment");
+});
+}
+
+if(data.shares){
+data.shares.forEach(postId => {
+updateCheckbox(postId.toString(), "share");
+});
+}
+
+});
+
+};
+
+</script>
+
+</body>
+</html> {% endcomment %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Affiliate Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<title>Affiliate Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Bootstrap CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
 
-  <style>
-    body {
-      background-color: #f4f6f8;
-    }
-    .sidebar {
-      height: 100vh;
-      background: #198754;
-      color: #fff;
-      position: sticky;
-      top: 0; 
-      align-self: flex-start; 
-    }
-    .sidebar a {
-      color: #fff;
-      text-decoration: none;
-      display: block;
-      padding: 12px;
-      border-radius: 6px;
-      margin-bottom: 5px;
-      cursor: pointer;
-    
-    }
-    .sidebar a:hover {
-      background: rgba(255,255,255,0.2);
-    }
-    .post-card {
-      border-radius: 12px;
-    }
-    .post-card img {
-      max-height: 300px;
-      object-fit: contain;
-    }
-  </style>
-</head>
-<body>
+<style>
+body { background-color: #f4f6f8; }
 
-<div class="container-fluid">
-  <div class="row">
+.sidebar {
+  height: 100vh;
+  background: #198754;
+  color: #fff;
+  position: sticky;
+  top: 0;
+}
+.sidebar a {
+  color: #fff;
+  text-decoration: none;
+  display: block;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 5px;
+}
+.sidebar a:hover { background: rgba(255,255,255,0.2); }
 
-    <!-- Sidebar -->
-    <div class="col-md-2 sidebar p-3">
-      <h4 class="text-center mb-4">Affiliate</h4>
-
-      <a onclick="showSection('feedSection')">
-        <i class="bi bi-house-door me-2"></i> Feed
-      </a>
-
-      <a onclick="showSection('postDetailsSection')">
-        <i class="bi bi-table me-2"></i> Post Details
-      </a>
-
-      <a href="{% url 'usersettings' %}">
-        <i class="bi bi-gear me-2"></i> Settings
-      </a>
-
-      <a href="{% url 'affiliate_logout' %}">
-        <i class="bi bi-box-arrow-right me-2"></i> Logout
-      </a>
-    </div>
-
-    <!-- Main Content -->
-    <div class="col-md-10 p-4">
-
-      <!-- FEED SECTION -->
-      <div id="feedSection">
-        <h3 class="mb-4">Posts from Super Admin</h3>
-
-        <div class="row">
-          {% for post in posts %}
-          <div class="col-md-4">
-            <div class="card post-card shadow-sm mb-4">
-
-              {% if post.image %}
-                <img src="{{ post.image.url }}" class="card-img-top">
-              {% endif %}
-
-              <div class="card-body">
-                <p class="card-text">{{ post.caption }}</p>
-                <small class="text-muted">{{ post.created_at|date:"d M Y" }}</small>
-
-                <hr>
-
-                <div class="d-flex justify-content-between">
-                  <button class="btn btn-outline-primary btn-sm like-btn" data-post-id="{{ post.id }}">
-                    <i class="bi bi-hand-thumbs-up"></i> Like
-                  </button>
-
-                  <button class="btn btn-outline-success btn-sm share-btn" data-post-id="{{ post.id }}">
-                    <i class="bi bi-share"></i> Share
-                  </button>
-
-                  <button class="btn btn-outline-secondary btn-sm comment-btn" data-post-id="{{ post.id }}">
-                    <i class="bi bi-chat"></i> Comment
-                  </button>
-                </div>
-              </div>
-
-            </div>
-          </div>
-          {% empty %}
-            <p>No posts available.</p>
-          {% endfor %}
-        </div>
-      </div>
-
-      <!-- POST DETAILS SECTION -->
-      <div id="postDetailsSection" style="display:none;">
-        <h3 class="mb-4">Post Details</h3>
-
-        <div class="table-responsive">
-          <table class="table table-bordered align-middle bg-white">
-            <thead class="table-light">
-              <tr>
-                <th style="width:45%">Post Card</th>
-                <th class="text-center">Like</th>
-                <th class="text-center">Share</th>
-                <th class="text-center">Comment</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {% for post in posts %}
-              <tr>
-
-                <td>
-                  <!-- Post Card -->
-                  <div class="card post-card shadow-sm mb-2">
-                    {% if post.image %}
-                      <img src="{{ post.image.url }}" class="card-img-top">
-                    {% endif %}
-                    <div class="card-body p-2">
-                      <p class="mb-1">{{ post.caption }}</p>
-                      <small class="text-muted">{{ post.created_at|date:"d M Y" }}</small>
-                    </div>
-                  </div>
-
-                  <!-- READONLY PLATFORM DROPDOWN -->
-                  <div class="mt-3 d-flex align-items-center gap-3">
-                    <span class="fw-semibold">Platform</span>
-                    <a
-                     href="#"
-                     target="_blank"
-                     class="form-control form-control-sm platform-link-input text-truncate"
-                     style="width: 260px; text-decoration:none;"
-                    >
-                      Select platform
-                    </a>
-
-                    <!-- Platform dropdown -->
-                    <select
-                      
-                       class="form-select form-select-sm platform-select"
-                       style="width:120px;"
-                       data-instagram="{{ post.Ipost_url }}"
-                       data-facebook="{{ post.Fposturl }}"
-                       data-linkedin="{{ post.Lposturl }}"
-                    >
-                       <option value="">Select</option>
-                       <option value="instagram">Instagram</option>
-                       <option value="linkedin">LinkedIn</option>
-                       <option value="facebook">Facebook</option>
-                    </select>
-                    
-                  </div>
-                </td>
-
-                <td class="text-center">
-                  <input type="checkbox" class="form-check-input">
-                </td>
-
-                <td class="text-center">
-                  <input type="checkbox" class="form-check-input">
-                </td>
-
-                <td class="text-center">
-                  <input type="checkbox" class="form-check-input">
-                </td>
-
-              </tr>
-              {% empty %}
-              <tr>
-                <td colspan="4" class="text-center text-muted">No posts available</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</div>
-
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-function showSection(sectionId) {
-  document.getElementById('feedSection').style.display = 'none';
-  document.getElementById('postDetailsSection').style.display = 'none';
-  document.getElementById(sectionId).style.display = 'block';
+.post-card {
+  width: 200px;
+  border-radius: 10px;
+  margin: auto;
+  transition: 0.3s;
 }
 
-document.addEventListener('change', function (e) {
+.post-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+}
 
-  if (!e.target.classList.contains('platform-select')) return;
+.post-card img {
+  height: 130px;
+  object-fit: cover;
+}
 
-  const select = e.target;
-  const row = select.closest('tr');
-  if (!row) return;
+.post-card .card-body {
+  padding: 8px;
+  font-size: 13px;
+}
+</style>
+</head>
 
-  const link = row.querySelector('.platform-link-input');
-  if (!link) return;
+<body>
 
-  let url = "";
+<form style="display:none;">
+{% csrf_token %}
+</form>
 
-  if (select.value === "instagram") {
-    url = select.dataset.instagram;
-  } 
-  else if (select.value === "facebook") {
-    url = select.dataset.facebook;
-  } 
-  else if (select.value === "linkedin") {
-    url = select.dataset.linkedin;
-  }
+<div class="container-fluid">
+<div class="row">
 
-  if (url && url !== "None") {
-    link.href = url;
-    link.textContent = url;
-  } else {
-    link.href = "#";
-    link.textContent = "Link not available";
-  }
+<div class="col-md-2 sidebar p-3">
+<h4 class="text-center mb-4">Affiliate</h4>
+
+<a onclick="showSection('feedSection')">
+<i class="bi bi-house-door me-2"></i> Feed
+</a>
+
+<a onclick="showSection('postDetailsSection')">
+<i class="bi bi-table me-2"></i> Post Details
+</a>
+
+<a href="{% url 'affiliate_post_stats' %}">
+<i class="bi bi-bar-chart me-2"></i> Posts Statistics
+</a>
+
+<a href="{% url 'usersettings' %}">
+<i class="bi bi-gear me-2"></i> Settings
+</a>
+
+<a href="{% url 'affiliate_logout' %}">
+<i class="bi bi-box-arrow-right me-2"></i> Logout
+</a>
+</div>
+
+<div class="col-md-10 p-4">
+
+<!-- FEED SECTION -->
+<div id="feedSection">
+<h3 class="mb-4">Posts from Super Admin</h3>
+
+<div class="row">
+{% for post in posts %}
+<div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+
+<div class="card post-card shadow-sm mb-4">
+
+{% if post.image %}
+<img src="{{ post.image.url }}" class="card-img-top">
+{% endif %}
+
+<div class="card-body">
+<p>{{ post.caption }}</p>
+<small>{{ post.created_at|date:"d M Y" }}</small>
+
+<hr>
+
+<select class="form-select form-select-sm mb-2 platform-select"
+data-post-id="{{ post.id }}"
+data-instagram="{{ post.Ipost_url }}"
+data-facebook="{{ post.Fposturl }}"
+data-linkedin="{{ post.Lposturl }}">
+
+<option value="">Select Platform</option>
+<option value="instagram">Instagram</option>
+<option value="facebook">Facebook</option>
+<option value="linkedin">LinkedIn</option>
+</select>
+
+<div class="d-flex justify-content-between">
+
+<button disabled class="btn btn-outline-primary btn-sm like-btn"
+data-post-id="{{ post.id }}">Like</button>
+
+<button disabled class="btn btn-outline-success btn-sm share-btn"
+data-post-id="{{ post.id }}">Share</button>
+
+<button disabled class="btn btn-outline-secondary btn-sm comment-btn"
+data-post-id="{{ post.id }}">Comment</button>
+
+</div>
+
+</div>
+</div>
+</div>
+{% endfor %}
+</div>
+</div>
+
+
+<!-- POST DETAILS -->
+<div id="postDetailsSection" style="display:none;">
+<h3 class="mb-4">Post Details</h3>
+
+<table class="table table-bordered bg-white">
+<thead>
+<tr>
+<th>Post</th>
+<th class="text-center">Like</th>
+<th class="text-center">Share</th>
+<th class="text-center">Comment</th>
+</tr>
+</thead>
+
+<tbody>
+{% for post in posts %}
+<tr>
+
+<td>
+<div class="card post-card p-2 mb-2">
+{% if post.image %}
+<img src="{{ post.image.url }}">
+{% endif %}
+<p>{{ post.caption }}</p>
+</div>
+</td>
+
+<td class="text-center">
+<input type="checkbox" class="action-checkbox"
+data-post-id="{{ post.id }}"
+data-action="like" disabled>
+</td>
+
+<td class="text-center">
+<input type="checkbox" class="action-checkbox"
+data-post-id="{{ post.id }}"
+data-action="share" disabled>
+</td>
+
+<td class="text-center">
+<input type="checkbox" class="action-checkbox"
+data-post-id="{{ post.id }}"
+data-action="comment" disabled>
+</td>
+
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+
+</div>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+
+function showSection(id){
+document.getElementById("feedSection").style.display="none";
+document.getElementById("postDetailsSection").style.display="none";
+document.getElementById(id).style.display="block";
+}
+
+function getCSRFToken(){
+return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+/* Enable Buttons After Platform Select */
+document.addEventListener("change", function(e){
+
+if(!e.target.classList.contains("platform-select")) return;
+
+let postId=e.target.dataset.postId;
+
+document.querySelectorAll(
+`.like-btn[data-post-id="${postId}"],
+.share-btn[data-post-id="${postId}"],
+.comment-btn[data-post-id="${postId}"]`
+).forEach(btn=> btn.disabled=false);
+
 });
+
+
+/* Get Platform URL */
+function getPlatformUrl(postId){
+
+let select=document.querySelector(
+`.platform-select[data-post-id="${postId}"]`
+);
+
+if(!select || !select.value){
+alert("Please select platform first");
+return null;
+}
+
+let url="";
+
+if(select.value==="instagram") url=select.dataset.instagram;
+if(select.value==="facebook") url=select.dataset.facebook;
+if(select.value==="linkedin") url=select.dataset.linkedin;
+
+return url;
+}
+
+
+/* BUTTON CLICK FLOW */
+document.querySelectorAll(".like-btn, .share-btn, .comment-btn")
+.forEach(btn=>{
+
+btn.addEventListener("click", function(){
+
+let postId=this.dataset.postId;
+
+let action=this.classList.contains("like-btn") ? "like" :
+this.classList.contains("share-btn") ? "share" : "comment";
+
+let url=getPlatformUrl(postId);
+if(!url) return;
+
+/* STEP 1 → OPEN SOCIAL POST */
+window.open(url,"_blank");
+
+/* STEP 2 → SAVE ACTION */
+fetch("{% url 'save_action' %}",{
+method:"POST",
+headers:{
+"Content-Type":"application/json",
+"X-CSRFToken": getCSRFToken()
+},
+body:JSON.stringify({
+post_id:postId,
+action:action
+})
+})
+.then(r=>r.json())
+.then(data=>{
+if(data.status==="success"){
+updateCheckbox(postId,action);
+}
+});
+
+});
+});
+
+
+/* UPDATE CHECKBOX */
+function updateCheckbox(postId,action){
+
+document.querySelectorAll(".action-checkbox").forEach(cb=>{
+if(cb.dataset.postId===postId && cb.dataset.action===action){
+cb.checked=true;
+}
+});
+
+}
+
+
+/* LOAD SAVED ACTIONS */
+window.onload=function(){
+
+fetch("{% url 'get_affiliate_actions' %}")
+.then(r=>r.json())
+.then(data=>{
+
+if(data.likes){
+data.likes.forEach(id=>updateCheckbox(id.toString(),"like"));
+}
+
+if(data.comments){
+data.comments.forEach(id=>updateCheckbox(id.toString(),"comment"));
+}
+
+if(data.shares){
+data.shares.forEach(id=>updateCheckbox(id.toString(),"share"));
+}
+
+});
+
+};
+
 </script>
 
 </body>

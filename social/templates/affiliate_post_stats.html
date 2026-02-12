@@ -1,0 +1,129 @@
+{% extends "affiliate_base.html" %}
+{% block title %}Posts Summary{% endblock %}
+{% block content %}
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-striped align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th>#</th>
+            <th>Post Name</th>
+            <th>Post Link</th>
+            <th>Total Likes</th>
+            <th>Total Comments</th>
+            <th>Total Shares</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for post in posts %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+
+            <!-- POST NAME -->
+            <td class="text-truncate" style="max-width:220px;"
+                title="{{ post.post_name|default:'No name' }}">
+              {{ post.post_name|default:"No name" }}
+            </td>
+
+            <!-- POST LINK + PLATFORM -->
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <a href="#" target="_blank"
+                   class="form-control form-control-sm platform-link-input text-truncate"
+                   style="width:260px; text-decoration:none;">
+                  Select platform
+                </a>
+
+                <select class="form-select form-select-sm platform-select"
+                        style="width:120px;"
+                        data-instagram="{{ post.Ipost_url }}"
+                        data-facebook="{{ post.Fposturl }}"
+                        data-linkedin="{{ post.Lposturl }}">
+                  <option value="">Select</option>
+                  <option value="instagram">Instagram</option>
+                  <option value="facebook">Facebook</option>
+                  <option value="linkedin">LinkedIn</option>
+                </select>
+              </div>
+            </td>
+
+            <td class="likes">{{ post.total_likes }}</td>
+            <td class="comments">{{ post.total_comments }}</td>
+            <td class="shares">{{ post.total_shares }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+function getCSRFToken() {
+  let cookieValue = null;
+  const name = "csrftoken";
+  if (document.cookie) {
+    document.cookie.split(";").forEach(cookie => {
+      cookie = cookie.trim();
+      if (cookie.startsWith(name + "=")) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+      }
+    });
+  }
+  return cookieValue;
+}
+
+document.addEventListener("change", function (e) {
+  if (!e.target.classList.contains("platform-select")) return;
+
+  const select = e.target;
+  const row = select.closest("tr");
+  const link = row.querySelector(".platform-link-input");
+
+  const likesTd = row.querySelector(".likes");
+  const commentsTd = row.querySelector(".comments");
+  const sharesTd = row.querySelector(".shares");
+
+  let url = "";
+  if (select.value === "instagram") url = select.dataset.instagram;
+  if (select.value === "facebook") url = select.dataset.facebook;
+  if (select.value === "linkedin") url = select.dataset.linkedin;
+
+  if (!url) return;
+
+  link.href = url;
+  link.textContent = url;
+
+  likesTd.textContent = "...";
+  commentsTd.textContent = "...";
+  sharesTd.textContent = "...";
+
+  fetch("/social/fetch-post-stats/", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": getCSRFToken()
+    },
+    body: JSON.stringify({
+      platform: select.value,
+      post_url: url
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    likesTd.textContent = data.likes ?? 0;
+    commentsTd.textContent = data.comments ?? 0;
+    sharesTd.textContent = data.shares ?? 0;
+  })
+  .catch(() => {
+    likesTd.textContent = "Err";
+    commentsTd.textContent = "Err";
+    sharesTd.textContent = "Err";
+  });
+});
+</script>
+
+{% endblock %}

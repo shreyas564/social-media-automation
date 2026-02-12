@@ -18,29 +18,16 @@ from .models import Like, Post, AffiliateProfile
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse
 from .models import *
-from django.shortcuts import get_object_or_404
 from .models import Post, Like, Comment, Share, AffiliateProfile
 from utils.cloudConnect import upload_image_to_cloudinary    
 from django.contrib.auth import logout
 from django.contrib.auth.hashers import check_password
 import json
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib import messages
-from django.views.decorators.http import require_POST
-from django.contrib.auth.hashers import check_password, make_password
 from .models import AffiliateProfile, Post
 from django.shortcuts import render, redirect
-from django.contrib import messages
-from django.contrib.auth.hashers import make_password
-from .models import AffiliateProfile
-#from utils.facebook import *
 from django.views.decorators.http import require_GET
 from .models import Post, SuperAdmin, InstagramComment
 from utils.facebook import get_insta_user_id
-from django.http import JsonResponse
-import urllib.parse
 
 
 N8N_WEBHOOK_URL = "http://localhost:5678/webhook-test/social-post"
@@ -75,10 +62,11 @@ def send_imageurl(image_url) :
         "n8n_response": response.text
     })
 
-def send_image_to_n8n(image_url, caption,post_id,post_name="") :
+def send_image_to_n8n(media_url, media_type,caption,post_id,post_name="") :
     
     payload = {
-        "image_url": image_url,
+        "media_url": media_url,
+        "media_type": media_type,
         "caption": caption,
         "post_name": post_name,
         "post_id": post_id
@@ -194,54 +182,125 @@ def auth_admin(request):
 
     return JsonResponse({"error": "Invalid method"}, status=405)
 
+import cloudinary.uploader
+
+def upload_media_to_cloudinary(file):
+
+    if file.content_type.startswith("video"):
+
+        result = cloudinary.uploader.upload_large(
+            file,
+            resource_type="video"
+        )
+
+        return result["secure_url"], "video"
+
+    else:
+
+        result = cloudinary.uploader.upload(
+            file,
+            resource_type="image"
+        )
+
+        return result["secure_url"], "image"
 
 
 def create_post(request):
     return render(request, 'createpost.html')
 
 
-def post_submitted(request):
-    print("Post submission received")
-    if request.method == "POST":
-        image = request.FILES.get("post_image")
-        caption = request.POST.get("post_text")
-        post_name = request.POST.get("post_name")
-        user=request.POST.get("user_id") 
+# def post_submitted(request):
+#     print("Post submission received")
+#     if request.method == "POST":
+#         image = request.FILES.get("post_image")
+#         caption = request.POST.get("post_text")
+#         post_name = request.POST.get("post_name")
+#         user=request.POST.get("user_id") 
 
 
-        print("Admin User ID:", user)
-        if not image or not caption:
-            return JsonResponse({
-                "success": False,
-                "message": "Image and caption are required"
-            }, status=400)
+#         print("Admin User ID:", user)
+#         if not image or not caption:
+#             return JsonResponse({
+#                 "success": False,
+#                 "message": "Image and caption are required"
+#             }, status=400)
 
-        try:
-            super_admin = request.user.super_admin
-        except SuperAdmin.DoesNotExist:
-            return JsonResponse({
-                "success": False,
-                "message": "Only SuperAdmins can create posts"
-            }, status=403)
+#         try:
+#             super_admin = request.user.super_admin
+#         except SuperAdmin.DoesNotExist:
+#             return JsonResponse({
+#                 "success": False,
+#                 "message": "Only SuperAdmins can create posts"
+#             }, status=403)
 
 
-        image_url = upload_image_to_cloudinary(image)
+#         image_url = upload_image_to_cloudinary()
 
         
-        post = Post.objects.create(
-            image=image,   # optional if you want local storage
-            caption=caption,
-            post_name=post_name,
-            created_by=super_admin
-        )
-         # type: ignore
-        post_id = post.id # type: ignore
-        print("Post created with ID:", post_id)
-        print("Image uploaded to Cloudinary:", image_url)
-        send_imageurl(image_url)
-        return send_image_to_n8n(image_url, caption,post.id,post_name) # type: ignore
-    else:
-        JsonResponse({"error": "Invalid method"}, status=405)
+#         post = Post.objects.create(
+#             image=image,   # optional if you want local storage
+#             caption=caption,
+#             post_name=post_name,
+#             created_by=super_admin
+#         )
+#          # type: ignore
+#         post_id = post.id # type: ignore
+#         print("Post created with ID:", post_id)
+#         print("Image uploaded to Cloudinary:", image_url)
+#         send_imageurl(image_url)
+#         return send_image_to_n8n(image_url, caption,post.id,post_name) # type: ignore
+#     else:
+#         JsonResponse({"error": "Invalid method"}, status=405)
+def post_submitted(request):
+    
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid method"}, status=405)
+
+    media_file = request.FILES.get("post_image")
+    caption = request.POST.get("post_text")
+    post_name = request.POST.get("post_name")
+
+    if not media_file or not caption:
+        return JsonResponse({
+            "success": False,
+            "message": "Media and caption required"
+        }, status=400)
+
+    try:
+        super_admin = request.user.super_admin
+    except SuperAdmin.DoesNotExist:
+        return JsonResponse({
+            "success": False,
+            "message": "Only SuperAdmins allowed"
+        }, status=403)
+
+    # ⭐ Upload to Cloudinary
+    media_url, media_type = upload_media_to_cloudinary(media_file)
+
+    # ⭐ Save Post
+    post = Post.objects.create(
+        media_url=media_url,
+        media_type=media_type,
+        caption=caption,
+        post_name=post_name,
+        created_by=super_admin
+    )
+
+    # ⭐ Send to N8N
+    payload = {
+        "media_url": media_url,
+        "media_type": media_type,
+        "caption": caption,
+        "post_id": post.id,
+        "post_name": post_name
+    }
+
+    try:
+        requests.post(N8N_WEBHOOK_URL, json=payload, timeout=40)
+    except Exception as e:
+        print("N8N ERROR:", e)
+
+    return JsonResponse({"success": True})
 
 
 #affiliate user regestration
@@ -332,126 +391,125 @@ def comment_post(request):
     affiliate = AffiliateProfile.objects.get(id=affiliate_id)
     post = Post.objects.get(id=post_id)
     Comment.objects.create(affiliate = affiliate,post=post,text=comment_text)
-    return JsonResponse({"status":"succcess"})
+    return JsonResponse({"status":"success"})
 
 def share_post(request):
     affiliate_id = request.session.get("affiliate_id")
     post_id = request.POST.get("post_id")
-    platform = request.POST.get("platform")
     affiliate = AffiliateProfile.objects.get(id=affiliate_id)
     post = Post.objects.get(id=post_id)
-    Share.objects.create(affiliate = affiliate,post=post,platform=platform)
+    Share.objects.create(affiliate = affiliate,post=post)
     return JsonResponse({"status":"success"})
 
 
 #for affiliate regestration side
-@require_POST
-def affiliate_like_post(request):
-    affiliate_id = request.session.get("affiliate_id")
+# @require_POST
+# def affiliate_like_post(request):
+#     affiliate_id = request.session.get("affiliate_id")
 
-    if not affiliate_id:
-        return JsonResponse(
-            {"error": "Affiliate not logged in"},
-            status=403
-        )
+#     if not affiliate_id:
+#         return JsonResponse(
+#             {"error": "Affiliate not logged in"},
+#             status=403
+#         )
 
-    post_id = request.POST.get("post_id")
+#     post_id = request.POST.get("post_id")
 
-    if not post_id:
-        return JsonResponse(
-            {"error": "Post ID missing"},
-            status=400
-        )
+#     if not post_id:
+#         return JsonResponse(
+#             {"error": "Post ID missing"},
+#             status=400
+#         )
 
-    affiliate = get_object_or_404(AffiliateProfile, id=affiliate_id)
-    post = get_object_or_404(Post, id=post_id)
+#     affiliate = get_object_or_404(AffiliateProfile, id=affiliate_id)
+#     post = get_object_or_404(Post, id=post_id)
 
-    like, created = Like.objects.get_or_create(
-        affiliate=affiliate,
-        post=post
-    )
+#     like, created = Like.objects.get_or_create(
+#         affiliate=affiliate,
+#         post=post
+#     )
 
-    if not created:
-        return JsonResponse({
-            "status": "already_liked",
-            "message": "You already liked this post"
-        })
+#     if not created:
+#         return JsonResponse({
+#             "status": "already_liked",
+#             "message": "You already liked this post"
+#         })
 
-    return JsonResponse({
-        "status": "success",
-        "message": "Post liked successfully"
-    })
-
-
-
-# COMMENT POST
-@require_POST
-def affiliate_comment_post(request):
-    affiliate_id = request.session.get("affiliate_id")
-
-    if not affiliate_id:
-        return JsonResponse(
-            {"error": "Affiliate not logged in"},
-            status=403
-        )
-
-    post_id = request.POST.get("post_id")
-    comment_text = request.POST.get("comment_text")
-
-    if not post_id or not comment_text:
-        return JsonResponse(
-            {"error": "Post ID or comment missing"},
-            status=400
-        )
-
-    affiliate = get_object_or_404(AffiliateProfile, id=affiliate_id)
-    post = get_object_or_404(Post, id=post_id)
-
-    Comment.objects.create(
-        affiliate=affiliate,
-        post=post,
-        text=comment_text
-    )
-
-    return JsonResponse({
-        "status": "success",
-        "message": "Comment added successfully"
-    })
+#     return JsonResponse({
+#         "status": "success",
+#         "message": "Post liked successfully"
+#     })
 
 
-# SHARE POST
-@require_POST
-def affiliate_share_post(request):
-    affiliate_id = request.session.get("affiliate_id")
 
-    if not affiliate_id:
-        return JsonResponse(
-            {"error": "Affiliate not logged in"},
-            status=403
-        )
+# # COMMENT POST
+# @require_POST
+# def affiliate_comment_post(request):
+#     affiliate_id = request.session.get("affiliate_id")
 
-    post_id = request.POST.get("post_id")
-    platform = request.POST.get("platform")
+#     if not affiliate_id:
+#         return JsonResponse(
+#             {"error": "Affiliate not logged in"},
+#             status=403
+#         )
 
-    if not post_id or not platform:
-        return JsonResponse(
-            {"error": "Post ID or platform missing"},
-            status=400
-        )
+#     post_id = request.POST.get("post_id")
+#     comment_text = request.POST.get("comment_text")
 
-    affiliate = get_object_or_404(AffiliateProfile, id=affiliate_id)
-    post = get_object_or_404(Post, id=post_id)
+#     if not post_id or not comment_text:
+#         return JsonResponse(
+#             {"error": "Post ID or comment missing"},
+#             status=400
+#         )
 
-    Share.objects.create(
-        affiliate=affiliate,
-        post=post,
-        platform=platform
-    )
+#     affiliate = get_object_or_404(AffiliateProfile, id=affiliate_id)
+#     post = get_object_or_404(Post, id=post_id)
 
-    return JsonResponse({
-        "status": "success",
-        "message": "Post shared successfully"
-    })
+#     Comment.objects.create(
+#         affiliate=affiliate,
+#         post=post,
+#         text=comment_text
+#     )
+
+#     return JsonResponse({
+#         "status": "success",
+#         "message": "Comment added successfully"
+#     })
+
+
+# # SHARE POST
+# @require_POST
+# def affiliate_share_post(request):
+#     affiliate_id = request.session.get("affiliate_id")
+
+#     if not affiliate_id:
+#         return JsonResponse(
+#             {"error": "Affiliate not logged in"},
+#             status=403
+#         )
+
+#     post_id = request.POST.get("post_id")
+#     platform = request.POST.get("platform")
+
+#     if not post_id or not platform:
+#         return JsonResponse(
+#             {"error": "Post ID or platform missing"},
+#             status=400
+#         )
+
+#     affiliate = get_object_or_404(AffiliateProfile, id=affiliate_id)
+#     post = get_object_or_404(Post, id=post_id)
+
+#     Share.objects.create(
+#         affiliate=affiliate,
+#         post=post,
+#         platform=platform
+#     )
+
+#     return JsonResponse({
+#         "status": "success",
+#         "message": "Post shared successfully"
+#     })
 
 #  AFFILIATE SETTINGS PAGE
 def usersettings(request):
@@ -658,21 +716,56 @@ def update_password(request):
 def editpost(request,post_id):
     post=Post.objects.get(id=post_id)
     return render(request, 'editpost.html', {'post': post})
+def edit_facebook_post(post_id, access_token, new_caption):
+    
+    if not post_id:
+        return True
 
-def submit_editpost(request,post_id):
+    url = f"https://graph.facebook.com/v19.0/{post_id}"
+
+    payload = {
+        "message": new_caption,
+        "access_token": access_token.strip()
+    }
+
+    res = requests.post(url, data=payload)
+
+    print("FB EDIT:", res.status_code, res.text)
+
+    return res.status_code == 200
+
+def submit_editpost(request, post_id):
+    
     if request.method == "POST":
+
         caption = request.POST.get("caption")
-        post=Post.objects.get(id=post_id)
-        post.caption=caption
+
+        post = Post.objects.get(id=post_id)
+        super_admin = SuperAdmin.objects.get(user=request.user)
+
+        # -------- Update DB --------
+        post.caption = caption
         post.save()
+
+        # -------- FACEBOOK EDIT --------
+        if post.fbpostid and super_admin.fbtoken:
+            edit_facebook_post(
+                post.fbpostid,
+                super_admin.fbtoken,
+                caption
+            )
+
+        # -------- N8N --------
         send_caption_to_n8n(caption)
-        #messages.success(request, "Post updated successfully")
+
         return redirect('posts_list')
+
     
 
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
+
 
 @login_required
 def del_post(request, post_id):
@@ -683,62 +776,28 @@ def del_post(request, post_id):
     ig_ok = True
     ln_ok = True
 
-    # ---------- FACEBOOK ----------
+    # FACEBOOK
     if post.fbpostid and super_admin.fbtoken:
-        try:
-            delete_facebook_post(
-                post.fbpostid,
-                super_admin.fbtoken
-            )
-        except Exception as e:
-            fb_ok = False
-            print("Facebook delete failed:", e)
+        fb_ok = delete_facebook_post(post.fbpostid, super_admin.fbtoken)
 
-    # ---------- INSTAGRAM ----------
+    # INSTAGRAM ✅ FIX ADDED
     if post.instapostid and super_admin.instatoken:
-        try:
-            delete_instagram_post(
-                post.instapostid,
-                super_admin.instatoken
-            )
-        except Exception as e:
-            ig_ok = False
-            print("Instagram delete failed:", e)
+        ig_ok = delete_instagram_post(post.instapostid, super_admin.instatoken)
 
-    # ---------- LINKEDIN ----------
+    # LINKEDIN
     if post.lnpostid and super_admin.lntoken:
-        try:
-            delete_linkedin_post(
-                post.lnpostid,
-                super_admin.lntoken
-            )
-        except Exception as e:
-            ln_ok = False
-            print("LinkedIn delete failed:", e)
+        ln_ok = delete_linkedin_post(post.lnpostid, super_admin.lntoken)
 
-    # ✅ ALWAYS delete from DB
     post.delete()
 
-    failed = []
-    if not fb_ok:
-        failed.append("Facebook")
-    if not ig_ok:
-        failed.append("Instagram")
-    if not ln_ok:
-        failed.append("LinkedIn")
-
-    if failed:
-        messages.warning(
-            request,
-            f"Deleted from dashboard. Failed on: {', '.join(failed)}"
-        )
+    if fb_ok and ig_ok and ln_ok:
+        messages.success(request, "Deleted from dashboard & all platforms")
     else:
-        messages.success(
-            request,
-            "Post deleted successfully from dashboard and all platforms."
-        )
+        messages.warning(request, "Deleted locally but failed on some platforms")
 
     return redirect("posts_list")
+
+
 
 
     
@@ -823,7 +882,7 @@ def delete_linkedin_post(post_urn, access_token):
 
     url = f"https://api.linkedin.com/v2/ugcPosts/{encoded_urn}"
     headers = {
-        "Authorization": f"Bearer {access_token}",
+        "Authorization": f"Bearer {access_token.strip()}",
         "X-Restli-Protocol-Version": "2.0.0",
     }
 
@@ -943,8 +1002,9 @@ def get_instagram_stats(media_id):
     return {
         "likes": res.get("like_count", 0),
         "comments": res.get("comments_count", 0),
-        "shares": 0  # Instagram does not provide share count
+        "shares":"Not Available" #Instagram does not provide share count
     }
+
 
 
 # ---------------- LINKEDIN (LIMITATION) ----------------
@@ -1233,29 +1293,17 @@ def fetch_post_stats(request):
     return JsonResponse(stats)
 
 
-import re
+
+
 def fetch_facebook_stats(post):
-
-    if not post.Fposturl:
+    
+    if not post.fbpostid:
         return {"likes": 0, "comments": 0, "shares": 0}
 
-    # Extract page_id and post_id from URL
-    match = re.search(r'facebook\.com/(\d+)/posts/(\d+)', post.Fposturl)
-
-    if not match:
-        print("Invalid FB URL:", post.Fposturl)
-        return {"likes": 0, "comments": 0, "shares": 0}
-
-    page_id, post_id = match.groups()
-    fb_graph_id = f"{page_id}_{post_id}"
-
-    print("Generated FB Graph ID:", fb_graph_id)
-
-    url = f"https://graph.facebook.com/v19.0/{fb_graph_id}"
+    url = f"https://graph.facebook.com/v19.0/{post.fbpostid}"
 
     params = {
-        "fields":"reactions.summary(true),comments.summary(true){from{name,id}},shares",
-
+        "fields": "reactions.summary(true),comments.summary(true),shares",
         "access_token": FACEBOOK_TOKEN
     }
 
@@ -1272,7 +1320,6 @@ def fetch_facebook_stats(post):
 
 
 
-
 def fetch_instagram_stats(post):
     url = f"https://graph.facebook.com/v19.0/{post.instapostid}"
     params = {
@@ -1285,7 +1332,7 @@ def fetch_instagram_stats(post):
     return {
         "likes": r.get("like_count", 0),
         "comments": r.get("comments_count", 0),
-        "shares": 0
+        "shares": "Not Available"
     }
 
 def fetch_linkedin_stats(post):
@@ -1332,7 +1379,6 @@ def linkedin_callback(request):
     response = requests.post(token_url, data=data)
 
     return HttpResponse(response.text)
-from django.shortcuts import redirect
 
 def linkedin_login(request):
 
@@ -1349,4 +1395,146 @@ def linkedin_login(request):
         f"&scope={scope}"
     )
 
-    return redirect(auth_url)
+def affiliate_post_stats(request):
+    
+    affiliate_id = request.session.get("affiliate_id")
+
+    if not affiliate_id:
+        return redirect("affiliate_login")
+
+    # Using SAME data as SuperAdmin
+    posts = Post.objects.all().order_by("-created_at")
+
+    return render(
+        request,
+        "affiliate_post_stats.html",   # SAME TEMPLATE AS ADMIN
+        {
+            "posts": posts
+        }
+    )
+
+
+#Affiliate User Action on post for Post Details
+def affiliate_post_status(request, post_id):
+    
+    affiliate_id = request.session.get("affiliate_id")
+
+    if not affiliate_id:
+        return JsonResponse({"error":"Not logged in"},status=403)
+
+    affiliate = AffiliateProfile.objects.get(id=affiliate_id)
+
+    data = {
+        "likes": list(
+            Like.objects.filter(
+                affiliate=affiliate,
+                post_id=post_id
+            ).values_list("platform",flat=True)
+        ),
+
+        "comments": list(
+            Comment.objects.filter(
+                affiliate=affiliate,
+                post_id=post_id
+            ).values_list("platform",flat=True)
+        ),
+
+        "shares": list(
+            Share.objects.filter(
+                affiliate=affiliate,
+                post_id=post_id
+            ).values_list("platform",flat=True)
+        )
+    }
+
+    return JsonResponse(data)
+
+
+@csrf_exempt
+def save_action(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid method"}, status=405)
+
+    affiliate_id = request.session.get("affiliate_id")
+
+    if not affiliate_id:
+        return JsonResponse({"error": "Not logged in"}, status=403)
+
+    data = json.loads(request.body)
+
+    post_id = data.get("post_id")
+    platform = data.get("platform")
+    action = data.get("action")
+
+    affiliate = AffiliateProfile.objects.get(id=affiliate_id)
+    post = Post.objects.get(id=post_id)
+
+    if action == "like":
+        Like.objects.get_or_create(
+            affiliate=affiliate,
+            post=post,
+            platform=platform
+        )
+
+    elif action == "comment":
+        Comment.objects.get_or_create(
+            affiliate=affiliate,
+            post=post,
+            platform=platform,
+            text="Done"
+        )
+
+    elif action == "share":
+        Share.objects.get_or_create(
+            affiliate=affiliate,
+            post=post,
+            platform=platform
+        )
+
+    return JsonResponse({"status": "success"})
+@require_GET
+def get_actions(request):
+    affiliate_id = request.session.get("affiliate_id")
+
+    if not affiliate_id:
+        return JsonResponse({"error": "Not logged in"}, status=403)
+
+    likes = list(
+        Like.objects.filter(affiliate_id=affiliate_id)
+        .values_list("post_id", flat=True)
+    )
+
+    comments = list(
+        Comment.objects.filter(affiliate_id=affiliate_id)
+        .values_list("post_id", flat=True)
+    )
+
+    shares = list(
+        Share.objects.filter(affiliate_id=affiliate_id)
+        .values_list("post_id", flat=True)
+    )
+
+    return JsonResponse({
+        "likes": likes,
+        "comments": comments,
+        "shares": shares
+    })
+
+
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def get_affiliate_actions(request):
+
+    affiliate = request.user
+
+    likes = Like.objects.filter(affiliate=affiliate).values_list("post_id", flat=True)
+    comments = Comment.objects.filter(affiliate=affiliate).values_list("post_id", flat=True)
+    shares = Share.objects.filter(affiliate=affiliate).values_list("post_id", flat=True)
+
+    return JsonResponse({
+        "likes": list(likes),
+        "comments": list(comments),
+        "shares": list(shares)
+    })
+

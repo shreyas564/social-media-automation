@@ -4,29 +4,34 @@
 
 {% block content %}
 
+<div class="container mt-4">
+
 <h3 class="mb-4">SuperAdmin Dashboard</h3>
 
+<!-- Stats Section -->
 <div class="row mb-4">
+
   <div class="col-md-4">
-    <div class="card shadow-sm p-3">
+    <div class="card shadow-sm p-3 text-center">
       <h6>Total Posts</h6>
-      <h3>{{ posts_count }}</h3>
+      <h3>{{ posts_count|default:0 }}</h3>
     </div>
   </div>
 
   <div class="col-md-4">
-    <div class="card shadow-sm p-3">
+    <div class="card shadow-sm p-3 text-center">
       <h6>Affiliate Users</h6>
-      <h3>{{ users }}</h3>
+      <h3>{{ users|default:0 }}</h3>
     </div>
   </div>
 
   <div class="col-md-4">
-    <div class="card shadow-sm p-3">
+    <div class="card shadow-sm p-3 text-center">
       <h6>Platforms Connected</h6>
       <h3>4</h3>
     </div>
   </div>
+
 </div>
 
 <h4 class="mb-3">Recent Posts</h4>
@@ -39,19 +44,50 @@
 </form>
 
 <div class="row">
-  {% for post in posts %}
-    <div class="col-md-4">
-      <div class="card post-card shadow-sm mb-4">
-        <img src="{{ post.image.url }}" class="card-img-top" alt="Post Image">
-        <div class="card-body">
-          <p class="card-text">{{ post.caption }}</p>
-        </div>
-      </div>
+
+{% for post in posts %}
+<div class="col-md-4">
+  <div class="card shadow-sm mb-4 post-card">
+
+    <!-- MEDIA HANDLING -->
+    
+    {% if post.image %}
+        <img src="{{ post.image.url }}" class="card-img-top" style="height:250px; object-fit:cover;">
+    
+:
+
+    {% elif post.video %}
+        <video class="card-img-top" controls style="height:250px; object-fit:cover;">
+            <source src="{{ post.video.url }}">
+        </video>
+
+    {% elif post.media_url %}
+        {% if post.media_type == "video" %}
+            <video class="card-img-top" controls style="height:250px; object-fit:cover;">
+                <source src="{{ post.media_url }}">
+            </video>
+        {% else %}
+            <img src="{{ post.media_url }}" class="card-img-top" style="height:250px; object-fit:cover;">
+        {% endif %}
+
+    {% else %}
+        <img src="https://via.placeholder.com/400x250?text=No+Media" class="card-img-top">
+    {% endif %}
+
+    <div class="card-body">
+      <p class="card-text">{{ post.caption|default:"No caption available" }}</p>
     </div>
-  {% empty %}
-    <p>No posts available.</p>
-  {% endfor %}
+
+  </div>
 </div>
 
+{% empty %}
+<div class="col-12">
+  <div class="alert alert-info">No posts available.</div>
+</div>
+{% endfor %}
+
+</div>
+</div>
 
 {% endblock %}
