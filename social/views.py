@@ -1112,7 +1112,7 @@ def get_facebook_commenters(request, postid):
         )
 
     url = f"https://graph.facebook.com/v19.0/{postid}/comments"
-
+ 
     params = {
         "fields": "from{id,name},created_time",
         "access_token": ACCESS_TOKEN
@@ -1139,7 +1139,7 @@ def get_facebook_commenters(request, postid):
 
 
 
-ACCESS_TOKEN = "AQVmKq7AGLBhnyazWkRWx2RMweRK8PqQSafJrzSJ36fTqNcbvhWM4q7qZy1rSpughTTfuWF0Ar6D4hY_syoAkWmlPXAjZahrpn_mE7g_PsMFqOGwJiewVuKxY8puHZXrn-rMFMT6M3K2_6NQioNOiCc0VEwZYYVgHWDc4CEbHxGmquMp2An34LOkr79joe6milnWWnefeWrsqKErWX87oPQt75UidiX5YfRXZeXWsS-EJSXAJ7TYhua6gRiIxNxTup0yTaM3dqLReuXXlezzRni5kNBD9Npidv3cPlCzA-3wmCnv6-1L5iGBrJ8UezBk1pW1bfjKiCHfnGtpDiN08J8cvZoz2Q"
+ACCESS_TOKEN = "AQXSC5K8LvpiOiW0FvvzuoJnHTOyC2lraSeH22XA9FqquQu6oBv1wxOgdJUxrsKAXglGfeHzSpS1QnjUgxU1VR63ZtXplpovW8Ebd0JraMrrItgrOYM7BZgMO0E_lIRGC4QCalVzLen8jof2IW8_5U7svcGzIGWT1TPeJsbLVT4fRvOj5Aw8B1RrWtdzA4FX68edqYhdZPpSDVFkGYG-Lvi7yPWpP8dRnGvyBQqjQLp607rKr-JGvhMjCT04MNLldU0J7mVD_bRFvA-QgC-B7Arh6s5BKxDxwAAndv8sXsJiaVkEQSHRqmR5ELxV2zWJs71s0rsGoiVZ3zySRNretPegIozvCg"
 def get_linkedin_comments(request, ugc_post_urn):
     access_token = request.headers.get("Authorization")
 
@@ -1293,31 +1293,74 @@ def fetch_post_stats(request):
     return JsonResponse(stats)
 
 
-
-
 def fetch_facebook_stats(post):
     
     if not post.fbpostid:
-        return {"likes": 0, "comments": 0, "shares": 0}
+        return {"likes": 0, "comments": 0, "shares": 0, "views": 0}
 
+    # -----------------------------
+    # STEP 1 → Fetch Post Info
+    # -----------------------------
     url = f"https://graph.facebook.com/v19.0/{post.fbpostid}"
 
     params = {
-        "fields": "reactions.summary(true),comments.summary(true),shares",
+        "fields": "reactions.summary(true),comments.summary(true),shares,attachments{media,type}",
         "access_token": FACEBOOK_TOKEN
     }
 
-    response = requests.get(url, params=params)
-    data = response.json()
+    res = requests.get(url, params=params)
+    data = res.json()
 
-    print("FB API Response:", data)
+    print("FB POST RESPONSE:", data)
+
+    likes = data.get("reactions", {}).get("summary", {}).get("total_count", 0)
+    comments = data.get("comments", {}).get("summary", {}).get("total_count", 0)
+    shares = data.get("shares", {}).get("count", 0)
+
+    # -----------------------------
+    # STEP 2 → Detect Video
+    # -----------------------------
+    video_id = None
+
+    try:
+        attachments = data["attachments"]["data"][0]
+
+        if attachments.get("media", {}).get("type") == "video":
+            video_id = attachments["media"]["id"]
+
+    except Exception:
+        pass
+
+    # -----------------------------
+    # STEP 3 → Fetch Video Insights
+    # -----------------------------
+    views = 0
+
+    if video_id:
+        insight_url = f"https://graph.facebook.com/v19.0/{video_id}/insights"
+
+        insight_params = {
+            "metric": "total_video_views",
+            "access_token": FACEBOOK_TOKEN
+        }
+
+        insight_res = requests.get(insight_url, params=insight_params).json()
+
+        print("VIDEO INSIGHTS:", insight_res)
+
+        try:
+            for item in insight_res.get("data", []):
+                if item["name"] == "total_video_views":
+                    views = item["values"][0]["value"]
+        except Exception:
+            pass
 
     return {
-        "likes": data.get("reactions", {}).get("summary", {}).get("total_count", 0),
-        "comments": data.get("comments", {}).get("summary", {}).get("total_count", 0),
-        "shares": data.get("shares", {}).get("count", 0),
+        "likes": likes,
+        "comments": comments,
+        "shares": shares,
+        "views": views
     }
-
 
 
 def fetch_instagram_stats(post):
@@ -1537,4 +1580,3 @@ def get_affiliate_actions(request):
         "comments": list(comments),
         "shares": list(shares)
     })
-
