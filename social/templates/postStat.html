@@ -1,129 +1,177 @@
 {% extends "base.html" %}
 {% block title %}Posts Summary{% endblock %}
+
 {% block content %}
 
-<div class="card shadow-sm">
-  <div class="card-body">
-    <div class="table-responsive">
-      <table class="table table-striped align-middle">
-        <thead class="table-dark">
-          <tr>
-            <th>#</th>
-            <th>Post Name</th>
-            <th>Post Link</th>
-            <th>Total Likes</th>
-            <th>Total Comments</th>
-            <th>Total Shares</th>
-          </tr>
-        </thead>
+<style>
 
-        <tbody>
-          {% for post in posts %}
-          <tr>
-            <td>{{ forloop.counter }}</td>
+.stats-header {
+    text-align: center;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
 
-            <!-- POST NAME -->
-            <td class="text-truncate" style="max-width:220px;"
-                title="{{ post.post_name|default:'No name' }}">
-              {{ post.post_name|default:"No name" }}
-            </td>
+.sub-header {
+    font-size: 13px;
+    text-align: center;
+}
 
-            <!-- POST LINK + PLATFORM -->
-            <td>
-              <div class="d-flex align-items-center gap-2">
-                <a href="#" target="_blank"
-                   class="form-control form-control-sm platform-link-input text-truncate"
-                   style="width:260px; text-decoration:none;">
-                  Select platform
-                </a>
+.stat-number {
+    font-weight: 600;
+    text-align: center;
+}
 
-                <select class="form-select form-select-sm platform-select"
-                        style="width:120px;"
-                        data-instagram="{{ post.Ipost_url }}"
-                        data-facebook="{{ post.Fposturl }}"
-                        data-linkedin="{{ post.Lposturl }}">
-                  <option value="">Select</option>
-                  <option value="instagram">Instagram</option>
-                  <option value="facebook">Facebook</option>
-                  <option value="linkedin">LinkedIn</option>
-                </select>
-              </div>
-            </td>
+.instagram-bg { background: #fdf2f8; }
+.facebook-bg { background: #eff6ff; }
+.linkedin-bg { background: #f0fdfa; }
 
-            <td class="likes">{{ post.total_likes }}</td>
-            <td class="comments">{{ post.total_comments }}</td>
-            <td class="shares">{{ post.total_shares }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
+</style>
+
+<div class="card shadow-sm border-0">
+<div class="card-body">
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="mb-0">Post Statistics</h5>
+  <form method="post" action="{% url 'sync_post_stats' %}">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-sm btn-primary">
+      Sync Latest Stats
+    </button>
+  </form>
+</div>
+
+<div class="table-responsive">
+
+<table class="table table-hover align-middle">
+
+<thead class="table-dark">
+
+<tr>
+    <th rowspan="2">#</th>
+    <th rowspan="2">Post Name</th>
+    <th rowspan="2">Post Link</th>
+    <th rowspan="2">Action</th>
+
+    <th colspan="3" class="stats-header instagram-bg">Instagram</th>
+    <th colspan="3" class="stats-header facebook-bg">Facebook</th>
+    <th colspan="3" class="stats-header linkedin-bg">LinkedIn</th>
+</tr>
+
+<tr class="table-secondary sub-header">
+
+    <!-- Instagram -->
+    <th>Likes</th>
+    <th>Comments</th>
+    <th>Shares</th>
+
+    <!-- Facebook -->
+    <th>Likes</th>
+    <th>Comments</th>
+    <th>Shares</th>
+
+    <!-- LinkedIn -->
+    <th>Likes</th>
+    <th>Comments</th>
+    <th>Shares</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+{% for post in posts %}
+<tr>
+
+<td>{{ forloop.counter }}</td>
+
+<td>{{ post.post_name }}</td>
+
+<!-- LINK + DROPDOWN -->
+<td>
+<div class="d-flex gap-2">
+
+<a href="#"
+   target="_blank"
+   class="form-control form-control-sm platform-link-input text-truncate"
+   style="width:240px;">
+   Select platform
+</a>
+
+<select class="form-select form-select-sm platform-select"
+        style="width:120px;"
+        data-instagram="{{ post.Ipost_url }}"
+        data-facebook="{{ post.Fposturl }}"
+        data-linkedin="{{ post.Lposturl }}">
+    <option value="">Select</option>
+    <option value="instagram">Instagram</option>
+    <option value="facebook">Facebook</option>
+    <option value="linkedin">LinkedIn</option>
+</select>
+
+</div>
+</td>
+
+<td>
+<form method="post" action="{% url 'sync_single_post_stats' post.id %}">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-sm btn-outline-secondary">Refresh</button>
+</form>
+</td>
+
+<!-- Instagram Stats -->
+<td class="stat-number text-danger">{{ post.ig_likes|default:0 }}</td>
+<td class="stat-number text-danger">{{ post.ig_comments|default:0 }}</td>
+<td class="stat-number text-danger">{{ post.ig_shares|default:"NA" }}</td>
+
+<!-- Facebook Stats -->
+<td class="stat-number text-primary">{{ post.fb_likes|default:0 }}</td>
+<td class="stat-number text-primary">{{ post.fb_comments|default:0 }}</td>
+<td class="stat-number text-primary">{{ post.fb_shares|default:0 }}</td>
+
+<!-- LinkedIn Stats -->
+<td class="stat-number text-success">{{ post.li_likes|default:0 }}</td>
+<td class="stat-number text-success">{{ post.li_comments|default:0 }}</td>
+<td class="stat-number text-success">{{ post.li_shares|default:0 }}</td>
+
+</tr>
+{% endfor %}
+
+</tbody>
+
+</table>
+
+</div>
+</div>
 </div>
 
 <script>
-function getCSRFToken() {
-  let cookieValue = null;
-  const name = "csrftoken";
-  if (document.cookie) {
-    document.cookie.split(";").forEach(cookie => {
-      cookie = cookie.trim();
-      if (cookie.startsWith(name + "=")) {
-        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-      }
-    });
-  }
-  return cookieValue;
-}
 
 document.addEventListener("change", function (e) {
-  if (!e.target.classList.contains("platform-select")) return;
 
-  const select = e.target;
-  const row = select.closest("tr");
-  const link = row.querySelector(".platform-link-input");
+if (!e.target.classList.contains("platform-select")) return;
 
-  const likesTd = row.querySelector(".likes");
-  const commentsTd = row.querySelector(".comments");
-  const sharesTd = row.querySelector(".shares");
+const select = e.target;
+const row = select.closest("tr");
+const link = row.querySelector(".platform-link-input");
 
-  let url = "";
-  if (select.value === "instagram") url = select.dataset.instagram;
-  if (select.value === "facebook") url = select.dataset.facebook;
-  if (select.value === "linkedin") url = select.dataset.linkedin;
+let url = "";
 
-  if (!url) return;
+if (select.value === "instagram") url = select.dataset.instagram;
+if (select.value === "facebook") url = select.dataset.facebook;
+if (select.value === "linkedin") url = select.dataset.linkedin;
 
-  link.href = url;
-  link.textContent = url;
+if (!url) {
+    link.textContent = "No post available";
+    link.removeAttribute("href");
+    return;
+}
 
-  likesTd.textContent = "...";
-  commentsTd.textContent = "...";
-  sharesTd.textContent = "...";
+link.href = url;
+link.textContent = url;
 
-  fetch("/social/fetch-post-stats/", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-CSRFToken": getCSRFToken()
-    },
-    body: JSON.stringify({
-      platform: select.value,
-      post_url: url
-    })
-  })
-  .then(res => res.json())
-  .then(data => {
-    likesTd.textContent = data.likes ?? 0;
-    commentsTd.textContent = data.comments ?? 0;
-    sharesTd.textContent = data.shares ?? 0;
-  })
-  .catch(() => {
-    likesTd.textContent = "Err";
-    commentsTd.textContent = "Err";
-    sharesTd.textContent = "Err";
-  });
 });
+
 </script>
 
 {% endblock %}
