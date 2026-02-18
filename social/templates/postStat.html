@@ -4,173 +4,322 @@
 {% block content %}
 
 <style>
+    .stats-header {
+        text-align: center;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
 
-.stats-header {
-    text-align: center;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-}
+    .sub-header {
+        font-size: 13px;
+        text-align: center;
+    }
 
-.sub-header {
-    font-size: 13px;
-    text-align: center;
-}
+    .stat-number {
+        font-weight: 600;
+        text-align: center;
+    }
 
-.stat-number {
-    font-weight: 600;
-    text-align: center;
-}
+    .instagram-bg {
+        background: #fdf2f8;
+    }
 
-.instagram-bg { background: #fdf2f8; }
-.facebook-bg { background: #eff6ff; }
-.linkedin-bg { background: #f0fdfa; }
+    .facebook-bg {
+        background: #eff6ff;
+    }
 
+    .linkedin-bg {
+        background: #f0fdfa;
+    }
 </style>
 
 <div class="card shadow-sm border-0">
-<div class="card-body">
+    <div class="card-body">
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h5 class="mb-0">Post Statistics</h5>
-  <form method="post" action="{% url 'sync_post_stats' %}">
-    {% csrf_token %}
-    <button type="submit" class="btn btn-sm btn-primary">
-      Sync Latest Stats
-    </button>
-  </form>
-</div>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0">Post Statistics</h5>
+            <form method="post" action="{% url 'sync_post_stats' %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-primary">
+                    Sync Latest Stats
+                </button>
+            </form>
+        </div>
 
-<div class="table-responsive">
+        <div class="table-responsive">
 
-<table class="table table-hover align-middle">
+            <table class="table table-hover align-middle">
 
-<thead class="table-dark">
+                <thead class="table-dark">
 
-<tr>
-    <th rowspan="2">#</th>
-    <th rowspan="2">Post Name</th>
-    <th rowspan="2">Post Link</th>
-    <th rowspan="2">Action</th>
+                    <tr>
+                        <th rowspan="2">#</th>
+                        <th rowspan="2">Post Name</th>
+                        <th rowspan="2">Post Link</th>
+                        <th rowspan="2">Action</th>
 
-    <th colspan="3" class="stats-header instagram-bg">Instagram</th>
-    <th colspan="3" class="stats-header facebook-bg">Facebook</th>
-    <th colspan="3" class="stats-header linkedin-bg">LinkedIn</th>
-</tr>
+                        <th colspan="3" class="stats-header instagram-bg">Instagram</th>
+                        <th colspan="3" class="stats-header facebook-bg">Facebook</th>
+                        <th colspan="3" class="stats-header linkedin-bg">LinkedIn</th>
+                    </tr>
 
-<tr class="table-secondary sub-header">
+                    <tr class="table-secondary sub-header">
 
-    <!-- Instagram -->
-    <th>Likes</th>
-    <th>Comments</th>
-    <th>Shares</th>
+                        <!-- Instagram -->
+                        <th>Likes</th>
+                        <th>Comments</th>
+                        <th>Shares</th>
 
-    <!-- Facebook -->
-    <th>Likes</th>
-    <th>Comments</th>
-    <th>Shares</th>
+                        <!-- Facebook -->
+                        <th>Likes</th>
+                        <th>Comments</th>
+                        <th>Shares</th>
 
-    <!-- LinkedIn -->
-    <th>Likes</th>
-    <th>Comments</th>
-    <th>Shares</th>
+                        <!-- LinkedIn -->
+                        <th>Likes</th>
+                        <th>Comments</th>
+                        <th>Shares</th>
 
-</tr>
+                    </tr>
 
-</thead>
+                </thead>
 
-<tbody>
+                <tbody>
 
-{% for post in posts %}
-<tr>
+                    {% for post in posts %}
+                    <tr>
 
-<td>{{ forloop.counter }}</td>
+                        <td>{{ forloop.counter }}</td>
 
-<td>{{ post.post_name }}</td>
+                        <td>{{ post.post_name }}</td>
 
-<!-- LINK + DROPDOWN -->
-<td>
-<div class="d-flex gap-2">
+                        <!-- LINK + DROPDOWN -->
+                        <td>
+                            <div class="d-flex gap-2">
 
-<a href="#"
-   target="_blank"
-   class="form-control form-control-sm platform-link-input text-truncate"
-   style="width:240px;">
-   Select platform
-</a>
+                                <a href="#" target="_blank"
+                                    class="form-control form-control-sm platform-link-input text-truncate"
+                                    style="width:240px;">
+                                    Select platform
+                                </a>
 
-<select class="form-select form-select-sm platform-select"
-        style="width:120px;"
-        data-instagram="{{ post.Ipost_url }}"
-        data-facebook="{{ post.Fposturl }}"
-        data-linkedin="{{ post.Lposturl }}">
-    <option value="">Select</option>
-    <option value="instagram">Instagram</option>
-    <option value="facebook">Facebook</option>
-    <option value="linkedin">LinkedIn</option>
-</select>
+                                <select class="form-select form-select-sm platform-select" style="width:120px;"
+                                    data-instagram="{{ post.Ipost_url }}" data-facebook="{{ post.Fposturl }}"
+                                    data-linkedin="{{ post.Lposturl }}" data-scraped-info='{
+                                        {% if post.scraped_info.instagram %}"instagram": {"likes": {{ post.scraped_info.instagram.total_likes_found }}, "comments": {{ post.scraped_info.instagram.total_comments_found }}}{% endif %}
+                                        {% if post.scraped_info.instagram and post.scraped_info.facebook %}, {% endif %}
+                                        {% if post.scraped_info.facebook %}"facebook": {"likes": {{ post.scraped_info.facebook.total_likes_found }}, "comments": {{ post.scraped_info.facebook.total_comments_found }}}{% endif %}
+                                        {% if post.scraped_info.facebook and post.scraped_info.linkedin %}, {% endif %}
+                                        {% if post.scraped_info.linkedin %}"linkedin": {"likes": {{ post.scraped_info.linkedin.total_likes_found }}, "comments": {{ post.scraped_info.linkedin.total_comments_found }}}{% endif %}
+                                    }'>
+                                    <option value="">Select</option>
+                                    <option value="instagram">Instagram</option>
+                                    <option value="facebook">Facebook</option>
+                                    <option value="linkedin">LinkedIn</option>
+                                </select>
 
-</div>
-</td>
+                            </div>
+                        </td>
 
-<td>
-<form method="post" action="{% url 'sync_single_post_stats' post.id %}">
-    {% csrf_token %}
-    <button type="submit" class="btn btn-sm btn-outline-secondary">Refresh</button>
-</form>
-</td>
+                        <!-- ACTION / SCRAPING CONTROLS -->
+                        <td>
+                            <div class="d-flex gap-2">
 
-<!-- Instagram Stats -->
-<td class="stat-number text-danger">{{ post.ig_likes|default:0 }}</td>
-<td class="stat-number text-danger">{{ post.ig_comments|default:0 }}</td>
-<td class="stat-number text-danger">{{ post.ig_shares|default:"NA" }}</td>
+                                <!-- Scrape Form (Always All) -->
+                                {% if post.Ipost_url or post.Fposturl or post.Lposturl %}
+                                <form method="POST" action="{% url 'scrape_post' post.id %}"
+                                    class="d-inline scrape-form">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="platform" value="all">
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary scrape-btn"
+                                        title="Scrape All Platforms">
+                                        <i class="bi bi-cloud-download"></i> Scrape
+                                    </button>
+                                </form>
+                                {% else %}
+                                <button class="btn btn-sm btn-outline-secondary" disabled>No URLs</button>
+                                {% endif %}
 
-<!-- Facebook Stats -->
-<td class="stat-number text-primary">{{ post.fb_likes|default:0 }}</td>
-<td class="stat-number text-primary">{{ post.fb_comments|default:0 }}</td>
-<td class="stat-number text-primary">{{ post.fb_shares|default:0 }}</td>
+                            </div>
+                            <small class="text-muted d-block mt-1 scrape-status"></small>
+                        </td>
 
-<!-- LinkedIn Stats -->
-<td class="stat-number text-success">{{ post.li_likes|default:0 }}</td>
-<td class="stat-number text-success">{{ post.li_comments|default:0 }}</td>
-<td class="stat-number text-success">{{ post.li_shares|default:0 }}</td>
+                        <style>
+                            /* Custom Tooltip Styles */
+                            .stat-cell {
+                                position: relative;
+                                cursor: help;
+                            }
 
-</tr>
-{% endfor %}
+                            .custom-tooltip {
+                                visibility: hidden;
+                                width: 200px;
+                                background-color: #333;
+                                color: #fff;
+                                text-align: left;
+                                border-radius: 6px;
+                                padding: 8px 12px;
+                                position: absolute;
+                                z-index: 100;
+                                bottom: 100%;
+                                left: 50%;
+                                transform: translateX(-50%);
+                                opacity: 0;
+                                transition: opacity 0.3s;
+                                font-size: 12px;
+                                font-weight: normal;
+                                max-height: 200px;
+                                overflow-y: auto;
+                                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                                pointer-events: none;
+                                /* Prevents tooltip from blocking interaction */
+                            }
 
-</tbody>
+                            .stat-cell:hover .custom-tooltip {
+                                visibility: visible;
+                                opacity: 1;
+                            }
 
-</table>
+                            /* Arrow for tooltip */
+                            .custom-tooltip::after {
+                                content: "";
+                                position: absolute;
+                                top: 100%;
+                                left: 50%;
+                                margin-left: -5px;
+                                border-width: 5px;
+                                border-style: solid;
+                                border-color: #333 transparent transparent transparent;
+                            }
 
-</div>
-</div>
+                            .tooltip-header {
+                                border-bottom: 1px solid #555;
+                                padding-bottom: 4px;
+                                margin-bottom: 4px;
+                                font-weight: bold;
+                                color: #ddd;
+                            }
+                        </style>
+
+                        <!-- Instagram Stats -->
+                        <td class="stat-number text-danger stat-cell">
+                            {{ post.ig_likes|default:0 }}
+                            {% if post.scraped_info.instagram.likes.exists %}
+                            <div class="custom-tooltip">
+                                <div class="tooltip-header">Likers</div>
+                                {% for like in post.scraped_info.instagram.likes.all|slice:':50' %}
+                                {{ like.username }}{% if not forloop.last %}, {% endif %}
+                                {% endfor %}
+                                {% if post.scraped_info.instagram.total_likes_found > 50 %}...{% endif %}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td class="stat-number text-danger stat-cell">
+                            {{ post.ig_comments|default:0 }}
+                            {% if post.scraped_info.instagram.comments.exists %}
+                            <div class="custom-tooltip">
+                                <div class="tooltip-header">Commenters</div>
+                                {% for comment in post.scraped_info.instagram.comments.all|slice:':50' %}
+                                {{ comment.username }}{% if not forloop.last %}, {% endif %}
+                                {% endfor %}
+                                {% if post.scraped_info.instagram.total_comments_found > 50 %}...{% endif %}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td class="stat-number text-danger">{{ post.ig_shares|default:"NA" }}</td>
+
+                        <!-- Facebook Stats -->
+                        <td class="stat-number text-primary stat-cell">
+                            {{ post.fb_likes|default:0 }}
+                            {% if post.scraped_info.facebook.likes.exists %}
+                            <div class="custom-tooltip">
+                                <div class="tooltip-header">Likers</div>
+                                {% for like in post.scraped_info.facebook.likes.all|slice:':50' %}
+                                {{ like.username }}{% if not forloop.last %}, {% endif %}
+                                {% endfor %}
+                                {% if post.scraped_info.facebook.total_likes_found > 50 %}...{% endif %}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td class="stat-number text-primary stat-cell">
+                            {{ post.fb_comments|default:0 }}
+                            {% if post.scraped_info.facebook.comments.exists %}
+                            <div class="custom-tooltip">
+                                <div class="tooltip-header">Commenters</div>
+                                {% for comment in post.scraped_info.facebook.comments.all|slice:':50' %}
+                                {{ comment.username }}{% if not forloop.last %}, {% endif %}
+                                {% endfor %}
+                                {% if post.scraped_info.facebook.total_comments_found > 50 %}...{% endif %}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td class="stat-number text-primary">{{ post.fb_shares|default:0 }}</td>
+
+                        <!-- LinkedIn Stats -->
+                        <td class="stat-number text-success stat-cell">
+                            {{ post.li_likes|default:0 }}
+                            {% if post.scraped_info.linkedin.likes.exists %}
+                            <div class="custom-tooltip">
+                                <div class="tooltip-header">Likers</div>
+                                {% for like in post.scraped_info.linkedin.likes.all|slice:':50' %}
+                                {{ like.username }}{% if not forloop.last %}, {% endif %}
+                                {% endfor %}
+                                {% if post.scraped_info.linkedin.total_likes_found > 50 %}...{% endif %}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td class="stat-number text-success stat-cell">
+                            {{ post.li_comments|default:0 }}
+                            {% if post.scraped_info.linkedin.comments.exists %}
+                            <div class="custom-tooltip">
+                                <div class="tooltip-header">Commenters</div>
+                                {% for comment in post.scraped_info.linkedin.comments.all|slice:':50' %}
+                                {{ comment.username }}{% if not forloop.last %}, {% endif %}
+                                {% endfor %}
+                                {% if post.scraped_info.linkedin.total_comments_found > 50 %}...{% endif %}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td class="stat-number text-success">{{ post.li_shares|default:0 }}</td>
+
+                    </tr>
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+    </div>
 </div>
 
 <script>
 
-document.addEventListener("change", function (e) {
+    document.addEventListener("change", function (e) {
 
-if (!e.target.classList.contains("platform-select")) return;
+        if (!e.target.classList.contains("platform-select")) return;
 
-const select = e.target;
-const row = select.closest("tr");
-const link = row.querySelector(".platform-link-input");
+        const select = e.target;
+        const row = select.closest("tr");
+        const link = row.querySelector(".platform-link-input");
+        const statusText = row.querySelector(".scrape-status");
 
-let url = "";
+        let url = "";
+        let platform = select.value;
 
-if (select.value === "instagram") url = select.dataset.instagram;
-if (select.value === "facebook") url = select.dataset.facebook;
-if (select.value === "linkedin") url = select.dataset.linkedin;
+        if (platform === "instagram") url = select.dataset.instagram;
+        if (platform === "facebook") url = select.dataset.facebook;
+        if (platform === "linkedin") url = select.dataset.linkedin;
 
-if (!url) {
-    link.textContent = "No post available";
-    link.removeAttribute("href");
-    return;
-}
+        if (!url) {
+            link.textContent = "No link available";
+            link.removeAttribute("href");
+        } else {
+            link.href = url;
+            link.textContent = url;
+        }
 
-link.href = url;
-link.textContent = url;
-
-});
+    });
 
 </script>
 

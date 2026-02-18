@@ -6,88 +6,94 @@
 
 <div class="container mt-4">
 
-<h3 class="mb-4">SuperAdmin Dashboard</h3>
+  <h3 class="mb-4">SuperAdmin Dashboard</h3>
 
-<!-- Stats Section -->
-<div class="row mb-4">
+  <!-- Stats Section -->
+  <div class="row mb-4">
 
-  <div class="col-md-4">
-    <div class="card shadow-sm p-3 text-center">
-      <h6>Total Posts</h6>
-      <h3>{{ posts_count|default:0 }}</h3>
+    <div class="col-md-4">
+      <div class="card shadow-sm p-3 text-center">
+        <h6>Total Posts</h6>
+        <h3>{{ posts_count|default:0 }}</h3>
+      </div>
     </div>
+
+    <div class="col-md-4">
+      <div class="card shadow-sm p-3 text-center">
+        <h6>Affiliate Users</h6>
+        <h3>{{ users|default:0 }}</h3>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card shadow-sm p-3 text-center">
+        <h6>Platforms Connected</h6>
+        <h3>4</h3>
+      </div>
+    </div>
+
   </div>
 
-  <div class="col-md-4">
-    <div class="card shadow-sm p-3 text-center">
-      <h6>Affiliate Users</h6>
-      <h3>{{ users|default:0 }}</h3>
-    </div>
+  <h4 class="mb-3">Recent Posts</h4>
+
+  <div class="d-flex gap-2 mb-4">
+    <form action="{% url 'create_post' %}" method="post">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-success">
+        <i class="bi bi-plus-circle"></i> Create New Post
+      </button>
+    </form>
+
+    <a href="{% url 'affiliate_users' %}" class="btn btn-primary">
+      <i class="bi bi-people"></i> Affiliate Users & Verification
+    </a>
   </div>
 
-  <div class="col-md-4">
-    <div class="card shadow-sm p-3 text-center">
-      <h6>Platforms Connected</h6>
-      <h3>4</h3>
-    </div>
-  </div>
+  <div class="row">
 
-</div>
+    {% for post in posts %}
+    <div class="col-md-4">
+      <div class="card shadow-sm mb-4 post-card">
 
-<h4 class="mb-3">Recent Posts</h4>
+        <!-- MEDIA HANDLING -->
 
-<form class="mb-4" action="{% url 'create_post' %}" method="post">
-  {% csrf_token %}
-  <button type="submit" class="btn btn-success">
-    <i class="bi bi-plus-circle"></i> Create New Post
-  </button>
-</form>
-
-<div class="row">
-
-{% for post in posts %}
-<div class="col-md-4">
-  <div class="card shadow-sm mb-4 post-card">
-
-    <!-- MEDIA HANDLING -->
-    
-    {% if post.image %}
+        {% if post.image %}
         <img src="{{ post.image.url }}" class="card-img-top" style="height:250px; object-fit:cover;">
-    
-:
 
-    {% elif post.video %}
+        :
+
+        {% elif post.video %}
         <video class="card-img-top" controls style="height:250px; object-fit:cover;">
-            <source src="{{ post.video.url }}">
+          <source src="{{ post.video.url }}">
         </video>
 
-    {% elif post.media_url %}
+        {% elif post.media_url %}
         {% if post.media_type == "video" %}
-            <video class="card-img-top" controls style="height:250px; object-fit:cover;">
-                <source src="{{ post.media_url }}">
-            </video>
+        <video class="card-img-top" controls style="height:250px; object-fit:cover;">
+          <source src="{{ post.media_url }}">
+        </video>
         {% else %}
-            <img src="{{ post.media_url }}" class="card-img-top" style="height:250px; object-fit:cover;">
+        <img src="{{ post.media_url }}" class="card-img-top" style="height:250px; object-fit:cover;">
         {% endif %}
 
-    {% else %}
+        {% else %}
         <img src="https://via.placeholder.com/400x250?text=No+Media" class="card-img-top">
-    {% endif %}
+        {% endif %}
 
-    <div class="card-body">
-      <p class="card-text">{{ post.caption|default:"No caption available" }}</p>
+        <div class="card-body">
+          <p class="card-text">{{ post.caption|default:"No caption available" }}</p>
+        </div>
+
+      </div>
     </div>
 
+    {% empty %}
+    <div class="col-12">
+      <div class="alert alert-info">No posts available.</div>
+    </div>
+    {% endfor %}
+
   </div>
-</div>
-
-{% empty %}
-<div class="col-12">
-  <div class="alert alert-info">No posts available.</div>
-</div>
-{% endfor %}
-
-</div>
 </div>
 
 {% endblock %}

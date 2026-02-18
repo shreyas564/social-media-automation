@@ -13,6 +13,14 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from pathlib import Path
 import os
 import cloudinary
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Apify Configuration
+APIFY_TOKEN = os.getenv('APIFY_TOKEN')
+INSTAGRAM_SESSION_COOKIE = os.getenv('INSTAGRAM_SESSION_COOKIE')  # Optional
 
 cloudinary.config(
     cloud_name="dclz1tlmh",
@@ -89,9 +97,9 @@ WSGI_APPLICATION = 'walstar.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'walstar',
+        'NAME': 'social_media_db',
         'USER': 'postgres',
-        'PASSWORD': 'root',
+        'PASSWORD': 'abc',
         'HOST': 'localhost',
         'PORT': '5432',
     }

@@ -64,10 +64,25 @@ class AffiliateProfile(models.Model):
     linkedin_secret = models.CharField(max_length=255)
     facebook_secret = models.CharField(max_length=255)
     twitter_secret = models.CharField(max_length=255)
+    
+    # Platform-specific usernames for Apify verification
+    instagram_username = models.CharField(max_length=150, blank=True, null=True, help_text="Instagram username for verification")
+    facebook_username = models.CharField(max_length=150, blank=True, null=True, help_text="Facebook name/username for verification")
+    linkedin_username = models.CharField(max_length=150, blank=True, null=True, help_text="LinkedIn name for verification")
 
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
+        return self.username
+    
+    def get_platform_username(self, platform):
+        """Get the appropriate username for the given platform"""
+        if platform == 'instagram':
+            return self.instagram_username or self.username
+        elif platform == 'facebook':
+            return self.facebook_username or self.username
+        elif platform == 'linkedin':
+            return self.linkedin_username or self.username
         return self.username
     
 class Comment(models.Model):
@@ -81,6 +96,12 @@ class Comment(models.Model):
     ('linkedin', 'LinkedIn')]
 
     platform = models.CharField(max_length=20,choices=PLATFORM_CHOICES,default='instagram',null=True,blank=True)
+    
+    # Verification fields
+    is_verified = models.BooleanField(default=False)
+    verified_at = models.DateTimeField(null=True, blank=True)
+    verification_method = models.CharField(max_length=50, null=True, blank=True)  # 'apify', 'manual', 'screenshot'
+    apify_run_id = models.CharField(max_length=100, null=True, blank=True)  # Audit trail
 
     def __str__(self):
         return f"Comment by {self.affiliate.username} on Post {self.post.id}" # type: ignore
@@ -95,6 +116,12 @@ class Like(models.Model):
         ('facebook', 'Facebook'),
         ('linkedin', 'LinkedIn')]
     platform = models.CharField(max_length=20, choices=PLATFORM_CHOICES, default='instagram', null=True, blank=True)
+    
+    # Verification fields
+    is_verified = models.BooleanField(default=False)
+    verified_at = models.DateTimeField(null=True, blank=True)
+    verification_method = models.CharField(max_length=50, null=True, blank=True)  # 'apify', 'manual', 'screenshot'
+    apify_run_id = models.CharField(max_length=100, null=True, blank=True)  # Audit trail
 
     class Meta:
         unique_together = ('post', 'affiliate')
@@ -118,11 +145,71 @@ class Share(models.Model):
     
     created_at = models.DateTimeField(auto_now_add=True)
     
+    # Verification fields
+    is_verified = models.BooleanField(default=False)
+    verified_at = models.DateTimeField(null=True, blank=True)
+    verification_method = models.CharField(max_length=50, null=True, blank=True)  # 'apify', 'manual', 'screenshot'
+    apify_run_id = models.CharField(max_length=100, null=True, blank=True)  # Audit trail
+    
     class Meta:
         unique_together = ('post', 'affiliate')
     def __str__(self):
         return f"Share by {self.affiliate.username} on {self.platform}"
 
+
+# =====================================================
+# APIFY SCRAPED DATA MODELS
+# =====================================================
+
+class ScrapedPost(models.Model):
+    """Tracks which posts have been scraped and when"""
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='scrapes')
+    platform = models.CharField(
+        max_length=20,
+        choices=[
+            ('instagram', 'Instagram'),
+            ('facebook', 'Facebook'),
+            ('linkedin', 'LinkedIn'),
+        ]
+    )
+    scraped_at = models.DateTimeField(auto_now_add=True)
+    total_likes_found = models.IntegerField(default=0)
+    total_comments_found = models.IntegerField(default=0)
+    apify_run_id = models.CharField(max_length=100, null=True, blank=True)
+    
+    class Meta:
+        unique_together = ('post', 'platform')
+        ordering = ['-scraped_at']
+    
+    def __str__(self):
+        return f"{self.post.caption[:30]} - {self.platform} - {self.scraped_at.strftime('%Y-%m-%d')}"
+
+
+class ScrapedLike(models.Model):
+    """Stores all likers found for a post"""
+    scraped_post = models.ForeignKey(ScrapedPost, on_delete=models.CASCADE, related_name='likes')
+    username = models.CharField(max_length=255)  # Username found on platform
+    scraped_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['username']
+    
+    def __str__(self):
+        return f"{self.username} - {self.scraped_post}"
+
+
+class ScrapedComment(models.Model):
+    """Stores all commenters found for a post"""
+    scraped_post = models.ForeignKey(ScrapedPost, on_delete=models.CASCADE, related_name='comments')
+    username = models.CharField(max_length=255)  # Username/name found on platform
+    comment_text = models.TextField(null=True, blank=True)  # Optional: store comment text
+    scraped_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['username']
+    
+    def __str__(self):
+        return f"{self.username} - {self.scraped_post}"
 
 
 class InstagramComment(models.Model):

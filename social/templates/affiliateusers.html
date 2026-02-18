@@ -4,49 +4,49 @@
 
 {% block content %}
 
-<h3 class="mb-4">Affiliate Users</h3>
+<h3 class="mb-4">Affiliate Users & Engagement Verification</h3>
 
-<div class="card shadow-sm">
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+  {{ message }}
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- Users Table -->
+<div class="card">
   <div class="card-body">
 
     <div class="table-responsive">
-      <table class="table table-striped align-middle">
-        <thead class="table-dark">
+      <table class="table table-bordered">
+        <thead>
           <tr>
             <th>#</th>
             <th>Username</th>
-            <th>Email</th>
-            <th>Date Joined</th>
-            <th class="text-center">Actions</th>
+            <th>Likes</th>
+            <th>Comments</th>
+            <th>Shares</th>
+            <th>Total</th>
+            <th>Joined</th>
           </tr>
         </thead>
 
         <tbody>
-          {% for user in users %}
+          {% for item in users_stats %}
           <tr>
             <td>{{ forloop.counter }}</td>
-            <td>{{ user.username }}</td>
-            <td>{{ user.email }}</td>
-            <td>{{ user.date_joined | date:"d M Y" }}</td>
-            <td class="text-center">
-
-              {% comment %} <!-- Remove User -->
-              <form action="{% url 'remove_user' user.id %}"
-                    method="post"
-                    class="d-inline">
-                {% csrf_token %}
-                <button type="submit"
-                        class="btn btn-sm btn-danger"
-                        onclick="return confirm('Are you sure you want to remove this user?');">
-                  <i class="bi bi-trash"></i> Remove
-                </button>
-              </form> {% endcomment %}
-
-            </td>
+            <td>{{ item.affiliate.username }}</td>
+            <td>{{ item.scraped_likes }}</td>
+            <td>{{ item.scraped_comments }}</td>
+            <td>{{ item.total_shares }}</td>
+            <td><strong>{{ item.scraped_likes|add:item.scraped_comments }}</strong></td>
+            <td>{{ item.affiliate.created_at|date:"d M Y" }}</td>
           </tr>
           {% empty %}
           <tr>
-            <td colspan="5" class="text-center text-muted">
+            <td colspan="8" class="text-center text-muted">
               No users found.
             </td>
           </tr>

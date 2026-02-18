@@ -534,6 +534,11 @@ def update_affiliate_profile(request):
     affiliate = get_object_or_404(AffiliateProfile, id=affiliate_id)
 
     affiliate.username = request.POST.get("username", affiliate.username)
+    
+    # Update platform usernames for verification
+    affiliate.instagram_username = request.POST.get("instagram_username", affiliate.instagram_username)
+    affiliate.facebook_username = request.POST.get("facebook_username", affiliate.facebook_username)
+    affiliate.linkedin_username = request.POST.get("linkedin_username", affiliate.linkedin_username)
 
     if request.POST.get("instagram_secret"):
         affiliate.instagram_secret = make_password(
@@ -590,8 +595,13 @@ def affiliate_logout(request):
 
 #SUPER ADMIN SIDE 
 def posts_list(request):
-     posts = Post.objects.all().order_by('-created_at')
-     return render(request, 'postslist.html', {'posts': posts})
+    posts = Post.objects.all().order_by('-created_at').prefetch_related('scrapes')
+    
+    # Organize scraped data for easy access in template
+    for post in posts:
+        post.scraped_info = {s.platform: s for s in post.scrapes.all()}
+        
+    return render(request, 'postslist.html', {'posts': posts})
 
 
 
@@ -649,8 +659,228 @@ def change_password_page(request):
 
 
 def affiliate_users(request):
+    from django.db.models import Count, Q
+    from datetime import timedelta
+    from django.utils import timezone
+    # Ensure these are imported or available
+    from .models import ScrapedLike, ScrapedComment
+
     affiliate_profiles = AffiliateProfile.objects.all()
-    return render(request, 'affiliateusers.html', {'users': affiliate_profiles})
+
+    # Build statistics for each affiliate
+    stats_data = []
+
+    for affiliate in affiliate_profiles:
+        # 1. Total claimed engagement (from manual button clicks)
+        total_likes = Like.objects.filter(affiliate=affiliate).count()
+        total_comments = Comment.objects.filter(affiliate=affiliate).count()
+        total_shares = Share.objects.filter(affiliate=affiliate).count()
+        
+        # 2. Scraped/Found engagement (Direct database check)
+        scraped_likes_count = 0
+        scraped_comments_count = 0
+        
+        # Instagram
+        if affiliate.instagram_username:
+            scraped_likes_count += ScrapedLike.objects.filter(
+                scraped_post__platform='instagram', 
+                username__iexact=affiliate.instagram_username
+            ).count()
+            scraped_comments_count += ScrapedComment.objects.filter(
+                scraped_post__platform='instagram', 
+                username__iexact=affiliate.instagram_username
+            ).count()
+            
+        # Facebook
+        if affiliate.facebook_username:
+            scraped_likes_count += ScrapedLike.objects.filter(
+                scraped_post__platform='facebook', 
+                username__iexact=affiliate.facebook_username
+            ).count()
+            scraped_comments_count += ScrapedComment.objects.filter(
+                scraped_post__platform='facebook', 
+                username__iexact=affiliate.facebook_username
+            ).count()
+            
+        # LinkedIn
+        if affiliate.linkedin_username:
+            scraped_likes_count += ScrapedLike.objects.filter(
+                scraped_post__platform='linkedin', 
+                username__iexact=affiliate.linkedin_username
+            ).count()
+            scraped_comments_count += ScrapedComment.objects.filter(
+                scraped_post__platform='linkedin', 
+                username__iexact=affiliate.linkedin_username
+            ).count()
+
+        # Structure data for this affiliate
+        affiliate_stats = {
+            'affiliate': affiliate,
+            'total_likes': total_likes,
+            'total_comments': total_comments,
+            'total_shares': total_shares,
+            'total_engagement': total_likes + total_comments + total_shares,
+            # Use these new fields in template
+            'scraped_likes': scraped_likes_count,
+            'scraped_comments': scraped_comments_count,
+        }
+
+        stats_data.append(affiliate_stats)
+    
+    context = {
+        'users_stats': stats_data,
+        # Removed pending/verified overview stats as requested
+    }
+
+    return render(request, 'affiliateusers.html', context)
+
+
+def verification_dashboard(request):
+    """Dashboard showing pending verifications and stats"""
+    from datetime import timedelta
+    from django.utils import timezone
+    
+    # Get pending verifications (last 7 days)
+    week_ago = timezone.now() - timedelta(days=7)
+    
+    pending_likes = Like.objects.filter(
+        is_verified=False,
+        created_at__gte=week_ago
+    ).select_related('post', 'affiliate').order_by('-created_at')[:50]
+    
+    pending_comments = Comment.objects.filter(
+        is_verified=False,
+        created_at__gte=week_ago
+    ).select_related('post', 'affiliate').order_by('-created_at')[:50]
+    
+    # Get verification stats
+    total_likes = Like.objects.filter(created_at__gte=week_ago).count()
+    total_comments = Comment.objects.filter(created_at__gte=week_ago).count()
+    
+    verified_likes = Like.objects.filter(created_at__gte=week_ago, is_verified=True).count()
+    verified_comments = Comment.objects.filter(created_at__gte=week_ago, is_verified=True).count()
+    
+    context = {
+        'pending_likes': pending_likes,
+        'pending_comments': pending_comments,
+        'pending_count': pending_likes.count() + pending_comments.count(),
+        'verified_likes': verified_likes,
+        'verified_comments': verified_comments,
+        'total_likes': total_likes,
+        'total_comments': total_comments,
+        'verification_rate': round((verified_likes + verified_comments) / max(total_likes + total_comments, 1) * 100, 1)
+    }
+    
+    return render(request, 'verification_dashboard.html', context)
+
+
+def trigger_verification(request):
+    """Trigger Apify verification for recent engagement"""
+    from django.contrib import messages
+    from utils.verification_service import VerificationService
+    import os
+    
+    if request.method == 'POST':
+        # Check if Apify token is configured
+        if not os.getenv('APIFY_TOKEN'):
+            messages.error(request, '❌ Apify token not configured. Please add APIFY_TOKEN to .env file.')
+            return redirect('affiliate_users')
+        
+        try:
+            service = VerificationService()
+            
+            # Run verification
+            results = service.verify_all_recent_engagement(days=7, limit=50)
+            
+            # Show success message with stats
+            verified_total = results['verified_likes'] + results['verified_comments']
+            checked_total = results['total_likes_checked'] + results['total_comments_checked']
+            
+            messages.success(
+                request, 
+                f'✓ Verification complete! Verified {verified_total}/{checked_total} items. '
+                f'({results["verified_likes"]} likes, {results["verified_comments"]} comments)'
+            )
+        
+        except Exception as e:
+            messages.error(request, f'❌ Verification error: {str(e)}')
+    
+    return redirect('affiliate_users')
+
+
+def scrape_post_data(request, post_id):
+    """Scrape a post and save all engagement data to database"""
+    from django.contrib import messages
+    from utils.post_scraper import PostScrapingService
+    import os
+    
+    if request.method == 'POST':
+        platform = request.POST.get('platform')
+        
+        if not os.getenv('APIFY_TOKEN'):
+            messages.error(request, '❌ Apify token not configured')
+            return redirect('post_stats')
+        
+        try:
+            service = PostScrapingService()
+            from utils.post_verification import PostVerificationService
+            verify_service = PostVerificationService()
+            
+            platforms_to_scrape = []
+            if platform == 'all':
+                post = Post.objects.get(id=post_id)
+                if post.Ipost_url: platforms_to_scrape.append('instagram')
+                if post.Fposturl: platforms_to_scrape.append('facebook')
+                if post.Lposturl: platforms_to_scrape.append('linkedin')
+            else:
+                platforms_to_scrape = [platform]
+            
+            results = []
+            for p in platforms_to_scrape:
+                result = service.scrape_post(post_id, p)
+                if result['success']:
+                    verify_result = verify_service.verify_post_engagement(post_id, p)
+                    results.append(f"✓ {p.title()}: {result['likes_found']}L/{verify_result.get('verified_likes', 0)} verified")
+                else:
+                    results.append(f"❌ {p.title()}: {result.get('error')}")
+            
+            if results:
+                messages.success(request, " | ".join(results))
+            else:
+                messages.warning(request, "No platforms available to scrape")
+        
+        except Exception as e:
+            messages.error(request, f'❌ Error: {str(e)}')
+    
+    return redirect('post_stats')
+
+
+def verify_post_data(request, post_id):
+    """Verify affiliates against scraped data in database"""
+    from django.contrib import messages
+    from utils.post_verification import PostVerificationService
+    
+    if request.method == 'POST':
+        platform = request.POST.get('platform')
+        
+        try:
+            service = PostVerificationService()
+            result = service.verify_post_engagement(post_id, platform)
+            
+            if result['success']:
+                messages.success(
+                    request,
+                    f"✓ Verified {platform.title()}: {result['verified_likes']} likes, "
+                    f"{result['verified_comments']} comments matched"
+                )
+            else:
+                messages.error(request, f"❌ {result.get('error', 'Verification failed')}")
+        
+        except Exception as e:
+            messages.error(request, f'❌ Error: {str(e)}')
+    
+    return redirect('posts_list')
+
 
 def setting(request):
     return render(request, 'settings.html')
@@ -896,70 +1126,62 @@ def delete_linkedin_post(post_urn, access_token):
 def postStat(request):
 
     admin = SuperAdmin.objects.get(user=request.user)
-    posts = Post.objects.filter(created_by=admin).order_by("-created_at")
+    posts = Post.objects.filter(created_by=admin).order_by("-created_at").prefetch_related(
+        'scrapes__likes', 
+        'scrapes__comments'
+    )
+
+    # Organize scraped data for easy access in template
+    for post in posts:
+        post.scraped_info = {s.platform: s for s in post.scrapes.all()}
 
     return render(request, "postStat.html", {"posts": posts})
 
 
 def _sync_post_stats_for_admin(admin):
-    posts = list(Post.objects.filter(created_by=admin))
+    """
+    Sync post stats from ScrapedPost data instead of live API calls.
+    This ensures we use the data we paid for via Apify.
+    """
+    posts = list(Post.objects.filter(created_by=admin).prefetch_related('scrapes'))
     if not posts:
         return 0, 0
 
     dirty_posts = []
     update_fields = [
-        "ig_likes", "ig_comments", "ig_shares",
-        "fb_likes", "fb_comments", "fb_shares",
-        "li_likes", "li_comments", "li_shares",
+        "ig_likes", "ig_comments",
+        "fb_likes", "fb_comments",
+        "li_likes", "li_comments",
     ]
 
     for post in posts:
         changed = False
-
-        if post.instapostid and admin.instatoken:
-            ig = get_instagram_stats(post.instapostid, admin.instatoken)
-            ig_likes = ig.get("likes", 0)
-            ig_comments = ig.get("comments", 0)
-            ig_shares = ig.get("shares", "NA")
-            if (
-                post.ig_likes != ig_likes
-                or post.ig_comments != ig_comments
-                or post.ig_shares != ig_shares
-            ):
-                post.ig_likes = ig_likes
-                post.ig_comments = ig_comments
-                post.ig_shares = ig_shares
+        
+        # Get scraped data map
+        scrapes = {s.platform: s for s in post.scrapes.all()}
+        
+        # Update Instagram
+        if 'instagram' in scrapes:
+            s = scrapes['instagram']
+            if post.ig_likes != s.total_likes_found or post.ig_comments != s.total_comments_found:
+                post.ig_likes = s.total_likes_found
+                post.ig_comments = s.total_comments_found
                 changed = True
-
-        fb_target = post.fbpostid or post.Fposturl
-        if fb_target and admin.fbtoken:
-            fb = get_facebook_stats(fb_target, admin.fbtoken)
-            fb_likes = fb.get("likes", 0)
-            fb_comments = fb.get("comments", 0)
-            fb_shares = fb.get("shares", 0)
-            if (
-                post.fb_likes != fb_likes
-                or post.fb_comments != fb_comments
-                or post.fb_shares != fb_shares
-            ):
-                post.fb_likes = fb_likes
-                post.fb_comments = fb_comments
-                post.fb_shares = fb_shares
+        
+        # Update Facebook
+        if 'facebook' in scrapes:
+            s = scrapes['facebook']
+            if post.fb_likes != s.total_likes_found or post.fb_comments != s.total_comments_found:
+                post.fb_likes = s.total_likes_found
+                post.fb_comments = s.total_comments_found
                 changed = True
-
-        if post.lnpostid and admin.lntoken:
-            li = get_linkedin_stats(post.lnpostid, admin.lntoken)
-            li_likes = li.get("likes", 0)
-            li_comments = li.get("comments", 0)
-            li_shares = li.get("shares", 0)
-            if (
-                post.li_likes != li_likes
-                or post.li_comments != li_comments
-                or post.li_shares != li_shares
-            ):
-                post.li_likes = li_likes
-                post.li_comments = li_comments
-                post.li_shares = li_shares
+                
+        # Update LinkedIn
+        if 'linkedin' in scrapes:
+            s = scrapes['linkedin']
+            if post.li_likes != s.total_likes_found or post.li_comments != s.total_comments_found:
+                post.li_likes = s.total_likes_found
+                post.li_comments = s.total_comments_found
                 changed = True
 
         if changed:

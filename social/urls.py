@@ -26,6 +26,15 @@ urlpatterns = [
     path("delete-post/<int:post_id>", views.del_post, name="delete_post"),
 
     path("users/", views.affiliate_users, name="affiliate_users"),
+    
+    # Verification Dashboard
+    path("verification/", views.verification_dashboard, name="verification_dashboard"),
+    path("verification/trigger/", views.trigger_verification, name="trigger_verification"),
+    
+    # Post Scraping & Verification
+    path("scrape-post/<int:post_id>/", views.scrape_post_data, name="scrape_post"),
+    path("verify-post/<int:post_id>/", views.verify_post_data, name="verify_post"),
+    
     path("settings/", views.setting, name="settings"),
     path("profile/", views.profile, name="profile"),
     path("update-profile/", views.update_admin_profile, name="update_profile"),
