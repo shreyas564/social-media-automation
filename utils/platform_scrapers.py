@@ -204,73 +204,65 @@ class LinkedInScraper:
     
     def scrape_reactions(self, post_url: str, max_reactions: int = 100) -> List[str]:
         """
-        Scrape reactions from LinkedIn post
+        Scrape reactions (likers) from LinkedIn post
         
-        Actor: apify/linkedin-scraper (fallback as specific reaction scrapers are unstable)
+        Actor: harvestapi/linkedin-post-reactions
         """
         print(f"🔍 [LinkedIn] Scraping reactions from: {post_url}")
         
         run_input = {
-            "startUrls": [{"url": post_url}],
-            "minDelay": 2,
-            "maxDelay": 5,
+            "urls": [post_url],
         }
         
+        # Add cookie if available
         if self.cookie:
-             run_input["cookies"] = [{"name": "li_at", "value": self.cookie, "domain": ".linkedin.com"}]
-
+             run_input["cookies"] = [{"name": "li_at", "value": self.cookie, "domain": ".linkedin.com", "path": "/"}]
+        
         try:
-            # Run LinkedIn Scraper
-            run = self.client.actor("apify/linkedin-scraper").call(run_input=run_input)
+            # Run LinkedIn Reactions Scraper
+            run = self.client.actor("harvestapi/linkedin-post-reactions").call(run_input=run_input)
             
             reactors = []
             if run:
                 for item in self.client.dataset(run["defaultDatasetId"]).iterate_items():
-                    # LinkedIn scraper usually returns post details, including like count, but maybe likers list?
-                    # It often doesn't return full reactor list freely.
-                    # We will try to find 'likes' or 'reactions' list.
-                    reactions = item.get('reactions', []) or item.get('likes', [])
-                    for r in reactions:
-                        name = r.get('name') or r.get('actor', {}).get('name')
-                        if name:
-                            reactors.append(name)
-            
+                    # harvestapi usually returns 'name' or 'profile_url'
+                    name = item.get('name') or item.get('title')
+                    if name:
+                        reactors.append(name)
+                        
             print(f"✓ Found {len(reactors)} reactors")
             return reactors
         
         except Exception as e:
             print(f"❌ Error scraping LinkedIn reactions: {e}")
             return []
-    
+
     def scrape_comments(self, post_url: str, max_comments: int = 100) -> List[str]:
         """
-        Scrape comments from LinkedIn post
+        Scrape commenters from LinkedIn post
         
-        Actor: apify/linkedin-scraper
+        Actor: harvestapi/linkedin-post-comments
         """
         print(f"🔍 [LinkedIn] Scraping comments from: {post_url}")
         
         run_input = {
-            "startUrls": [{"url": post_url}],
-            "limit": 1, # 1 post
-            "deepScrape": True
+            "urls": [post_url],
         }
         
         if self.cookie:
-            run_input["cookies"] = [{"name": "li_at", "value": self.cookie, "domain": ".linkedin.com"}]
+            run_input["cookies"] = [{"name": "li_at", "value": self.cookie, "domain": ".linkedin.com", "path": "/"}]
         
         try:
-            # Run LinkedIn Scraper
-            run = self.client.actor("apify/linkedin-scraper").call(run_input=run_input)
+            # Run LinkedIn Comments Scraper
+            run = self.client.actor("harvestapi/linkedin-post-comments").call(run_input=run_input)
             
             commenters = []
             if run:
                 for item in self.client.dataset(run["defaultDatasetId"]).iterate_items():
-                    comments_list = item.get('comments', [])
-                    for comment in comments_list:
-                        author = comment.get('author') or comment.get('authorName')
-                        if author:
-                            commenters.append(author)
+                    # Extract author name
+                    author_name = item.get('author_name') or item.get('name') or item.get('author', {}).get('name')
+                    if author_name:
+                        commenters.append(author_name)
             
             print(f"✓ Found {len(commenters)} commenters")
             return commenters

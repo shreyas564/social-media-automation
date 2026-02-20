@@ -29,6 +29,7 @@
             <th>Comments</th>
             <th>Shares</th>
             <th>Total</th>
+            <th>Credits</th>
             <th>Joined</th>
           </tr>
         </thead>
@@ -42,6 +43,7 @@
             <td>{{ item.scraped_comments }}</td>
             <td>{{ item.total_shares }}</td>
             <td><strong>{{ item.scraped_likes|add:item.scraped_comments }}</strong></td>
+            <td>{{ item.credits }}</td>
             <td>{{ item.affiliate.created_at|date:"d M Y" }}</td>
           </tr>
           {% empty %}

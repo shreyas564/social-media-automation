@@ -144,140 +144,71 @@
                             <small class="text-muted d-block mt-1 scrape-status"></small>
                         </td>
 
-                        <style>
-                            /* Custom Tooltip Styles */
-                            .stat-cell {
-                                position: relative;
-                                cursor: help;
-                            }
-
-                            .custom-tooltip {
-                                visibility: hidden;
-                                width: 200px;
-                                background-color: #333;
-                                color: #fff;
-                                text-align: left;
-                                border-radius: 6px;
-                                padding: 8px 12px;
-                                position: absolute;
-                                z-index: 100;
-                                bottom: 100%;
-                                left: 50%;
-                                transform: translateX(-50%);
-                                opacity: 0;
-                                transition: opacity 0.3s;
-                                font-size: 12px;
-                                font-weight: normal;
-                                max-height: 200px;
-                                overflow-y: auto;
-                                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-                                pointer-events: none;
-                                /* Prevents tooltip from blocking interaction */
-                            }
-
-                            .stat-cell:hover .custom-tooltip {
-                                visibility: visible;
-                                opacity: 1;
-                            }
-
-                            /* Arrow for tooltip */
-                            .custom-tooltip::after {
-                                content: "";
-                                position: absolute;
-                                top: 100%;
-                                left: 50%;
-                                margin-left: -5px;
-                                border-width: 5px;
-                                border-style: solid;
-                                border-color: #333 transparent transparent transparent;
-                            }
-
-                            .tooltip-header {
-                                border-bottom: 1px solid #555;
-                                padding-bottom: 4px;
-                                margin-bottom: 4px;
-                                font-weight: bold;
-                                color: #ddd;
-                            }
-                        </style>
-
                         <!-- Instagram Stats -->
-                        <td class="stat-number text-danger stat-cell">
-                            {{ post.ig_likes|default:0 }}
+                        <td class="stat-number text-danger">
                             {% if post.scraped_info.instagram.likes.exists %}
-                            <div class="custom-tooltip">
-                                <div class="tooltip-header">Likers</div>
-                                {% for like in post.scraped_info.instagram.likes.all|slice:':50' %}
-                                {{ like.username }}{% if not forloop.last %}, {% endif %}
-                                {% endfor %}
-                                {% if post.scraped_info.instagram.total_likes_found > 50 %}...{% endif %}
-                            </div>
+                            <a href="{% url 'post_details' post.id 'instagram' 'likes' %}"
+                                class="text-danger text-decoration-underline" title="View details">
+                                {{ post.ig_likes|default:0 }}
+                            </a>
+                            {% else %}
+                            {{ post.ig_likes|default:0 }}
                             {% endif %}
                         </td>
-                        <td class="stat-number text-danger stat-cell">
-                            {{ post.ig_comments|default:0 }}
+                        <td class="stat-number text-danger">
                             {% if post.scraped_info.instagram.comments.exists %}
-                            <div class="custom-tooltip">
-                                <div class="tooltip-header">Commenters</div>
-                                {% for comment in post.scraped_info.instagram.comments.all|slice:':50' %}
-                                {{ comment.username }}{% if not forloop.last %}, {% endif %}
-                                {% endfor %}
-                                {% if post.scraped_info.instagram.total_comments_found > 50 %}...{% endif %}
-                            </div>
+                            <a href="{% url 'post_details' post.id 'instagram' 'comments' %}"
+                                class="text-danger text-decoration-underline" title="View details">
+                                {{ post.ig_comments|default:0 }}
+                            </a>
+                            {% else %}
+                            {{ post.ig_comments|default:0 }}
                             {% endif %}
                         </td>
                         <td class="stat-number text-danger">{{ post.ig_shares|default:"NA" }}</td>
 
                         <!-- Facebook Stats -->
-                        <td class="stat-number text-primary stat-cell">
-                            {{ post.fb_likes|default:0 }}
+                        <td class="stat-number text-primary">
                             {% if post.scraped_info.facebook.likes.exists %}
-                            <div class="custom-tooltip">
-                                <div class="tooltip-header">Likers</div>
-                                {% for like in post.scraped_info.facebook.likes.all|slice:':50' %}
-                                {{ like.username }}{% if not forloop.last %}, {% endif %}
-                                {% endfor %}
-                                {% if post.scraped_info.facebook.total_likes_found > 50 %}...{% endif %}
-                            </div>
+                            <a href="{% url 'post_details' post.id 'facebook' 'likes' %}"
+                                class="text-primary text-decoration-underline" title="View details">
+                                {{ post.fb_likes|default:0 }}
+                            </a>
+                            {% else %}
+                            {{ post.fb_likes|default:0 }}
                             {% endif %}
                         </td>
-                        <td class="stat-number text-primary stat-cell">
-                            {{ post.fb_comments|default:0 }}
+                        <td class="stat-number text-primary">
                             {% if post.scraped_info.facebook.comments.exists %}
-                            <div class="custom-tooltip">
-                                <div class="tooltip-header">Commenters</div>
-                                {% for comment in post.scraped_info.facebook.comments.all|slice:':50' %}
-                                {{ comment.username }}{% if not forloop.last %}, {% endif %}
-                                {% endfor %}
-                                {% if post.scraped_info.facebook.total_comments_found > 50 %}...{% endif %}
-                            </div>
+                            <a href="{% url 'post_details' post.id 'facebook' 'comments' %}"
+                                class="text-primary text-decoration-underline" title="View details">
+                                {{ post.fb_comments|default:0 }}
+                            </a>
+                            {% else %}
+                            {{ post.fb_comments|default:0 }}
                             {% endif %}
                         </td>
                         <td class="stat-number text-primary">{{ post.fb_shares|default:0 }}</td>
 
                         <!-- LinkedIn Stats -->
-                        <td class="stat-number text-success stat-cell">
-                            {{ post.li_likes|default:0 }}
+                        <td class="stat-number text-success">
                             {% if post.scraped_info.linkedin.likes.exists %}
-                            <div class="custom-tooltip">
-                                <div class="tooltip-header">Likers</div>
-                                {% for like in post.scraped_info.linkedin.likes.all|slice:':50' %}
-                                {{ like.username }}{% if not forloop.last %}, {% endif %}
-                                {% endfor %}
-                                {% if post.scraped_info.linkedin.total_likes_found > 50 %}...{% endif %}
-                            </div>
+                            <a href="{% url 'post_details' post.id 'linkedin' 'likes' %}"
+                                class="text-success text-decoration-underline" title="View details">
+                                {{ post.li_likes|default:0 }}
+                            </a>
+                            {% else %}
+                            {{ post.li_likes|default:0 }}
                             {% endif %}
                         </td>
-                        <td class="stat-number text-success stat-cell">
-                            {{ post.li_comments|default:0 }}
+                        <td class="stat-number text-success">
                             {% if post.scraped_info.linkedin.comments.exists %}
-                            <div class="custom-tooltip">
-                                <div class="tooltip-header">Commenters</div>
-                                {% for comment in post.scraped_info.linkedin.comments.all|slice:':50' %}
-                                {{ comment.username }}{% if not forloop.last %}, {% endif %}
-                                {% endfor %}
-                                {% if post.scraped_info.linkedin.total_comments_found > 50 %}...{% endif %}
-                            </div>
+                            <a href="{% url 'post_details' post.id 'linkedin' 'comments' %}"
+                                class="text-success text-decoration-underline" title="View details">
+                                {{ post.li_comments|default:0 }}
+                            </a>
+                            {% else %}
+                            {{ post.li_comments|default:0 }}
                             {% endif %}
                         </td>
                         <td class="stat-number text-success">{{ post.li_shares|default:0 }}</td>

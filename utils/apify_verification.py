@@ -240,6 +240,8 @@ class ApifyVerificationService:
     
     # ==================== LINKEDIN ====================
     
+    # ==================== LINKEDIN ====================
+    
     def scrape_linkedin_post(self, post_url: str) -> Dict[str, List[str]]:
         """
         Scrape LinkedIn post to get list of users who liked and commented
@@ -269,14 +271,55 @@ class ApifyVerificationService:
                 'commenters': cached_comments
             }
         
-        # Note: LinkedIn scraping is more restricted
-        # You may need a custom solution or different actor
-        
-        print("⚠️ LinkedIn scraping has limited support")
+        # 1. Scrape Reactions (Likers) using harvestapi/linkedin-post-reactions
+        reactors = []
+        try:
+            print(f"🔍 [LinkedIn] Scraping reactions using 'harvestapi/linkedin-post-reactions'")
+            run_input_reactions = {
+                "urls": [post_url],
+            }
+            
+            run_reactions = self.client.actor("harvestapi/linkedin-post-reactions").call(run_input=run_input_reactions)
+            
+            if run_reactions:
+                for item in self.client.dataset(run_reactions["defaultDatasetId"]).iterate_items():
+                     # harvestapi usually returns 'name' or 'profile_url'
+                     name = item.get('name') or item.get('title')
+                     if name:
+                        reactors.append(name)
+            print(f"✓ Found {len(reactors)} reactors")
+            
+        except Exception as e:
+            print(f"❌ Error scraping LinkedIn reactions: {e}")
+
+        # 2. Scrape Comments using harvestapi/linkedin-post-comments
+        commenters = []
+        try:
+            print(f"🔍 [LinkedIn] Scraping comments using 'harvestapi/linkedin-post-comments'")
+            run_input_comments = {
+                "urls": [post_url],
+            }
+            
+            run_comments = self.client.actor("harvestapi/linkedin-post-comments").call(run_input=run_input_comments)
+            
+            if run_comments:
+                for item in self.client.dataset(run_comments["defaultDatasetId"]).iterate_items():
+                    # Extract author name
+                    author_name = item.get('author_name') or item.get('name') or item.get('author', {}).get('name')
+                    if author_name:
+                        commenters.append(author_name)
+            print(f"✓ Found {len(commenters)} commenters")
+            
+        except Exception as e:
+            print(f"❌ Error scraping LinkedIn comments: {e}")
+            
+        # Save to cache
+        self._save_to_cache(cache_key_likes, reactors)
+        self._save_to_cache(cache_key_comments, commenters)
         
         return {
-            'likers': [],
-            'commenters': []
+            'likers': reactors,
+            'commenters': commenters
         }
     
     # ==================== VERIFICATION LOGIC ====================

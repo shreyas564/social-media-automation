@@ -44,6 +44,7 @@ urlpatterns = [
     path("post-stats/", views.postStat, name="post_stats"),
     path("post-stats/sync/", views.sync_post_stats, name="sync_post_stats"),
     path("post-stats/sync/<int:post_id>/", views.sync_single_post_stats, name="sync_single_post_stats"),
+    path("post-details/<int:post_id>/<str:platform>/<str:type>/", views.post_details, name="post_details"),
     path("post-likes/<str:postid>/<str:access_token>",views.get_facebook_likes_count,name="like_count"),
     path("post-comment/<str:postid>/<str:access_token>/",views.get_facebook_comments_count,name="comment_count"),
     path("post-share/<str:postid>/<str:access_token>",views.get_share_count,name="share_count"),

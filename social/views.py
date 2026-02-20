@@ -723,6 +723,7 @@ def affiliate_users(request):
             # Use these new fields in template
             'scraped_likes': scraped_likes_count,
             'scraped_comments': scraped_comments_count,
+            'credits': 0,  # Placeholder for future logic
         }
 
         stats_data.append(affiliate_stats)
@@ -2008,12 +2009,19 @@ def affiliate_post_stats(request):
     if not affiliate_id:
         return redirect("affiliate_login")
 
-    # Using SAME data as SuperAdmin
-    posts = Post.objects.all().order_by("-created_at")
+    # Using SAME logic as SuperAdmin to fetch scraped data
+    posts = Post.objects.all().order_by("-created_at").prefetch_related(
+        'scrapes__likes', 
+        'scrapes__comments'
+    )
+
+    # Organize scraped data for easy access in template
+    for post in posts:
+        post.scraped_info = {s.platform: s for s in post.scrapes.all()}
 
     return render(
         request,
-        "affiliate_post_stats.html",   # SAME TEMPLATE AS ADMIN
+        "affiliate_post_stats.html",
         {
             "posts": posts
         }
@@ -2129,10 +2137,17 @@ def get_actions(request):
 
 from django.contrib.auth.decorators import login_required
 
-@login_required
 def get_affiliate_actions(request):
+    
+    affiliate_id = request.session.get("affiliate_id")
+    
+    if not affiliate_id:
+        return JsonResponse({"likes": [], "comments": [], "shares": []})
 
-    affiliate = request.user
+    try:
+        affiliate = AffiliateProfile.objects.get(username=affiliate_id)
+    except AffiliateProfile.DoesNotExist:
+         return JsonResponse({"likes": [], "comments": [], "shares": []})
 
     likes = Like.objects.filter(affiliate=affiliate).values_list("post_id", flat=True)
     comments = Comment.objects.filter(affiliate=affiliate).values_list("post_id", flat=True)
@@ -2143,3 +2158,185 @@ def get_affiliate_actions(request):
         "comments": list(comments),
         "shares": list(shares)
     })
+
+
+@login_required
+def post_details(request, post_id, platform, type):
+    """
+    View to display detailed list of likers or commenters for a post and platform
+    Separated into Affiliate Users and Other Users
+    """
+    post = get_object_or_404(Post, id=post_id)
+    
+    affiliates_found = []
+    others_found = []
+    scraped_at = None
+    
+    # Validate inputs
+    platform = platform.lower()
+    type = type.lower()
+    
+    if platform not in ['instagram', 'facebook', 'linkedin']:
+        messages.error(request, "Invalid platform")
+        return redirect('post_stats')
+        
+    if type not in ['likes', 'comments']:
+        messages.error(request, "Invalid type")
+        return redirect('post_stats')
+    
+@login_required
+def post_details(request, post_id, platform, type):
+    """
+    View to display detailed list of likers or commenters for a post and platform
+    Separated into Affiliate Users and Other Users
+    Includes Cross-Platform Engagement stats for Affiliates
+    """
+    post = get_object_or_404(Post, id=post_id)
+    
+    affiliates_found = []
+    others_found = []
+    scraped_at = None
+    
+    # Validate inputs
+    platform = platform.lower()
+    type = type.lower()
+    
+    if platform not in ['instagram', 'facebook', 'linkedin']:
+        messages.error(request, "Invalid platform")
+        return redirect('post_stats')
+        
+    if type not in ['likes', 'comments']:
+        messages.error(request, "Invalid type")
+        return redirect('post_stats')
+    
+    # 1. Build map: username (lower) -> affiliate object
+    # We need this to identify which affiliate valid user is
+    affiliate_map = {} 
+    
+    affiliates = AffiliateProfile.objects.all()
+    for aff in affiliates:
+        # Map verified usernames to affiliate
+        if aff.instagram_username:
+            affiliate_map[aff.instagram_username.lower().strip()] = aff
+        if aff.facebook_username:
+            affiliate_map[aff.facebook_username.lower().strip()] = aff
+        if aff.linkedin_username:
+            affiliate_map[aff.linkedin_username.lower().strip()] = aff
+            
+        # Also map system username as fallback
+        affiliate_map[aff.username.lower().strip()] = aff
+
+    # 2. Prepare Cross-Platform Data
+    # Fetch all scraped data for this post to check engagement elsewhere
+    cross_platform_data = {
+        'instagram': {'likes': set(), 'comments': set()},
+        'facebook': {'likes': set(), 'comments': set()},
+        'linkedin': {'likes': set(), 'comments': set()},
+    }
+    
+    all_scrapes = ScrapedPost.objects.filter(post=post).prefetch_related('likes', 'comments')
+    for sp in all_scrapes:
+        p = sp.platform
+        if p in cross_platform_data:
+            # Add all usernames to sets for O(1) lookup
+            cross_platform_data[p]['likes'].update(
+                list(sp.likes.values_list('username', flat=True))
+            )
+            cross_platform_data[p]['comments'].update(
+                list(sp.comments.values_list('username', flat=True))
+            )
+
+    # Helper to check engagement
+    def check_engagement(aff, target_platform):
+        p_username = None
+        if target_platform == 'instagram':
+            p_username = aff.instagram_username
+        elif target_platform == 'facebook':
+            p_username = aff.facebook_username
+        elif target_platform == 'linkedin':
+            p_username = aff.linkedin_username
+            
+        if not p_username:
+            p_username = aff.username # Fallback
+            
+        p_username = p_username.lower().strip()
+        
+        # Check against sets
+        # Note: Scraped usernames might differ slightly, but we use strict match for now
+        # Ideally we'd normalize both sides
+        # We check both specific username and system username against scraped data
+        
+        # We need to check if ANY of the affiliate's aliases are in the set
+        # But for now let's assume p_username is the correct one
+        
+        # Actually, let's just check the p_username
+        has_liked = False
+        has_commented = False
+        
+        # Check if username is in the set (case insensitive handled by lowercasing sets? No, need to lowercase sets content)
+        # Let's assume sets have raw data. We should lowercase them?
+        # Yes, let's lowercase the sets content in step 2.
+        
+        # (See update below for lowercasing)
+        
+        return {
+            'liked': p_username in cross_platform_data[target_platform]['likes'],
+            'commented': p_username in cross_platform_data[target_platform]['comments']
+        }
+
+    # Normalize sets to lowercase
+    for p in cross_platform_data:
+        cross_platform_data[p]['likes'] = {u.lower().strip() for u in cross_platform_data[p]['likes']}
+        cross_platform_data[p]['comments'] = {u.lower().strip() for u in cross_platform_data[p]['comments']}
+
+
+    # 3. Get Items for CURRENT view
+    scraped_post = ScrapedPost.objects.filter(
+        post=post, 
+        platform=platform
+    ).order_by('-scraped_at').first()
+    
+    if scraped_post:
+        scraped_at = scraped_post.scraped_at
+        items = []
+        
+        if type == 'likes':
+            items = ScrapedLike.objects.filter(scraped_post=scraped_post)
+        else:
+            items = ScrapedComment.objects.filter(scraped_post=scraped_post)
+            
+        # Split and Enrich
+        for item in items:
+            item_username_lower = item.username.lower().strip()
+            
+            if item_username_lower in affiliate_map:
+                aff = affiliate_map[item_username_lower]
+                
+                # Check cross platform stats
+                ig_status = check_engagement(aff, 'instagram')
+                fb_status = check_engagement(aff, 'facebook')
+                li_status = check_engagement(aff, 'linkedin')
+                
+                affiliates_found.append({
+                    'username': item.username, # Scraped name
+                    'system_username': aff.username, # System name
+                    'comment_text': getattr(item, 'comment_text', None),
+                    'engagement': {
+                        'instagram': ig_status,
+                        'facebook': fb_status,
+                        'linkedin': li_status
+                    }
+                })
+            else:
+                others_found.append(item)
+            
+    context = {
+        'post': post,
+        'platform': platform,
+        'type': type,
+        'affiliates_found': affiliates_found,
+        'others_found': others_found,
+        'scraped_at': scraped_at
+    }
+    
+    return render(request, 'post_details.html', context)
