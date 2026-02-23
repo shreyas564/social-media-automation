@@ -4,76 +4,198 @@
   <meta charset="UTF-8">
   <title>Add Facebook Page</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #eef4ff;
+      --primary: #1e63db;
+      --primary-2: #174ca7;
+      --text: #101b2f;
+      --muted: #64728e;
+      --surface: #ffffff;
+      --border: #d7e2f3;
+      --shadow: 0 18px 45px rgba(17, 54, 120, 0.18);
+    }
 
-  <!-- Bootstrap CSS -->
-  <link
-    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-    rel="stylesheet"
-  >
+    body {
+      min-height: 100vh;
+      margin: 0;
+      font-family: "Outfit", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(900px 430px at 0% 0%, rgba(53, 128, 255, 0.28), transparent 50%),
+        radial-gradient(900px 430px at 100% 0%, rgba(23, 76, 167, 0.18), transparent 50%),
+        var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .layout {
+      width: min(980px, 100%);
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.5);
+      box-shadow: var(--shadow);
+      background: var(--surface);
+    }
+
+    .left-pane {
+      background: linear-gradient(145deg, #0f3f90, #1e63db 65%, #5ea6ff);
+      color: #fff;
+      padding: 34px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      width: fit-content;
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 13px;
+      border: 1px solid rgba(255,255,255,0.28);
+      background: rgba(255,255,255,0.17);
+    }
+
+    .left-title {
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1.2;
+      margin: 18px 0 10px;
+    }
+
+    .left-copy {
+      color: rgba(255,255,255,0.88);
+      max-width: 320px;
+      margin: 0;
+    }
+
+    .form-pane {
+      padding: 34px;
+      background: #fff;
+    }
+
+    .form-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 3px;
+    }
+
+    .form-subtitle {
+      margin-bottom: 16px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .form-label {
+      font-weight: 600;
+    }
+
+    .form-control {
+      border-radius: 11px;
+      border-color: var(--border);
+      padding: 11px 12px;
+    }
+
+    .form-control:focus {
+      border-color: #82aef3;
+      box-shadow: 0 0 0 0.2rem rgba(30, 99, 219, 0.16);
+    }
+
+    .helper-text {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 6px;
+    }
+
+    .btn-submit {
+      width: 100%;
+      border: 0;
+      border-radius: 11px;
+      padding: 11px;
+      font-weight: 600;
+      color: #fff;
+      background: linear-gradient(120deg, var(--primary), #3f84f2);
+      box-shadow: 0 10px 20px rgba(30, 99, 219, 0.22);
+      transition: 0.2s ease;
+    }
+
+    .btn-submit:hover {
+      transform: translateY(-1px);
+      color: #fff;
+      background: linear-gradient(120deg, var(--primary-2), var(--primary));
+    }
+
+    .back-link {
+      margin-top: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .left-pane,
+      .form-pane {
+        padding: 24px;
+      }
+    }
+  </style>
 </head>
+<body>
+<div class="layout">
+  <section class="left-pane">
+    <div>
+      <span class="chip"><i class="bi bi-facebook"></i> Facebook Integration</span>
+      <h1 class="left-title">Connect a page for seamless publishing.</h1>
+      <p class="left-copy">Add your page details once and keep your post management flow centralized in the dashboard.</p>
+    </div>
+    <small class="text-white-50">Walstar Admin Tools</small>
+  </section>
 
-<body class="bg-light">
+  <section class="form-pane">
+    <h2 class="form-title">Add Facebook Page</h2>
+    <p class="form-subtitle">Provide accurate page details to enable posting and analytics.</p>
 
-<div class="container mt-5">
-  <div class="row justify-content-center">
-    <div class="col-md-6">
+    <form method="post" action="{% url 'savepage' %}">
+      {% csrf_token %}
 
-      <div class="card shadow-sm">
-        <div class="card-body">
-
-          <h4 class="text-center mb-4">Add Facebook Page</h4>
-
-          <form method="post" action="{% url 'savepage' %}">
-            {% csrf_token %}
-
-            <!-- Page ID -->
-            <div class="mb-3">
-              <label for="page_id" class="form-label">
-                Facebook Page ID
-              </label>
-              <input
-                type="text"
-                class="form-control"
-                id="page_id"
-                name="pageId"
-                placeholder="Enter Facebook Page ID"
-                required
-              >
-            </div>
-
-            <!-- Page Name -->
-            <div class="mb-3">
-              <label for="page_name" class="form-label">
-                Facebook Page Name
-              </label>
-              <input
-                type="text"
-                class="form-control"
-                id="page_name"
-                name="pageName"
-                placeholder="Enter Facebook Page Name"
-                required
-              >
-            </div>
-
-            <!-- Submit Button -->
-            <div class="text-center">
-              <button type="submit" class="btn btn-primary">
-                Submit Page
-              </button>
-            </div>
-
-          </form>
-
-        </div>
+      <div class="mb-3">
+        <label for="page_id" class="form-label">Facebook Page ID</label>
+        <input type="text" class="form-control" id="page_id" name="pageId" placeholder="Enter Facebook Page ID" required>
+        <div class="helper-text">Tip: Use the numeric ID from your Facebook page settings.</div>
       </div>
 
-    </div>
-  </div>
+      <div class="mb-3">
+        <label for="page_name" class="form-label">Facebook Page Name</label>
+        <input type="text" class="form-control" id="page_name" name="pageName" placeholder="Enter Facebook Page Name" required>
+      </div>
+
+      <button type="submit" class="btn btn-submit">Submit Page</button>
+    </form>
+
+    <a href="{% url 'super_admin' %}" class="back-link"><i class="bi bi-arrow-left"></i> Back to Dashboard</a>
+  </section>
 </div>
 
-<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
 </body>
 </html>

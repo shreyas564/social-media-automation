@@ -723,6 +723,8 @@ def affiliate_users(request):
             # Use these new fields in template
             'scraped_likes': scraped_likes_count,
             'scraped_comments': scraped_comments_count,
+            'total_shares': total_shares,
+            'total_engagement': scraped_likes_count + scraped_comments_count + total_shares,
             'credits': 0,  # Placeholder for future logic
         }
 
@@ -2026,6 +2028,27 @@ def affiliate_post_stats(request):
             "posts": posts
         }
     )
+
+
+@require_POST
+def affiliate_sync_post_stats(request):
+    affiliate_id = request.session.get("affiliate_id")
+    if not affiliate_id:
+        return redirect("affiliate_login")
+
+    updated_total = 0
+    posts_total = 0
+
+    for admin in SuperAdmin.objects.all():
+        updated_count, total_count = _sync_post_stats_for_admin(admin)
+        updated_total += updated_count
+        posts_total += total_count
+
+    messages.success(
+        request,
+        f"Stats synced. Updated {updated_total} of {posts_total} posts."
+    )
+    return redirect("affiliate_post_stats")
 
 
 #Affiliate User Action on post for Post Details

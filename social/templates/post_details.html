@@ -2,148 +2,218 @@
 {% block title %}Post Details - {{ platform|title }} - {{ type|title }}{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<style>
+    .page-head {
+        border: 1px solid #dbe4f2;
+        border-radius: 14px;
+        background: linear-gradient(140deg, #f8fbff, #eef4ff);
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+
+    .meta-badge {
+        border-radius: 999px;
+        border: 1px solid #d0dbef;
+        background: #fff;
+        padding: 5px 10px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #254472;
+    }
+
+    .chip-strip {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+    }
+
+    .metric-chip {
+        border-radius: 999px;
+        border: 1px solid #dbe4f2;
+        background: #fff;
+        padding: 6px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #1d3f6f;
+    }
+
+    .data-card {
+        border: 1px solid #dbe4f2;
+        border-radius: 14px;
+        overflow: hidden;
+    }
+
+    .data-card .card-header {
+        border-bottom: 1px solid #dbe4f2;
+    }
+
+    .search-input {
+        border-radius: 999px;
+        border: 1px solid #d0dbef;
+        min-width: 220px;
+    }
+
+    .table thead th {
+        position: sticky;
+        top: 0;
+        background: #f5f8fd;
+        z-index: 1;
+    }
+
+    .table tbody tr:hover {
+        background: #f6faff;
+    }
+
+    .section-title {
+        font-weight: 700;
+        letter-spacing: 0.2px;
+    }
+
+    @media (max-width: 768px) {
+        .page-head .d-flex {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 10px;
+        }
+        .search-input {
+            min-width: 100%;
+        }
+    }
+</style>
+
+<div class="page-head">
+    <div class="d-flex justify-content-between align-items-center">
         <div>
-            <h4 class="mb-1">
-                <span class="text-capitalize">{{ platform }}</span>
-                &mdash;
-                <span class="text-capitalize">{{ type }}</span>
-            </h4>
+            <h4 class="mb-1 section-title">{{ type|title }} on {{ platform|title }}</h4>
+            <p class="text-muted mb-0">Post: <strong>{{ post.caption|truncatechars:70 }}</strong></p>
         </div>
-        <a href="{% url 'post_stats' %}" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left"></i> Back to Stats
-        </a>
-    </div>
-
-    <!-- POST INFO CARD -->
-    <div class="card shadow-sm border-0 mb-4">
-        <div class="card-body">
-            <div class="row align-items-start">
-                <div class="col-md-8">
-                    <h5 class="mb-1">{{ post.post_name|default:"Untitled Post" }}</h5>
-                    {% if post_url %}
-                    <a href="{{ post_url }}" target="_blank" class="text-decoration-none text-primary small">
-                        <i class="bi bi-link-45deg"></i> {{ post_url|truncatechars:60 }}
-                    </a>
-                    {% else %}
-                    <span class="text-muted small">No {{ platform|title }} URL set</span>
-                    {% endif %}
-                </div>
-                <div class="col-md-4 text-muted small text-md-end mt-2 mt-md-0">
-                    <i class="bi bi-clock me-1"></i>Scraped: {{ scraped_at|date:"d M Y, H:i"|default:"N/A" }}
-                </div>
-            </div>
-            {% if post.caption %}
-            <hr class="my-3">
-            <p class="mb-0 text-muted" style="white-space:pre-wrap;">{{ post.caption }}</p>
-            {% endif %}
+        <div class="d-flex align-items-center gap-2">
+            <span class="meta-badge">
+                {% if platform == "instagram" %}
+                <i class="bi bi-instagram me-1"></i>
+                {% elif platform == "facebook" %}
+                <i class="bi bi-facebook me-1"></i>
+                {% else %}
+                <i class="bi bi-linkedin me-1"></i>
+                {% endif %}
+                {{ platform|title }}
+            </span>
+            <a href="{% url 'post_stats' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i> Back to Stats
+            </a>
         </div>
     </div>
-
-    <!-- AFFILIATE USERS SECTION -->
-    <div class="card shadow-sm border-0 mb-4">
-        <div class="card-header bg-success text-white py-3">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <h5 class="mb-0">
-                        <i class="bi bi-person-check-fill me-2"></i>Affiliate Users ({{ affiliates_found|length }})
-                    </h5>
-                </div>
-                <!-- <div class="col-md-6 text-end">
-                    <small>Registered in our system</small>
-                </div> -->
-            </div>
-        </div>
-        <div class="card-body p-0">
-            {% if affiliates_found %}
-            <div class="table-responsive">
-                <table class="table table-hover mb-0 align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th scope="col" style="width: 50px;">#</th>
-                            <th scope="col">Username</th>
-                            {% if type == 'comments' %}
-                            <th scope="col">Comment</th>
-                            {% endif %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in affiliates_found %}
-                        <tr class="table-success">
-                            <td>{{ forloop.counter }}</td>
-                            <td>
-                                <strong>{{ item.username }}</strong>
-                            </td>
-                            {% if type == 'comments' %}
-                            <td class="text-muted">
-                                {{ item.comment_text|default:"-"|truncatechars:100 }}
-                            </td>
-                            {% endif %}
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="text-center py-4 text-muted">
-                <p class="mb-0">No affiliate users found engaging with this post.</p>
-            </div>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- OTHER USERS SECTION -->
-    <div class="card shadow-sm border-0">
-        <div class="card-header bg-white py-3">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <h5 class="mb-0">
-                        <i class="bi bi-people me-2"></i>Other Users ({{ others_found|length }})
-                    </h5>
-                </div>
-                <div class="col-md-6 text-end">
-                    <small class="text-muted">Scraped on: {{ scraped_at|date:"d M Y, H:i" }}</small>
-                </div>
-            </div>
-        </div>
-        <div class="card-body p-0">
-            {% if others_found %}
-            <div class="table-responsive">
-                <table class="table table-hover mb-0 align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th scope="col" style="width: 50px;">#</th>
-                            <th scope="col">Username</th>
-                            {% if type == 'comments' %}
-                            <th scope="col">Comment</th>
-                            {% endif %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in others_found %}
-                        <tr>
-                            <td>{{ forloop.counter }}</td>
-                            <td>
-                                <strong>{{ item.username }}</strong>
-                            </td>
-                            {% if type == 'comments' %}
-                            <td class="text-muted">
-                                {{ item.comment_text|default:"-"|truncatechars:100 }}
-                            </td>
-                            {% endif %}
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="text-center py-5 text-muted">
-                <i class="bi bi-inbox fs-1 d-block mb-3"></i>
-                <p>No other users found.</p>
-            </div>
-            {% endif %}
-        </div>
+    <div class="chip-strip">
+        <span class="metric-chip"><i class="bi bi-person-check me-1"></i> Affiliates: {{ affiliates_found|length }}</span>
+        <span class="metric-chip"><i class="bi bi-people me-1"></i> Others: {{ others_found|length }}</span>
+        <span class="metric-chip"><i class="bi bi-clock-history me-1"></i> {{ scraped_at|date:"d M Y, H:i" }}</span>
     </div>
 </div>
+
+<div class="card data-card mb-4">
+    <div class="card-header bg-success text-white py-3">
+        <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+            <h5 class="mb-0"><i class="bi bi-person-check-fill me-2"></i>Affiliate Users ({{ affiliates_found|length }})</h5>
+            <input id="affiliateSearch" class="form-control form-control-sm search-input" placeholder="Search affiliate username or comment">
+        </div>
+    </div>
+    <div class="card-body p-0">
+        {% if affiliates_found %}
+        <div class="table-responsive" style="max-height: 420px;">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col" style="width: 50px;">#</th>
+                        <th scope="col">Username</th>
+                        {% if type == 'comments' %}
+                        <th scope="col">Comment</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody id="affiliateRows">
+                    {% for item in affiliates_found %}
+                    <tr class="table-success detail-row"
+                        data-username="{{ item.username|lower }}"
+                        data-comment="{{ item.comment_text|default:'-'|lower }}">
+                        <td>{{ forloop.counter }}</td>
+                        <td><strong>{{ item.username }}</strong></td>
+                        {% if type == 'comments' %}
+                        <td class="text-muted">{{ item.comment_text|default:"-"|truncatechars:100 }}</td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-muted">
+            <p class="mb-0">No affiliate users found engaging with this post.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card data-card">
+    <div class="card-header bg-white py-3">
+        <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+            <h5 class="mb-0"><i class="bi bi-people me-2"></i>Other Users ({{ others_found|length }})</h5>
+            <input id="otherSearch" class="form-control form-control-sm search-input" placeholder="Search other username or comment">
+        </div>
+    </div>
+    <div class="card-body p-0">
+        {% if others_found %}
+        <div class="table-responsive" style="max-height: 420px;">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col" style="width: 50px;">#</th>
+                        <th scope="col">Username</th>
+                        {% if type == 'comments' %}
+                        <th scope="col">Comment</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody id="otherRows">
+                    {% for item in others_found %}
+                    <tr class="detail-row"
+                        data-username="{{ item.username|lower }}"
+                        data-comment="{{ item.comment_text|default:'-'|lower }}">
+                        <td>{{ forloop.counter }}</td>
+                        <td><strong>{{ item.username }}</strong></td>
+                        {% if type == 'comments' %}
+                        <td class="text-muted">{{ item.comment_text|default:"-"|truncatechars:100 }}</td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+            <p>No other users found.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    function wireFilter(inputId, tbodyId) {
+        const input = document.getElementById(inputId);
+        const tbody = document.getElementById(tbodyId);
+        if (!input || !tbody) return;
+
+        input.addEventListener("input", function () {
+            const term = (this.value || "").trim().toLowerCase();
+            tbody.querySelectorAll("tr.detail-row").forEach((row) => {
+                const text = `${row.dataset.username || ""} ${row.dataset.comment || ""}`;
+                row.style.display = text.includes(term) ? "" : "none";
+            });
+        });
+    }
+
+    wireFilter("affiliateSearch", "affiliateRows");
+    wireFilter("otherSearch", "otherRows");
+</script>
 {% endblock %}

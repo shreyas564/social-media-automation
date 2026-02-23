@@ -4,62 +4,202 @@
     <meta charset="UTF-8">
     <title>Super Admin Login</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-
-    <!-- Bootstrap CDN -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        .login-card {
-            max-width: 420px;
-            margin: auto;
-            margin-top: 80px;
+        :root {
+            --bg-a: #e9efff;
+            --bg-b: #dbe8ff;
+            --card: #ffffff;
+            --text: #101b2f;
+            --muted: #5d6d8a;
+            --primary: #1e63db;
+            --primary-2: #184fb0;
+            --border: #d9e3f6;
+            --shadow: 0 18px 45px rgba(22, 58, 128, 0.22);
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            font-family: "Outfit", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(900px 420px at 0% 0%, rgba(43, 118, 255, 0.3), transparent 50%),
+                radial-gradient(900px 420px at 100% 0%, rgba(18, 83, 191, 0.2), transparent 50%),
+                linear-gradient(160deg, var(--bg-a), var(--bg-b));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .auth-wrap {
+            width: min(980px, 100%);
+            display: grid;
+            grid-template-columns: 1.1fr 1fr;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255, 255, 255, 0.45);
+            background: var(--card);
+        }
+
+        .brand-pane {
+            background: linear-gradient(145deg, #0f3f90, #1e63db 65%, #5da2ff);
+            color: #fff;
+            padding: 34px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .brand-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            background: rgba(255,255,255,0.17);
+            border: 1px solid rgba(255,255,255,0.28);
+            border-radius: 999px;
+            padding: 7px 12px;
+            width: fit-content;
+        }
+
+        .brand-title {
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin: 18px 0 8px;
+        }
+
+        .brand-copy {
+            color: rgba(255,255,255,0.85);
+            margin: 0;
+            max-width: 320px;
+        }
+
+        .form-pane {
+            padding: 34px;
+            background: #fff;
+        }
+
+        .form-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .form-subtitle {
+            color: var(--muted);
+            margin-bottom: 18px;
+            font-size: 14px;
+        }
+
+        .form-control {
+            border-radius: 11px;
+            border-color: var(--border);
+            padding: 11px 12px;
+        }
+
+        .form-control:focus {
+            box-shadow: 0 0 0 0.2rem rgba(30, 99, 219, 0.18);
+            border-color: #83adf2;
+        }
+
+        .btn-login {
+            width: 100%;
+            border-radius: 11px;
+            border: 0;
+            padding: 11px;
+            font-weight: 600;
+            color: #fff;
+            background: linear-gradient(120deg, var(--primary), #4184f1);
+            box-shadow: 0 10px 20px rgba(26, 80, 171, 0.2);
+            transition: 0.2s ease;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-1px);
+            background: linear-gradient(120deg, var(--primary-2), var(--primary));
+            color: #fff;
+        }
+
+        .helper-row {
+            margin-top: 12px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .helper-row a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .alert {
+            border-radius: 10px;
+        }
+
+        @media (max-width: 900px) {
+            .auth-wrap {
+                grid-template-columns: 1fr;
+            }
+            .brand-pane {
+                padding: 24px;
+            }
+            .form-pane {
+                padding: 24px;
+            }
         }
     </style>
 </head>
-<body class="bg-light">
-
-   
-
-<div class="container">
-    <div class="card shadow login-card">
-         {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        {% endfor %}
-    {% endif %}
-        <div class="card-body">
-            <h4 class="text-center mb-4">Super Admin Login</h4>
-
-            <form method="post" action="{% url 'auth_admin' %}">
-                {% csrf_token %}
-                <!-- Username or Email -->
-                <div class="mb-3">
-                    <label class="form-label">Username / Email</label>
-                    <input type="text" class="form-control" name="username" required>
-                </div>
-
-                <!-- Password -->
-                <div class="mb-3">
-                    <label class="form-label">Password</label>
-                    <input type="password" class="form-control" name="password" required>
-                </div>
-
-                <!-- Submit Button -->
-                <div class="d-grid">
-                    <button type="submit" class="btn btn-success">
-                        Login
-                    </button>
-                </div>
-            </form>
-
+<body>
+<div class="auth-wrap">
+    <section class="brand-pane">
+        <div>
+            <span class="brand-chip"><i class="bi bi-shield-lock"></i> Secure Admin Zone</span>
+            <h1 class="brand-title">Control campaigns with confidence.</h1>
+            <p class="brand-copy">Manage posts, monitor engagement, and coordinate affiliate performance from one place.</p>
         </div>
-    </div>
-</div>
+        <small class="text-white-50">Walstar Social Platform</small>
+    </section>
 
+    <section class="form-pane">
+        <h2 class="form-title">Super Admin Login</h2>
+        <p class="form-subtitle">Use your admin credentials to continue.</p>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post" action="{% url 'auth_admin' %}">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Username / Email</label>
+                <input type="text" class="form-control" name="username" placeholder="Enter username or email" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Password</label>
+                <input type="password" class="form-control" name="password" placeholder="Enter password" required>
+            </div>
+            <button type="submit" class="btn btn-login">Login to Dashboard</button>
+        </form>
+
+        <div class="helper-row">
+            Need a new admin account? <a href="{% url 'admin_registration' %}">Register</a>
+        </div>
+    </section>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

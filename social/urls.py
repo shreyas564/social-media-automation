@@ -63,6 +63,7 @@ urlpatterns = [
     #path("fetch-post-stats/", views.fetch_post_stats, name="fetch_post_stats"),
     #path('social/linkedin/callback/', views.linkedin_callback, name='linkedin_callback'),
     path("affiliate/post-stats/", views.affiliate_post_stats, name="affiliate_post_stats"),
+    path("affiliate/post-stats/sync/", views.affiliate_sync_post_stats, name="affiliate_sync_post_stats"),
     #path("affiliate-status/<int:post_id>/", views.affiliate_post_status, name="affiliate_post_status"),
     # AFFILIATE ACTION APIs
     path("affiliate/save-action/", views.save_action, name="save_action"),

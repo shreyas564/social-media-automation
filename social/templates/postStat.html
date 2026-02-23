@@ -4,6 +4,38 @@
 {% block content %}
 
 <style>
+    .headline-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .headline-title {
+        font-size: 1.45rem;
+        font-weight: 700;
+        margin: 0;
+        letter-spacing: 0.2px;
+    }
+
+    .kpi-strip {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+    }
+
+    .kpi-chip {
+        border-radius: 999px;
+        padding: 6px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        border: 1px solid #d3dfed;
+        background: #f7fbff;
+        color: #123e73;
+    }
+
     .stats-header {
         text-align: center;
         font-weight: 600;
@@ -31,19 +63,32 @@
     .linkedin-bg {
         background: #f0fdfa;
     }
+
+    .table-dark tr th {
+        background: #18222f !important;
+    }
+
+    .stat-number a {
+        font-weight: 700;
+    }
 </style>
 
-<div class="card shadow-sm border-0">
+<div class="card shadow-sm border-0" style="border-radius: 14px;">
     <div class="card-body">
 
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="mb-0">Post Statistics</h5>
+        <div class="headline-wrap">
+            <h5 class="headline-title">Post Statistics</h5>
             <form method="post" action="{% url 'sync_post_stats' %}">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-sm btn-primary">
-                    Sync Latest Stats
+                    <i class="bi bi-arrow-repeat me-1"></i> Sync Latest Stats
                 </button>
             </form>
+        </div>
+
+        <div class="kpi-strip">
+            <div class="kpi-chip"><i class="bi bi-grid-3x3-gap me-1"></i> Posts: {{ posts|length }}</div>
+            <div class="kpi-chip"><i class="bi bi-instagram me-1"></i> IG + FB + LinkedIn tracked from scraped data</div>
         </div>
 
         <div class="table-responsive">

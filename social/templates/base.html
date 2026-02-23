@@ -9,34 +9,129 @@
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
-    body {
-      background-color: #f4f6f8;
+    :root {
+      --admin-bg: #eef3f8;
+      --admin-surface: #ffffff;
+      --admin-primary: #0f5fd7;
+      --admin-primary-2: #0b4cb0;
+      --admin-text: #0f172a;
+      --admin-muted: #5b677a;
+      --admin-border: #d8e1ec;
+      --admin-shadow: 0 12px 30px rgba(17, 35, 69, 0.12);
+      --admin-radius: 16px;
     }
+
+    body {
+      background:
+        radial-gradient(1200px 500px at 0% 0%, rgba(31, 111, 235, 0.14), transparent 50%),
+        radial-gradient(900px 400px at 100% 0%, rgba(26, 143, 255, 0.12), transparent 50%),
+        var(--admin-bg);
+      font-family: "Outfit", sans-serif;
+      color: var(--admin-text);
+      min-height: 100vh;
+    }
+
     .sidebar {
       height: 100vh;
-      background: #0d6efd;
+      background: linear-gradient(180deg, #0e3a7b 0%, #0f5fd7 55%, #1b80f0 100%);
       color: #fff;
       position: sticky;
       top: 0;
       align-self: flex-start;
-      
-
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 15px 40px rgba(3, 20, 48, 0.35);
+      overflow-y: auto;
     }
+
     .sidebar a {
       color: #fff;
       text-decoration: none;
-      display: block;
-      padding: 12px;
-      border-radius: 6px;
-      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      margin-bottom: 7px;
+      transition: all 0.22s ease;
+      border: 1px solid transparent;
     }
+
     .sidebar a:hover {
-      background: rgba(255,255,255,0.2);
+      background: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 255, 255, 0.18);
+      transform: translateX(4px);
     }
-    .post-card {
-      border-radius: 12px;
+
+    .sidebar a.active-link {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.24);
+      font-weight: 600;
+    }
+
+    .main-panel {
+      padding: 22px;
+    }
+
+    .panel-shell {
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(216, 225, 236, 0.9);
+      border-radius: var(--admin-radius);
+      box-shadow: var(--admin-shadow);
+      padding: 20px;
+      animation: fadeSlideUp 360ms ease both;
+    }
+
+    .table {
+      --bs-table-bg: transparent;
+    }
+
+    .table thead th {
+      border-bottom: 1px solid var(--admin-border);
+    }
+
+    .table tbody tr {
+      transition: background 0.18s ease;
+    }
+
+    .table tbody tr:hover {
+      background: rgba(15, 95, 215, 0.05);
+    }
+
+    .btn-primary {
+      background: linear-gradient(120deg, var(--admin-primary), #2f88ff);
+      border-color: var(--admin-primary-2);
+      box-shadow: 0 8px 18px rgba(31, 111, 235, 0.25);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      background: linear-gradient(120deg, var(--admin-primary-2), var(--admin-primary));
+    }
+
+    @keyframes fadeSlideUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        height: auto;
+        position: relative;
+      }
+      .main-panel {
+        padding: 12px;
+      }
     }
   </style>
 </head>
@@ -47,13 +142,27 @@
 
     {% include "sidebar.html" %}
 
-    <div class="col-md-10 p-4">
-      {% block content %}{% endblock %}
+    <div class="col-md-10 main-panel">
+      <div class="panel-shell">
+        {% block content %}{% endblock %}
+      </div>
     </div>
 
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  (function () {
+    const current = window.location.pathname;
+    document.querySelectorAll(".sidebar a[href]").forEach((link) => {
+      const href = link.getAttribute("href");
+      if (!href || href === "#") return;
+      if (current === href || current.startsWith(href)) {
+        link.classList.add("active-link");
+      }
+    });
+  })();
+</script>
 </body>
 </html>
