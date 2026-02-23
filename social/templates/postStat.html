@@ -93,30 +93,45 @@
 
                         <td>{{ post.post_name }}</td>
 
-                        <!-- LINK + DROPDOWN -->
+                        <!-- PLATFORM ICON LINKS -->
                         <td>
-                            <div class="d-flex gap-2">
+                            <div class="d-flex gap-3 align-items-center">
 
-                                <a href="#" target="_blank"
-                                    class="form-control form-control-sm platform-link-input text-truncate"
-                                    style="width:240px;">
-                                    Select platform
+                                <!-- Instagram -->
+                                {% if post.Ipost_url %}
+                                <a href="{{ post.Ipost_url }}" target="_blank" title="Instagram Post"
+                                    style="color:#E1306C; font-size:1.4rem;">
+                                    <i class="bi bi-instagram"></i>
                                 </a>
+                                {% else %}
+                                <span title="No Instagram URL" style="color:#ccc; font-size:1.4rem;">
+                                    <i class="bi bi-instagram"></i>
+                                </span>
+                                {% endif %}
 
-                                <select class="form-select form-select-sm platform-select" style="width:120px;"
-                                    data-instagram="{{ post.Ipost_url }}" data-facebook="{{ post.Fposturl }}"
-                                    data-linkedin="{{ post.Lposturl }}" data-scraped-info='{
-                                        {% if post.scraped_info.instagram %}"instagram": {"likes": {{ post.scraped_info.instagram.total_likes_found }}, "comments": {{ post.scraped_info.instagram.total_comments_found }}}{% endif %}
-                                        {% if post.scraped_info.instagram and post.scraped_info.facebook %}, {% endif %}
-                                        {% if post.scraped_info.facebook %}"facebook": {"likes": {{ post.scraped_info.facebook.total_likes_found }}, "comments": {{ post.scraped_info.facebook.total_comments_found }}}{% endif %}
-                                        {% if post.scraped_info.facebook and post.scraped_info.linkedin %}, {% endif %}
-                                        {% if post.scraped_info.linkedin %}"linkedin": {"likes": {{ post.scraped_info.linkedin.total_likes_found }}, "comments": {{ post.scraped_info.linkedin.total_comments_found }}}{% endif %}
-                                    }'>
-                                    <option value="">Select</option>
-                                    <option value="instagram">Instagram</option>
-                                    <option value="facebook">Facebook</option>
-                                    <option value="linkedin">LinkedIn</option>
-                                </select>
+                                <!-- Facebook -->
+                                {% if post.Fposturl %}
+                                <a href="{{ post.Fposturl }}" target="_blank" title="Facebook Post"
+                                    style="color:#1877F2; font-size:1.4rem;">
+                                    <i class="bi bi-facebook"></i>
+                                </a>
+                                {% else %}
+                                <span title="No Facebook URL" style="color:#ccc; font-size:1.4rem;">
+                                    <i class="bi bi-facebook"></i>
+                                </span>
+                                {% endif %}
+
+                                <!-- LinkedIn -->
+                                {% if post.Lposturl %}
+                                <a href="{{ post.Lposturl }}" target="_blank" title="LinkedIn Post"
+                                    style="color:#0A66C2; font-size:1.4rem;">
+                                    <i class="bi bi-linkedin"></i>
+                                </a>
+                                {% else %}
+                                <span title="No LinkedIn URL" style="color:#ccc; font-size:1.4rem;">
+                                    <i class="bi bi-linkedin"></i>
+                                </span>
+                                {% endif %}
 
                             </div>
                         </td>
@@ -223,35 +238,5 @@
         </div>
     </div>
 </div>
-
-<script>
-
-    document.addEventListener("change", function (e) {
-
-        if (!e.target.classList.contains("platform-select")) return;
-
-        const select = e.target;
-        const row = select.closest("tr");
-        const link = row.querySelector(".platform-link-input");
-        const statusText = row.querySelector(".scrape-status");
-
-        let url = "";
-        let platform = select.value;
-
-        if (platform === "instagram") url = select.dataset.instagram;
-        if (platform === "facebook") url = select.dataset.facebook;
-        if (platform === "linkedin") url = select.dataset.linkedin;
-
-        if (!url) {
-            link.textContent = "No link available";
-            link.removeAttribute("href");
-        } else {
-            link.href = url;
-            link.textContent = url;
-        }
-
-    });
-
-</script>
 
 {% endblock %}

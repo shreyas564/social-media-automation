@@ -2165,30 +2165,6 @@ def post_details(request, post_id, platform, type):
     """
     View to display detailed list of likers or commenters for a post and platform
     Separated into Affiliate Users and Other Users
-    """
-    post = get_object_or_404(Post, id=post_id)
-    
-    affiliates_found = []
-    others_found = []
-    scraped_at = None
-    
-    # Validate inputs
-    platform = platform.lower()
-    type = type.lower()
-    
-    if platform not in ['instagram', 'facebook', 'linkedin']:
-        messages.error(request, "Invalid platform")
-        return redirect('post_stats')
-        
-    if type not in ['likes', 'comments']:
-        messages.error(request, "Invalid type")
-        return redirect('post_stats')
-    
-@login_required
-def post_details(request, post_id, platform, type):
-    """
-    View to display detailed list of likers or commenters for a post and platform
-    Separated into Affiliate Users and Other Users
     Includes Cross-Platform Engagement stats for Affiliates
     """
     post = get_object_or_404(Post, id=post_id)
@@ -2330,13 +2306,24 @@ def post_details(request, post_id, platform, type):
             else:
                 others_found.append(item)
             
+    # Determine the correct post URL for the given platform
+    if platform == 'instagram':
+        post_url = post.Ipost_url
+    elif platform == 'facebook':
+        post_url = post.Fposturl
+    elif platform == 'linkedin':
+        post_url = post.Lposturl
+    else:
+        post_url = None
+
     context = {
         'post': post,
         'platform': platform,
         'type': type,
         'affiliates_found': affiliates_found,
         'others_found': others_found,
-        'scraped_at': scraped_at
+        'scraped_at': scraped_at,
+        'post_url': post_url,
     }
     
     return render(request, 'post_details.html', context)
