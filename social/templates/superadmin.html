@@ -3,97 +3,223 @@
 {% block title %}SuperAdmin Dashboard{% endblock %}
 
 {% block content %}
+<style>
+  .dash-hero {
+    border: 1px solid #dbe4f2;
+    border-radius: 16px;
+    background: linear-gradient(130deg, #f8fbff, #eef4ff 55%, #e8f2ff);
+    padding: 18px;
+    margin-bottom: 16px;
+  }
 
-<div class="container mt-4">
+  .dash-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: 0.2px;
+  }
 
-  <h3 class="mb-4">SuperAdmin Dashboard</h3>
+  .dash-subtitle {
+    color: #5b6b84;
+    margin: 6px 0 0;
+    font-weight: 500;
+  }
 
-  <!-- Stats Section -->
-  <div class="row mb-4">
+  .metric-card {
+    border: 1px solid #dbe4f2;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 10px 24px rgba(20, 42, 78, 0.08);
+    padding: 14px;
+    height: 100%;
+  }
 
-    <div class="col-md-4">
-      <div class="card shadow-sm p-3 text-center">
-        <h6>Total Posts</h6>
-        <h3>{{ posts_count|default:0 }}</h3>
-      </div>
-    </div>
+  .metric-label {
+    color: #5f6f85;
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
 
-    <div class="col-md-4">
-      <div class="card shadow-sm p-3 text-center">
-        <h6>Affiliate Users</h6>
-        <h3>{{ users|default:0 }}</h3>
-      </div>
-    </div>
+  .metric-value {
+    font-size: 1.9rem;
+    font-weight: 700;
+    color: #123661;
+    margin: 0;
+    line-height: 1;
+  }
 
-    <div class="col-md-4">
-      <div class="card shadow-sm p-3 text-center">
-        <h6>Platforms Connected</h6>
-        <h3>3</h3>
-      </div>
-    </div>
+  .metric-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    background: #eef4ff;
+    color: #1d5bc4;
+  }
 
+  .toolbar {
+    border: 1px solid #dbe4f2;
+    border-radius: 14px;
+    background: #f9fbff;
+    padding: 12px;
+    margin: 14px 0 18px;
+  }
+
+  .post-card {
+    border: 1px solid #dbe4f2;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 12px 26px rgba(16, 40, 74, 0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .post-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 32px rgba(16, 40, 74, 0.14);
+  }
+
+  .post-media {
+    height: 240px;
+    object-fit: cover;
+    width: 100%;
+    background: #ecf2fb;
+  }
+
+  .post-title {
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: #172b48;
+  }
+
+  .post-caption {
+    color: #455974;
+    margin-bottom: 10px;
+  }
+
+  .post-meta {
+    color: #6a7b91;
+    font-size: 13px;
+    margin-bottom: 10px;
+    font-weight: 500;
+  }
+
+  @media (max-width: 768px) {
+    .dash-title {
+      font-size: 1.5rem;
+    }
+  }
+</style>
+
+<div class="dash-hero d-flex justify-content-between align-items-center flex-wrap gap-3">
+  <div>
+    <h2 class="dash-title">Super Admin Dashboard</h2>
+    <p class="dash-subtitle">Manage posts, monitor affiliates, and keep platform activity in sync.</p>
   </div>
+  <span class="badge text-bg-primary fs-6 px-3 py-2">
+    <i class="bi bi-calendar-event me-1"></i> {% now "d M Y" %}
+  </span>
+</div>
 
-  <h4 class="mb-3">Recent Posts</h4>
+<div class="row g-3 mb-2">
+  <div class="col-md-4">
+    <div class="metric-card d-flex justify-content-between align-items-center">
+      <div>
+        <p class="metric-label mb-1">Total Posts</p>
+        <p class="metric-value">{{ posts_count|default:0 }}</p>
+      </div>
+      <span class="metric-icon"><i class="bi bi-grid-3x3-gap"></i></span>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="metric-card d-flex justify-content-between align-items-center">
+      <div>
+        <p class="metric-label mb-1">Affiliate Users</p>
+        <p class="metric-value">{{ users|default:0 }}</p>
+      </div>
+      <span class="metric-icon"><i class="bi bi-people"></i></span>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="metric-card d-flex justify-content-between align-items-center">
+      <div>
+        <p class="metric-label mb-1">Platforms Connected</p>
+        <p class="metric-value">3</p>
+      </div>
+      <span class="metric-icon"><i class="bi bi-share"></i></span>
+    </div>
+  </div>
+</div>
 
-  <div class="d-flex gap-2 mb-4">
-    <form action="{% url 'create_post' %}" method="post">
+<div class="toolbar d-flex justify-content-between align-items-center gap-2 flex-wrap">
+  <h5 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2"></i>Recent Posts</h5>
+  <div class="d-flex gap-2 flex-wrap">
+    <form action="{% url 'create_post' %}" method="post" class="m-0">
       {% csrf_token %}
       <button type="submit" class="btn btn-success">
-        <i class="bi bi-plus-circle"></i> Create New Post
+        <i class="bi bi-plus-circle me-1"></i> Create New Post
       </button>
     </form>
-
     <a href="{% url 'affiliate_users' %}" class="btn btn-primary">
-      <i class="bi bi-people"></i> Affiliate Users & Verification
+      <i class="bi bi-people me-1"></i> Affiliate Users & Verification
     </a>
   </div>
+</div>
 
-  <div class="row">
-
-    {% for post in posts %}
-    <div class="col-md-4">
-      <div class="card shadow-sm mb-4 post-card">
-
-        <!-- MEDIA HANDLING -->
-
-        {% if post.image %}
-        <img src="{{ post.image.url }}" class="card-img-top" style="height:250px; object-fit:cover;">
-
-        :
-
-        {% elif post.video %}
-        <video class="card-img-top" controls style="height:250px; object-fit:cover;">
-          <source src="{{ post.video.url }}">
-        </video>
-
-        {% elif post.media_url %}
+<div class="row g-4">
+  {% for post in posts %}
+  <div class="col-lg-4 col-md-6">
+    <div class="post-card">
+      {% if post.image %}
+      <img src="{{ post.image.url }}" class="post-media" alt="Post image">
+      {% elif post.video %}
+      <video class="post-media" controls>
+        <source src="{{ post.video.url }}">
+      </video>
+      {% elif post.media_url %}
         {% if post.media_type == "video" %}
-        <video class="card-img-top" controls style="height:250px; object-fit:cover;">
+        <video class="post-media" controls>
           <source src="{{ post.media_url }}">
         </video>
         {% else %}
-        <img src="{{ post.media_url }}" class="card-img-top" style="height:250px; object-fit:cover;">
+        <img src="{{ post.media_url }}" class="post-media" alt="Post media">
         {% endif %}
+      {% else %}
+      <img src="https://via.placeholder.com/400x250?text=No+Media" class="post-media" alt="No media">
+      {% endif %}
 
-        {% else %}
-        <img src="https://via.placeholder.com/400x250?text=No+Media" class="card-img-top">
-        {% endif %}
-
-        <div class="card-body">
-          <p class="card-text">{{ post.caption|default:"No caption available" }}</p>
+      <div class="card-body d-flex flex-column">
+        <h5 class="post-title mb-1">{{ post.post_name|default:"Untitled Post" }}</h5>
+        <div class="post-meta">
+          <i class="bi bi-calendar3 me-1"></i>{{ post.created_at|date:"d M Y" }}
         </div>
-
+        <p class="post-caption">{{ post.caption|default:"No caption available"|truncatechars:120 }}</p>
+        <div class="d-flex gap-2 mt-auto">
+          <a href="{% url 'edit_post' post.id %}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-pencil-square me-1"></i>Edit
+          </a>
+          <a href="{% url 'delete_post' post.id %}" class="btn btn-outline-danger btn-sm"
+             onclick="return confirm('Delete this post?');">
+            <i class="bi bi-trash me-1"></i>Delete
+          </a>
+        </div>
       </div>
     </div>
-
-    {% empty %}
-    <div class="col-12">
-      <div class="alert alert-info">No posts available.</div>
-    </div>
-    {% endfor %}
-
   </div>
+  {% empty %}
+  <div class="col-12">
+    <div class="alert alert-info mb-0">
+      <i class="bi bi-info-circle me-1"></i>No posts available.
+    </div>
+  </div>
+  {% endfor %}
 </div>
 
 {% endblock %}

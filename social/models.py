@@ -124,7 +124,7 @@ class Like(models.Model):
     apify_run_id = models.CharField(max_length=100, null=True, blank=True)  # Audit trail
 
     class Meta:
-        unique_together = ('post', 'affiliate')
+        unique_together = ('post', 'affiliate', 'platform')
     def __str__(self):
         return f"Like by {self.affiliate.username} on Post {self.post.id}" # type: ignore
     
@@ -152,7 +152,7 @@ class Share(models.Model):
     apify_run_id = models.CharField(max_length=100, null=True, blank=True)  # Audit trail
     
     class Meta:
-        unique_together = ('post', 'affiliate')
+        unique_together = ('post', 'affiliate', 'platform')
     def __str__(self):
         return f"Share by {self.affiliate.username} on {self.platform}"
 
@@ -227,3 +227,28 @@ class InstagramComment(models.Model):
 
     def __str__(self):
         return self.comment_id
+
+
+class PaymentSetting(models.Model):
+    PLATFORM_CHOICES = [
+        ("instagram", "Instagram"),
+        ("facebook", "Facebook"),
+        ("linkedin", "LinkedIn"),
+    ]
+    ACTION_CHOICES = [
+        ("like", "Like"),
+        ("share", "Share"),
+        ("comment", "Comment"),
+    ]
+
+    super_admin = models.ForeignKey(SuperAdmin, on_delete=models.CASCADE, related_name="payment_settings")
+    platform = models.CharField(max_length=20, choices=PLATFORM_CHOICES)
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES)
+    amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("super_admin", "platform", "action")
+
+    def __str__(self):
+        return f"{self.super_admin.name} - {self.platform} {self.action}: {self.amount}"

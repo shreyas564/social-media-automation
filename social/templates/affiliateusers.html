@@ -96,7 +96,7 @@
 
   <div class="chip-strip">
     <span class="metric-chip"><i class="bi bi-people me-1"></i> Users: {{ users_stats|length }}</span>
-    <span class="metric-chip"><i class="bi bi-shield-check me-1"></i> Credits = Likes + Comments</span>
+    <span class="metric-chip"><i class="bi bi-shield-check me-1"></i> Platform Engagement: 1 = done, 0 = not done</span>
   </div>
 </div>
 
@@ -122,14 +122,29 @@
       <table class="table table-bordered mb-0 align-middle">
         <thead>
           <tr>
-            <th style="width: 56px;">#</th>
-            <th>Username</th>
+            <th style="width: 56px;" rowspan="2">#</th>
+            <th rowspan="2">Username</th>
+            <th colspan="3" class="text-center text-danger">Instagram</th>
+            <th colspan="3" class="text-center text-primary">Facebook</th>
+            <th colspan="3" class="text-center text-info">LinkedIn</th>
+            <th colspan="3" class="text-center">Totals</th>
+            <th rowspan="2">Joined</th>
+            <th rowspan="2">Credits</th>
+            <th rowspan="2">Amount</th>
+          </tr>
+          <tr>
+            <th>Like</th>
+            <th>Share</th>
+            <th>Comment</th>
+            <th>Like</th>
+            <th>Share</th>
+            <th>Comment</th>
+            <th>Like</th>
+            <th>Share</th>
+            <th>Comment</th>
             <th>Likes</th>
-            <th>Comments</th>
             <th>Shares</th>
-            <th>Total</th>
-            <th>Credits</th>
-            <th>Joined</th>
+            <th>Comments</th>
           </tr>
         </thead>
         <tbody id="usersTableBody">
@@ -137,16 +152,25 @@
           <tr class="user-row" data-username="{{ item.affiliate.username|lower }}">
             <td>{{ forloop.counter }}</td>
             <td><strong>{{ item.affiliate.username }}</strong></td>
-            <td>{{ item.scraped_likes }}</td>
-            <td>{{ item.scraped_comments }}</td>
-            <td>{{ item.total_shares }}</td>
-            <td><strong>{{ item.total_engagement }}</strong></td>
-            <td><span class="score-pill">{{ item.scraped_likes|add:item.scraped_comments }}</span></td>
+            <td>{{ item.ig_like }}</td>
+            <td>{{ item.ig_share }}</td>
+            <td>{{ item.ig_comment }}</td>
+            <td>{{ item.fb_like }}</td>
+            <td>{{ item.fb_share }}</td>
+            <td>{{ item.fb_comment }}</td>
+            <td>{{ item.li_like }}</td>
+            <td>{{ item.li_share }}</td>
+            <td>{{ item.li_comment }}</td>
+            <td><strong>{{ item.total_likes }}</strong></td>
+            <td><strong>{{ item.total_shares }}</strong></td>
+            <td><strong>{{ item.total_comments }}</strong></td>
             <td>{{ item.affiliate.created_at|date:"d M Y" }}</td>
+            <td><strong>{{ item.credits_before_joining_date }}</strong></td>
+            <td><strong>{{ item.amount_total|floatformat:2 }}</strong></td>
           </tr>
           {% empty %}
           <tr>
-            <td colspan="8" class="text-center text-muted py-4">No users found.</td>
+            <td colspan="17" class="text-center text-muted py-4">No users found.</td>
           </tr>
           {% endfor %}
         </tbody>

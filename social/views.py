@@ -1,6 +1,7 @@
 import requests
 import urllib.parse
 import re
+from decimal import Decimal, InvalidOperation
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render,redirect,get_object_or_404
@@ -365,11 +366,118 @@ def affiliate_login(request):
 
 
 # Affiliated user dashboard
+def _attach_affiliate_action_status(posts, affiliate_id):
+    allowed = {"instagram", "facebook", "linkedin"}
+    posts = list(posts)
+    if not posts:
+        return posts
+
+    def normalize_platforms(raw):
+        value = (raw or "").strip().lower()
+        if not value:
+            return ["instagram"]
+        if "," in value:
+            parts = [p.strip().lower() for p in value.split(",") if p.strip()]
+            return [p for p in parts if p in allowed]
+        return [value] if value in allowed else []
+
+    def username_tokens(value):
+        v = (value or "").strip().lower()
+        if not v:
+            return set()
+        if v.startswith("@"):
+            v = v[1:]
+        compact = re.sub(r"[^a-z0-9]+", "", v)
+        tokens = {v}
+        if compact:
+            tokens.add(compact)
+        return {t for t in tokens if t}
+
+    like_set = set()
+    comment_set = set()
+    share_set = set()
+
+    for row in Like.objects.filter(affiliate_id=affiliate_id).values("post_id", "platform"):
+        for p in normalize_platforms(row.get("platform")):
+            like_set.add((row["post_id"], p))
+
+    for row in Comment.objects.filter(affiliate_id=affiliate_id).values("post_id", "platform"):
+        for p in normalize_platforms(row.get("platform")):
+            comment_set.add((row["post_id"], p))
+
+    for row in Share.objects.filter(affiliate_id=affiliate_id).values("post_id", "platform"):
+        for p in normalize_platforms(row.get("platform")):
+            share_set.add((row["post_id"], p))
+
+    # Also infer like/comment status from scraped usernames per platform.
+    # This uses affiliate's per-platform usernames (or system username fallback).
+    aff = AffiliateProfile.objects.filter(id=affiliate_id).first()
+    if aff:
+        platform_aliases = {
+            "instagram": username_tokens(aff.instagram_username) | username_tokens(aff.username),
+            "facebook": username_tokens(aff.facebook_username) | username_tokens(aff.username),
+            "linkedin": username_tokens(aff.linkedin_username) | username_tokens(aff.username),
+        }
+
+        post_ids = [p.id for p in posts]
+        scraped_posts = ScrapedPost.objects.filter(
+            post_id__in=post_ids,
+            platform__in=list(allowed),
+        ).prefetch_related("likes", "comments")
+
+        scraped_like_map = {}
+        scraped_comment_map = {}
+        for sp in scraped_posts:
+            key = (sp.post_id, sp.platform)
+            like_tokens = set()
+            for u in sp.likes.values_list("username", flat=True):
+                like_tokens.update(username_tokens(u))
+            scraped_like_map[key] = like_tokens
+
+            comment_tokens = set()
+            for u in sp.comments.values_list("username", flat=True):
+                comment_tokens.update(username_tokens(u))
+            scraped_comment_map[key] = comment_tokens
+
+        for post in posts:
+            for platform in allowed:
+                key = (post.id, platform)
+                aliases = platform_aliases[platform]
+                if aliases and aliases.intersection(scraped_like_map.get(key, set())):
+                    like_set.add(key)
+                if aliases and aliases.intersection(scraped_comment_map.get(key, set())):
+                    comment_set.add(key)
+
+    for post in posts:
+        pid = post.id
+        post.action_status = {
+            "instagram": {
+                "like": (pid, "instagram") in like_set,
+                "comment": (pid, "instagram") in comment_set,
+                "share": (pid, "instagram") in share_set,
+            },
+            "facebook": {
+                "like": (pid, "facebook") in like_set,
+                "comment": (pid, "facebook") in comment_set,
+                "share": (pid, "facebook") in share_set,
+            },
+            "linkedin": {
+                "like": (pid, "linkedin") in like_set,
+                "comment": (pid, "linkedin") in comment_set,
+                "share": (pid, "linkedin") in share_set,
+            },
+        }
+
+    return posts
+
+
 def affiliate_dashboard(request):
     if not request.session.get('affiliate_id'):
         return redirect('affiliate_login')
 
+    affiliate_id = request.session.get('affiliate_id')
     posts = Post.objects.all().order_by('-created_at')
+    posts = _attach_affiliate_action_status(posts, affiliate_id)
 
     return render(
         request,
@@ -612,7 +720,9 @@ def affiliate_feed(request):
     if not request.session.get('affiliate_id'):
         return redirect('affiliate_login')
 
+    affiliate_id = request.session.get('affiliate_id')
     posts = Post.objects.all().order_by('-created_at')
+    posts = _attach_affiliate_action_status(posts, affiliate_id)
     return render(request, 'affiliate_userdashboard.html', {'posts': posts})
 
 
@@ -659,73 +769,135 @@ def change_password_page(request):
 
 
 def affiliate_users(request):
-    from django.db.models import Count, Q
-    from datetime import timedelta
-    from django.utils import timezone
-    # Ensure these are imported or available
-    from .models import ScrapedLike, ScrapedComment
-
+    from django.db.models import Q
     affiliate_profiles = AffiliateProfile.objects.all()
+    super_admin = SuperAdmin.objects.filter(user=request.user).first() if request.user.is_authenticated else None
+    if not super_admin:
+        super_admin = SuperAdmin.objects.first()
 
     # Build statistics for each affiliate
     stats_data = []
 
-    for affiliate in affiliate_profiles:
-        # 1. Total claimed engagement (from manual button clicks)
-        total_likes = Like.objects.filter(affiliate=affiliate).count()
-        total_comments = Comment.objects.filter(affiliate=affiliate).count()
-        total_shares = Share.objects.filter(affiliate=affiliate).count()
-        
-        # 2. Scraped/Found engagement (Direct database check)
-        scraped_likes_count = 0
-        scraped_comments_count = 0
-        
-        # Instagram
-        if affiliate.instagram_username:
-            scraped_likes_count += ScrapedLike.objects.filter(
-                scraped_post__platform='instagram', 
-                username__iexact=affiliate.instagram_username
-            ).count()
-            scraped_comments_count += ScrapedComment.objects.filter(
-                scraped_post__platform='instagram', 
-                username__iexact=affiliate.instagram_username
-            ).count()
-            
-        # Facebook
-        if affiliate.facebook_username:
-            scraped_likes_count += ScrapedLike.objects.filter(
-                scraped_post__platform='facebook', 
-                username__iexact=affiliate.facebook_username
-            ).count()
-            scraped_comments_count += ScrapedComment.objects.filter(
-                scraped_post__platform='facebook', 
-                username__iexact=affiliate.facebook_username
-            ).count()
-            
-        # LinkedIn
-        if affiliate.linkedin_username:
-            scraped_likes_count += ScrapedLike.objects.filter(
-                scraped_post__platform='linkedin', 
-                username__iexact=affiliate.linkedin_username
-            ).count()
-            scraped_comments_count += ScrapedComment.objects.filter(
-                scraped_post__platform='linkedin', 
-                username__iexact=affiliate.linkedin_username
-            ).count()
+    def username_tokens(value):
+        token = (value or "").strip().lower()
+        if not token:
+            return set()
+        if token.startswith("@"):
+            token = token[1:]
+        compact = re.sub(r"[^a-z0-9]+", "", token)
+        out = {token}
+        if compact:
+            out.add(compact)
+        return {t for t in out if t}
 
-        # Structure data for this affiliate
+    # Keep tokenized scraped usernames per row so we can return exact counts.
+    scraped_like_rows = {"instagram": [], "facebook": [], "linkedin": []}
+    scraped_comment_rows = {"instagram": [], "facebook": [], "linkedin": []}
+
+    for platform, username in ScrapedLike.objects.values_list("scraped_post__platform", "username"):
+        if platform in scraped_like_rows:
+            scraped_like_rows[platform].append(username_tokens(username))
+
+    for platform, username in ScrapedComment.objects.values_list("scraped_post__platform", "username"):
+        if platform in scraped_comment_rows:
+            scraped_comment_rows[platform].append(username_tokens(username))
+
+    rates_map = {}
+    if super_admin:
+        rates_map = {
+            (item.platform, item.action): item.amount
+            for item in PaymentSetting.objects.filter(super_admin=super_admin)
+        }
+
+    def get_rate(platform, action):
+        return rates_map.get((platform, action), Decimal("0.00"))
+
+    def action_count(model_cls, affiliate, platform):
+        q = Q(affiliate=affiliate, platform__iexact=platform)
+        # Backward compatibility for old malformed rows.
+        q = q | Q(affiliate=affiliate, platform__icontains=platform)
+        if platform == "instagram":
+            q = q | Q(affiliate=affiliate, platform__isnull=True) | Q(affiliate=affiliate, platform="")
+        return model_cls.objects.filter(q).count()
+
+    def scraped_action_count(affiliate, platform, action_type):
+        aliases = (
+            username_tokens(affiliate.username)
+            | username_tokens(affiliate.instagram_username if platform == "instagram" else "")
+            | username_tokens(affiliate.facebook_username if platform == "facebook" else "")
+            | username_tokens(affiliate.linkedin_username if platform == "linkedin" else "")
+        )
+        if not aliases:
+            return 0
+        if action_type == "like":
+            return sum(1 for row_tokens in scraped_like_rows[platform] if aliases.intersection(row_tokens))
+        if action_type == "comment":
+            return sum(1 for row_tokens in scraped_comment_rows[platform] if aliases.intersection(row_tokens))
+        return 0
+
+    for affiliate in affiliate_profiles:
+        ig_like = max(
+            action_count(Like, affiliate, "instagram"),
+            scraped_action_count(affiliate, "instagram", "like"),
+        )
+        ig_share = action_count(Share, affiliate, "instagram")
+        ig_comment = max(
+            action_count(Comment, affiliate, "instagram"),
+            scraped_action_count(affiliate, "instagram", "comment"),
+        )
+
+        fb_like = max(
+            action_count(Like, affiliate, "facebook"),
+            scraped_action_count(affiliate, "facebook", "like"),
+        )
+        fb_share = action_count(Share, affiliate, "facebook")
+        fb_comment = max(
+            action_count(Comment, affiliate, "facebook"),
+            scraped_action_count(affiliate, "facebook", "comment"),
+        )
+
+        li_like = max(
+            action_count(Like, affiliate, "linkedin"),
+            scraped_action_count(affiliate, "linkedin", "like"),
+        )
+        li_share = action_count(Share, affiliate, "linkedin")
+        li_comment = max(
+            action_count(Comment, affiliate, "linkedin"),
+            scraped_action_count(affiliate, "linkedin", "comment"),
+        )
+
+        total_likes = ig_like + fb_like + li_like
+        total_shares = ig_share + fb_share + li_share
+        total_comments = ig_comment + fb_comment + li_comment
+        credits_before_joining_date = total_likes + total_shares + total_comments
+        amount_total = (
+            Decimal(ig_like) * get_rate("instagram", "like")
+            + Decimal(ig_share) * get_rate("instagram", "share")
+            + Decimal(ig_comment) * get_rate("instagram", "comment")
+            + Decimal(fb_like) * get_rate("facebook", "like")
+            + Decimal(fb_share) * get_rate("facebook", "share")
+            + Decimal(fb_comment) * get_rate("facebook", "comment")
+            + Decimal(li_like) * get_rate("linkedin", "like")
+            + Decimal(li_share) * get_rate("linkedin", "share")
+            + Decimal(li_comment) * get_rate("linkedin", "comment")
+        )
+
         affiliate_stats = {
             'affiliate': affiliate,
+            'ig_like': ig_like,
+            'ig_share': ig_share,
+            'ig_comment': ig_comment,
+            'fb_like': fb_like,
+            'fb_share': fb_share,
+            'fb_comment': fb_comment,
+            'li_like': li_like,
+            'li_share': li_share,
+            'li_comment': li_comment,
             'total_likes': total_likes,
+            'total_shares': total_shares,
             'total_comments': total_comments,
-            'total_shares': total_shares,
-            'total_engagement': total_likes + total_comments + total_shares,
-            # Use these new fields in template
-            'scraped_likes': scraped_likes_count,
-            'scraped_comments': scraped_comments_count,
-            'total_shares': total_shares,
-            'total_engagement': scraped_likes_count + scraped_comments_count + total_shares,
-            'credits': 0,  # Placeholder for future logic
+            'credits_before_joining_date': credits_before_joining_date,
+            'amount_total': amount_total,
         }
 
         stats_data.append(affiliate_stats)
@@ -888,6 +1060,63 @@ def verify_post_data(request, post_id):
 def setting(request):
     return render(request, 'settings.html')
 
+
+@login_required
+def payment_settings(request):
+    super_admin = SuperAdmin.objects.filter(user=request.user).first()
+    if not super_admin:
+        super_admin = SuperAdmin.objects.first()
+
+    if not super_admin:
+        messages.error(request, "No super admin profile found.")
+        return render(request, "payment_settings.html", {"rates": {}})
+
+    platforms = ["instagram", "facebook", "linkedin"]
+    actions = ["like", "share", "comment"]
+
+    if request.method == "POST":
+        for platform in platforms:
+            for action in actions:
+                field_name = f"{platform}_{action}_amount"
+                raw_amount = (request.POST.get(field_name) or "0").strip()
+                try:
+                    amount = Decimal(raw_amount)
+                except (InvalidOperation, TypeError):
+                    amount = Decimal("0")
+
+                if amount < 0:
+                    amount = Decimal("0")
+
+                PaymentSetting.objects.update_or_create(
+                    super_admin=super_admin,
+                    platform=platform,
+                    action=action,
+                    defaults={"amount": amount},
+                )
+
+        messages.success(request, "Payment settings updated successfully.")
+        return redirect("payment_settings")
+
+    settings_map = {
+        (item.platform, item.action): item.amount
+        for item in PaymentSetting.objects.filter(super_admin=super_admin)
+    }
+    rates = {
+        platform: {
+            action: settings_map.get((platform, action), Decimal("0.00"))
+            for action in actions
+        }
+        for platform in platforms
+    }
+
+    return render(
+        request,
+        "payment_settings.html",
+        {
+            "rates": rates,
+        },
+    )
+
 def profile(request):
     return render(request, 'profile.html')
 
@@ -951,22 +1180,116 @@ def editpost(request,post_id):
     post=Post.objects.get(id=post_id)
     return render(request, 'editpost.html', {'post': post})
 def edit_facebook_post(post_id, access_token, new_caption):
-    
     if not post_id:
         return True
 
     url = f"https://graph.facebook.com/v19.0/{post_id}"
 
-    payload = {
-        "message": new_caption,
-        "access_token": access_token.strip()
+    # Different FB objects accept different keys (message/caption/description).
+    candidates = [
+        {"message": new_caption, "access_token": access_token.strip()},
+        {"caption": new_caption, "access_token": access_token.strip()},
+        {"description": new_caption, "access_token": access_token.strip()},
+    ]
+    for payload in candidates:
+        try:
+            res = requests.post(url, data=payload, timeout=20)
+            print("FB EDIT:", res.status_code, res.text)
+            if res.status_code in [200, 201]:
+                return True
+        except requests.RequestException as e:
+            print("FB EDIT ERROR:", str(e))
+    return False
+
+
+def edit_instagram_post(media_id, access_token, new_caption):
+    if not media_id:
+        return True, ""
+
+    url = f"https://graph.facebook.com/v19.0/{media_id}"
+    candidates = [
+        {
+            "caption": new_caption,
+            "comment_enabled": "true",
+            "access_token": access_token.strip(),
+        },
+        {
+            "message": new_caption,
+            "comment_enabled": "true",
+            "access_token": access_token.strip(),
+        },
+    ]
+    last_error = ""
+    for payload in candidates:
+        try:
+            res = requests.post(url, data=payload, timeout=20)
+            print("IG EDIT:", res.status_code, res.text)
+            if res.status_code in [200, 201]:
+                return True, ""
+            last_error = res.text
+        except requests.RequestException as e:
+            print("IG EDIT ERROR:", str(e))
+            last_error = str(e)
+    return False, last_error
+
+
+def edit_linkedin_post(post_urn, access_token, new_caption):
+    if not post_urn:
+        return True, ""
+
+    if not post_urn.startswith("urn:li:"):
+        post_urn = f"urn:li:ugcPost:{post_urn}"
+
+    encoded_urn = urllib.parse.quote(post_urn, safe="")
+    base_headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+        "X-Restli-Protocol-Version": "2.0.0",
+        "Linkedin-Version": "202503",
     }
 
-    res = requests.post(url, data=payload)
+    attempts = [
+        # LinkedIn rest posts endpoint (newer)
+        (
+            "PATCH",
+            f"https://api.linkedin.com/rest/posts/{encoded_urn}",
+            {"commentary": new_caption},
+            base_headers,
+        ),
+        # LinkedIn UGC endpoint (older)
+        (
+            "POST",
+            f"https://api.linkedin.com/v2/ugcPosts/{encoded_urn}",
+            {
+                "patch": {
+                    "$set": {
+                        "specificContent": {
+                            "com.linkedin.ugc.ShareContent": {
+                                "shareCommentary": {"text": new_caption}
+                            }
+                        }
+                    }
+                }
+            },
+            {**base_headers, "X-HTTP-Method-Override": "PATCH"},
+        ),
+    ]
 
-    print("FB EDIT:", res.status_code, res.text)
-
-    return res.status_code == 200
+    for method, url, body, headers in attempts:
+        try:
+            if method == "PATCH":
+                res = requests.patch(url, json=body, headers=headers, timeout=20)
+            else:
+                res = requests.post(url, json=body, headers=headers, timeout=20)
+            print("LN EDIT:", res.status_code, res.text)
+            if res.status_code in [200, 201, 204]:
+                return True, ""
+            if res.status_code == 401 and "REVOKED_ACCESS_TOKEN" in (res.text or ""):
+                return False, "REVOKED_ACCESS_TOKEN"
+        except requests.RequestException as e:
+            print("LN EDIT ERROR:", str(e))
+            return False, str(e)
+    return False, "UNKNOWN_ERROR"
 
 def submit_editpost(request, post_id):
     
@@ -981,18 +1304,52 @@ def submit_editpost(request, post_id):
         post.caption = caption
         post.save()
 
-        # -------- FACEBOOK EDIT --------
+        # -------- PLATFORM EDITS --------
+        fb_ok = True
+        ig_ok = True
+        ln_ok = True
+
         if post.fbpostid and super_admin.fbtoken:
-            edit_facebook_post(
+            fb_ok = edit_facebook_post(
                 post.fbpostid,
                 super_admin.fbtoken,
+                caption
+            )
+
+        ig_error = ""
+        ln_error = ""
+
+        if post.instapostid and super_admin.instatoken:
+            ig_ok, ig_error = edit_instagram_post(
+                post.instapostid,
+                super_admin.instatoken,
+                caption
+            )
+
+        if post.lnpostid and super_admin.lntoken:
+            ln_ok, ln_error = edit_linkedin_post(
+                post.lnpostid,
+                super_admin.lntoken,
                 caption
             )
 
         # -------- N8N --------
         send_caption_to_n8n(caption)
 
+        if fb_ok and ig_ok and ln_ok:
+            messages.success(request, "Post updated on dashboard and synced to connected platforms.")
+        else:
+            messages.warning(request, "Post updated locally, but some platform edits failed or are not supported.")
+            if ig_error:
+                messages.info(request, f"Instagram edit response: {ig_error}")
+            if ln_error == "REVOKED_ACCESS_TOKEN":
+                messages.error(request, "LinkedIn token is revoked. Reconnect LinkedIn token in Settings/Profile.")
+            elif ln_error:
+                messages.info(request, f"LinkedIn edit response: {ln_error}")
+
         return redirect('posts_list')
+    
+    return redirect('posts_list')
 
     
 
@@ -1011,8 +1368,14 @@ def del_post(request, post_id):
     ln_ok = True
 
     # FACEBOOK
-    if post.fbpostid and super_admin.fbtoken:
-        fb_ok = delete_facebook_post(post.fbpostid, super_admin.fbtoken)
+    if super_admin.fbtoken:
+        fb_candidates = _facebook_delete_candidates(post.fbpostid, post.Fposturl)
+        if fb_candidates:
+            fb_ok = False
+            for fb_id in fb_candidates:
+                if delete_facebook_post(fb_id, super_admin.fbtoken):
+                    fb_ok = True
+                    break
 
     # INSTAGRAM ✅ FIX ADDED
     if post.instapostid and super_admin.instatoken:
@@ -1067,7 +1430,19 @@ def collect_post_data(request):
             updated.add(post.id)
 
         if platform == "facebook":
-            post.fbpostid = item.get("post_id")
+            incoming_fb_id = item.get("post_id")
+            if not incoming_fb_id and post_url:
+                # Fallback for reels/videos where payload may not send post_id.
+                reel_match = re.search(r"/reel/(\d+)", post_url)
+                video_match = re.search(r"/videos/(\d+)", post_url)
+                post_match = re.search(r"/posts/(\d+)", post_url)
+                if reel_match:
+                    incoming_fb_id = reel_match.group(1)
+                elif video_match:
+                    incoming_fb_id = video_match.group(1)
+                elif post_match:
+                    incoming_fb_id = post_match.group(1)
+            post.fbpostid = incoming_fb_id
             post.Fposturl = post_url
 
         elif platform == "instagram":
@@ -1092,8 +1467,37 @@ def delete_facebook_post(post_id, access_token):
     url = f"https://graph.facebook.com/v19.0/{post_id}"
     res = requests.delete(url, params={"access_token": access_token})
 
-    print("FB STATUS:", res.status_code, res.text)
+    print("FB STATUS:", post_id, res.status_code, res.text)
     return res.status_code in [200, 204]
+
+
+def _facebook_delete_candidates(fbpostid, fb_url):
+    candidates = []
+    if fbpostid:
+        candidates.append(str(fbpostid).strip())
+
+    if fb_url:
+        # e.g. /reel/123..., /videos/123..., /posts/123...
+        for pattern in [r"/reel/(\d+)", r"/videos/(\d+)", r"/posts/(\d+)"]:
+            m = re.search(pattern, fb_url)
+            if m:
+                candidates.append(m.group(1))
+
+        # e.g. facebook.com/{page_id}/posts/{post_id} -> {page_id}_{post_id}
+        combo = re.search(r"facebook\.com/(\d+)/posts/(\d+)", fb_url)
+        if combo:
+            candidates.append(f"{combo.group(1)}_{combo.group(2)}")
+
+    # keep order, remove duplicates/blanks
+    seen = set()
+    ordered = []
+    for c in candidates:
+        c = (c or "").strip()
+        if not c or c in seen:
+            continue
+        seen.add(c)
+        ordered.append(c)
+    return ordered
 
 def delete_instagram_post(media_id, access_token):
     if not media_id:
@@ -2100,8 +2504,10 @@ def save_action(request):
     data = json.loads(request.body)
 
     post_id = data.get("post_id")
-    platform = data.get("platform")
+    platform = (data.get("platform") or "").strip().lower()
     action = data.get("action")
+    if platform not in {"instagram", "facebook", "linkedin"}:
+        return JsonResponse({"error": "Invalid platform"}, status=400)
 
     affiliate = AffiliateProfile.objects.get(id=affiliate_id)
     post = Post.objects.get(id=post_id)
@@ -2138,23 +2544,52 @@ def get_actions(request):
 
     likes = list(
         Like.objects.filter(affiliate_id=affiliate_id)
-        .values_list("post_id", flat=True)
+        .values("post_id", "platform")
     )
 
     comments = list(
         Comment.objects.filter(affiliate_id=affiliate_id)
-        .values_list("post_id", flat=True)
+        .values("post_id", "platform")
     )
 
     shares = list(
         Share.objects.filter(affiliate_id=affiliate_id)
-        .values_list("post_id", flat=True)
+        .values("post_id", "platform")
     )
 
+    allowed = {"instagram", "facebook", "linkedin"}
+
+    def normalize_actions(items):
+        normalized = []
+        seen = set()
+        for item in items:
+            post_id = item["post_id"]
+            raw_platform = (item.get("platform") or "").strip().lower()
+
+            # Backward compatibility:
+            # 1) null/empty platform from old rows -> treat as instagram
+            # 2) comma-joined platforms like "facebook,instagram" -> split
+            if not raw_platform:
+                candidates = ["instagram"]
+            elif "," in raw_platform:
+                candidates = [p.strip().lower() for p in raw_platform.split(",") if p.strip()]
+            else:
+                candidates = [raw_platform]
+
+            for p in candidates:
+                if p not in allowed:
+                    continue
+                key = (post_id, p)
+                if key in seen:
+                    continue
+                seen.add(key)
+                normalized.append({"post_id": post_id, "platform": p})
+        return normalized
+
     return JsonResponse({
-        "likes": likes,
-        "comments": comments,
-        "shares": shares
+        "likes": normalize_actions(likes),
+        "comments": normalize_actions(comments),
+        "shares": normalize_actions(shares),
     })
 
 

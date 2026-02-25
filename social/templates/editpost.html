@@ -22,12 +22,31 @@
                         {% endfor %}
                     {% endif %}
                     
-                      <div class="mb-3 text-center">
-                            <img src="{{ post.image.url }}"
-                                 alt="Post Image"
+                    <div class="mb-3 text-center">
+                        {% if post.image %}
+                        <img src="{{ post.image.url }}"
+                             alt="Post Image"
+                             class="img-fluid rounded border"
+                             style="max-height: 300px;">
+                        {% elif post.video %}
+                        <video controls class="img-fluid rounded border" style="max-height: 300px;">
+                            <source src="{{ post.video.url }}">
+                        </video>
+                        {% elif post.media_url %}
+                            {% if post.media_type == "video" %}
+                            <video controls class="img-fluid rounded border" style="max-height: 300px;">
+                                <source src="{{ post.media_url }}">
+                            </video>
+                            {% else %}
+                            <img src="{{ post.media_url }}"
+                                 alt="Post Media"
                                  class="img-fluid rounded border"
                                  style="max-height: 300px;">
-                        </div>
+                            {% endif %}
+                        {% else %}
+                        <div class="text-muted small">No media available for this post.</div>
+                        {% endif %}
+                    </div>
                     <form method="post" action="{% url 'submit_edit_post' post.id %}" >
                         {% csrf_token %}
                     

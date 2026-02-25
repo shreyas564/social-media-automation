@@ -36,6 +36,7 @@ urlpatterns = [
     path("verify-post/<int:post_id>/", views.verify_post_data, name="verify_post"),
     
     path("settings/", views.setting, name="settings"),
+    path("payment-settings/", views.payment_settings, name="payment_settings"),
     path("profile/", views.profile, name="profile"),
     path("update-profile/", views.update_admin_profile, name="update_profile"),
     path("change-password/", views.change_password, name="change_password"),

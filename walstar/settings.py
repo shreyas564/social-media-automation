@@ -97,9 +97,9 @@ WSGI_APPLICATION = 'walstar.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'social_media_db',
+        'NAME': 'walstar',
         'USER': 'postgres',
-        'PASSWORD': 'abc',
+        'PASSWORD': 'root',
         'HOST': 'localhost',
         'PORT': '5432',
     }

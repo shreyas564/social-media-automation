@@ -4,26 +4,41 @@
 {% block content %}
 
 <style>
+    .stats-hero {
+        border: 1px solid #dbe4f2;
+        border-radius: 16px;
+        background: linear-gradient(130deg, #f8fbff, #eef4ff 58%, #e8f2ff);
+        padding: 16px;
+        margin-bottom: 14px;
+    }
+
     .headline-wrap {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        margin-bottom: 16px;
+        margin-bottom: 10px;
     }
 
     .headline-title {
-        font-size: 1.45rem;
+        font-size: 1.6rem;
         font-weight: 700;
         margin: 0;
-        letter-spacing: 0.2px;
+        letter-spacing: 0.3px;
+    }
+
+    .headline-sub {
+        margin: 0;
+        color: #61728a;
+        font-weight: 500;
+        font-size: 14px;
     }
 
     .kpi-strip {
         display: flex;
         gap: 10px;
         flex-wrap: wrap;
-        margin-bottom: 16px;
+        margin-bottom: 4px;
     }
 
     .kpi-chip {
@@ -36,6 +51,27 @@
         color: #123e73;
     }
 
+    .stats-card {
+        border-radius: 16px;
+        border: 1px solid #dbe4f2;
+        box-shadow: 0 12px 28px rgba(16, 40, 74, 0.1);
+        overflow: hidden;
+    }
+
+    .table-responsive {
+        max-height: 74vh;
+    }
+
+    .table {
+        margin-bottom: 0;
+    }
+
+    .table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 3;
+    }
+
     .stats-header {
         text-align: center;
         font-weight: 600;
@@ -45,6 +81,13 @@
     .sub-header {
         font-size: 13px;
         text-align: center;
+        color: #f8fbff;
+        font-weight: 600;
+    }
+
+    .sub-header th {
+        background: #233246 !important;
+        color: #f8fbff !important;
     }
 
     .stat-number {
@@ -70,27 +113,79 @@
 
     .stat-number a {
         font-weight: 700;
+        text-underline-offset: 2px;
+    }
+
+    .post-name {
+        max-width: 220px;
+        font-weight: 600;
+        color: #152840;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .platform-links {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .platform-link,
+    .platform-link-muted {
+        font-size: 1.35rem;
+        line-height: 1;
+    }
+
+    .platform-link {
+        transition: transform 0.2s ease;
+    }
+
+    .platform-link:hover {
+        transform: translateY(-1px);
+    }
+
+    .scrape-btn {
+        border-radius: 10px;
+        font-weight: 600;
+    }
+
+    .table tbody tr:hover {
+        background: #f7fbff;
+    }
+
+    @media (max-width: 768px) {
+        .headline-title {
+            font-size: 1.3rem;
+        }
+        .table-responsive {
+            max-height: none;
+        }
     }
 </style>
 
-<div class="card shadow-sm border-0" style="border-radius: 14px;">
-    <div class="card-body">
-
-        <div class="headline-wrap">
+<div class="stats-hero">
+    <div class="headline-wrap">
+        <div>
             <h5 class="headline-title">Post Statistics</h5>
-            <form method="post" action="{% url 'sync_post_stats' %}">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-sm btn-primary">
-                    <i class="bi bi-arrow-repeat me-1"></i> Sync Latest Stats
-                </button>
-            </form>
+            <p class="headline-sub">Track post performance across Instagram, Facebook, and LinkedIn.</p>
         </div>
+        <form method="post" action="{% url 'sync_post_stats' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-primary">
+                <i class="bi bi-arrow-repeat me-1"></i> Sync Latest Stats
+            </button>
+        </form>
+    </div>
 
-        <div class="kpi-strip">
-            <div class="kpi-chip"><i class="bi bi-grid-3x3-gap me-1"></i> Posts: {{ posts|length }}</div>
-            <div class="kpi-chip"><i class="bi bi-instagram me-1"></i> IG + FB + LinkedIn tracked from scraped data</div>
-        </div>
+    <div class="kpi-strip">
+        <div class="kpi-chip"><i class="bi bi-grid-3x3-gap me-1"></i> Posts: {{ posts|length }}</div>
+        <div class="kpi-chip"><i class="bi bi-instagram me-1"></i> IG + FB + LinkedIn tracked from scraped data</div>
+    </div>
+</div>
 
+<div class="card shadow-sm border-0 stats-card">
+    <div class="card-body">
         <div class="table-responsive">
 
             <table class="table table-hover align-middle">
@@ -136,20 +231,20 @@
 
                         <td>{{ forloop.counter }}</td>
 
-                        <td>{{ post.post_name }}</td>
+                        <td class="post-name" title="{{ post.post_name }}">{{ post.post_name }}</td>
 
                         <!-- PLATFORM ICON LINKS -->
                         <td>
-                            <div class="d-flex gap-3 align-items-center">
+                            <div class="platform-links">
 
                                 <!-- Instagram -->
                                 {% if post.Ipost_url %}
                                 <a href="{{ post.Ipost_url }}" target="_blank" title="Instagram Post"
-                                    style="color:#E1306C; font-size:1.4rem;">
+                                    class="platform-link" style="color:#E1306C;">
                                     <i class="bi bi-instagram"></i>
                                 </a>
                                 {% else %}
-                                <span title="No Instagram URL" style="color:#ccc; font-size:1.4rem;">
+                                <span title="No Instagram URL" class="platform-link-muted" style="color:#ccc;">
                                     <i class="bi bi-instagram"></i>
                                 </span>
                                 {% endif %}
@@ -157,11 +252,11 @@
                                 <!-- Facebook -->
                                 {% if post.Fposturl %}
                                 <a href="{{ post.Fposturl }}" target="_blank" title="Facebook Post"
-                                    style="color:#1877F2; font-size:1.4rem;">
+                                    class="platform-link" style="color:#1877F2;">
                                     <i class="bi bi-facebook"></i>
                                 </a>
                                 {% else %}
-                                <span title="No Facebook URL" style="color:#ccc; font-size:1.4rem;">
+                                <span title="No Facebook URL" class="platform-link-muted" style="color:#ccc;">
                                     <i class="bi bi-facebook"></i>
                                 </span>
                                 {% endif %}
@@ -169,11 +264,11 @@
                                 <!-- LinkedIn -->
                                 {% if post.Lposturl %}
                                 <a href="{{ post.Lposturl }}" target="_blank" title="LinkedIn Post"
-                                    style="color:#0A66C2; font-size:1.4rem;">
+                                    class="platform-link" style="color:#0A66C2;">
                                     <i class="bi bi-linkedin"></i>
                                 </a>
                                 {% else %}
-                                <span title="No LinkedIn URL" style="color:#ccc; font-size:1.4rem;">
+                                <span title="No LinkedIn URL" class="platform-link-muted" style="color:#ccc;">
                                     <i class="bi bi-linkedin"></i>
                                 </span>
                                 {% endif %}

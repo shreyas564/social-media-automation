@@ -86,7 +86,18 @@
     <div class="d-flex justify-content-between align-items-center">
         <div>
             <h4 class="mb-1 section-title">{{ type|title }} on {{ platform|title }}</h4>
+            <p class="text-muted mb-1">Post Name: <strong>{{ post.post_name|default:"Untitled Post" }}</strong></p>
+            <p class="text-muted mb-1">Caption: <strong>{{ post.caption|default:"-"|truncatechars:140 }}</strong></p>
+            {% if post_url %}
+            <p class="text-muted mb-0">
+                Post Link:
+                <a href="{{ post_url }}" target="_blank" rel="noopener noreferrer">
+                    {{ post_url }}
+                </a>
+            </p>
+            {% else %}
             <p class="text-muted mb-0">Post: <strong>{{ post.caption|truncatechars:70 }}</strong></p>
+            {% endif %}
         </div>
         <div class="d-flex align-items-center gap-2">
             <span class="meta-badge">

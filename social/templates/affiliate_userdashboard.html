@@ -175,13 +175,10 @@ body {
   vertical-align: middle;
   border-bottom: 1px solid #e7efe9;
 }
-<<<<<<< HEAD
-=======
 
 .platform-head-instagram { background: #fde2ef !important; }
 .platform-head-facebook { background: #e7f1ff !important; }
 .platform-head-linkedin { background: #e7f7f3 !important; }
->>>>>>> e375af9 (Added gitignore and removed pycache files)
 
 .post-detail-card {
   background: var(--surface-soft);
@@ -248,9 +245,9 @@ body {
 
 <div class="col-md-2 sidebar p-3">
 <h4 class="text-center mb-4">Affiliate</h4>
-<a href="javascript:void(0)" onclick="showSection('feedSection')"><i class="bi bi-house-door me-2"></i> Feed</a>
-<a href="javascript:void(0)" onclick="showSection('postDetailsSection')"><i class="bi bi-table me-2"></i> Post Details</a>
-<a href="{% url 'affiliate_post_stats' %}"><i class="bi bi-bar-chart me-2"></i> Posts Statistics</a>
+<a href="{% url 'affiliate_feed' %}"><i class="bi bi-house-door me-2"></i> Feed</a>
+<a href="{% url 'affiliate_feed' %}?section=post-details"><i class="bi bi-table me-2"></i> Post Details</a>
+<a href="{% url 'affiliate_post_stats' %}"><i class="bi bi-bar-chart me-2"></i> Post Statistics</a>
 <a href="{% url 'usersettings' %}"><i class="bi bi-gear me-2"></i> Settings</a>
 <a href="{% url 'affiliate_logout' %}"><i class="bi bi-box-arrow-right me-2"></i> Logout</a>
 </div>
@@ -317,6 +314,7 @@ data-linkedin="{{ post.Lposturl }}">
 <thead class="table-light">
 <tr>
 <th style="width:70%">Post</th>
+<th class="text-center">Platform</th>
 <th class="text-center">Like</th>
 <th class="text-center">Share</th>
 <th class="text-center">Comment</th>
@@ -325,7 +323,7 @@ data-linkedin="{{ post.Lposturl }}">
 <tbody>
 {% for post in posts %}
 <tr class="detail-post-row" data-caption="{{ post.caption|lower }}">
-<td>
+<td rowspan="3">
 <div class="post-detail-card d-flex gap-3">
 <div class="post-media">
 {% if post.media_type == "image" %}
@@ -340,37 +338,88 @@ data-linkedin="{{ post.Lposturl }}">
 </div>
 </div>
 </td>
-<<<<<<< HEAD
 
+<td class="text-center fw-semibold text-danger">Instagram</td>
 <td class="text-center">
 <input type="checkbox" class="action-checkbox"
 data-post-id="{{ post.id }}"
-data-action="like" disabled>
+data-action="like"
+data-platform="instagram"
+{% if post.action_status.instagram.like %}checked{% endif %}
+disabled>
 </td>
-
 <td class="text-center">
 <input type="checkbox" class="action-checkbox"
 data-post-id="{{ post.id }}"
-data-action="share" disabled>
+data-action="share"
+data-platform="instagram"
+{% if post.action_status.instagram.share %}checked{% endif %}
+disabled>
 </td>
-
 <td class="text-center">
 <input type="checkbox" class="action-checkbox"
 data-post-id="{{ post.id }}"
-data-action="comment" disabled>
+data-action="comment"
+data-platform="instagram"
+{% if post.action_status.instagram.comment %}checked{% endif %}
+disabled>
 </td>
+</tr>
 
-=======
-<td class="text-center"><input type="checkbox" class="action-checkbox" data-post-id="{{ post.id }}" data-action="like" data-platform="instagram" disabled></td>
-<td class="text-center"><input type="checkbox" class="action-checkbox" data-post-id="{{ post.id }}" data-action="share" data-platform="instagram" disabled></td>
-<td class="text-center"><input type="checkbox" class="action-checkbox" data-post-id="{{ post.id }}" data-action="comment" data-platform="instagram" disabled></td>
-<td class="text-center"><input type="checkbox" class="action-checkbox" data-post-id="{{ post.id }}" data-action="like" data-platform="facebook" disabled></td>
-<td class="text-center"><input type="checkbox" class="action-checkbox" data-post-id="{{ post.id }}" data-action="share" data-platform="facebook" disabled></td>
-<td class="text-center"><input type="checkbox" class="action-checkbox" data-post-id="{{ post.id }}" data-action="comment" data-platform="facebook" disabled></td>
-<td class="text-center"><input type="checkbox" class="action-checkbox" data-post-id="{{ post.id }}" data-action="like" data-platform="linkedin" disabled></td>
-<td class="text-center"><input type="checkbox" class="action-checkbox" data-post-id="{{ post.id }}" data-action="share" data-platform="linkedin" disabled></td>
-<td class="text-center"><input type="checkbox" class="action-checkbox" data-post-id="{{ post.id }}" data-action="comment" data-platform="linkedin" disabled></td>
->>>>>>> e375af9 (Added gitignore and removed pycache files)
+<tr class="detail-post-row" data-caption="{{ post.caption|lower }}">
+<td class="text-center fw-semibold text-primary">Facebook</td>
+<td class="text-center">
+<input type="checkbox" class="action-checkbox"
+data-post-id="{{ post.id }}"
+data-action="like"
+data-platform="facebook"
+{% if post.action_status.facebook.like %}checked{% endif %}
+disabled>
+</td>
+<td class="text-center">
+<input type="checkbox" class="action-checkbox"
+data-post-id="{{ post.id }}"
+data-action="share"
+data-platform="facebook"
+{% if post.action_status.facebook.share %}checked{% endif %}
+disabled>
+</td>
+<td class="text-center">
+<input type="checkbox" class="action-checkbox"
+data-post-id="{{ post.id }}"
+data-action="comment"
+data-platform="facebook"
+{% if post.action_status.facebook.comment %}checked{% endif %}
+disabled>
+</td>
+</tr>
+
+<tr class="detail-post-row" data-caption="{{ post.caption|lower }}">
+<td class="text-center fw-semibold" style="color:#0A66C2;">LinkedIn</td>
+<td class="text-center">
+<input type="checkbox" class="action-checkbox"
+data-post-id="{{ post.id }}"
+data-action="like"
+data-platform="linkedin"
+{% if post.action_status.linkedin.like %}checked{% endif %}
+disabled>
+</td>
+<td class="text-center">
+<input type="checkbox" class="action-checkbox"
+data-post-id="{{ post.id }}"
+data-action="share"
+data-platform="linkedin"
+{% if post.action_status.linkedin.share %}checked{% endif %}
+disabled>
+</td>
+<td class="text-center">
+<input type="checkbox" class="action-checkbox"
+data-post-id="{{ post.id }}"
+data-action="comment"
+data-platform="linkedin"
+{% if post.action_status.linkedin.comment %}checked{% endif %}
+disabled>
+</td>
 </tr>
 {% endfor %}
 </tbody>
@@ -415,10 +464,7 @@ document.addEventListener("change", function(e) {
 
 function getPlatformUrl(postId) {
   let select = document.querySelector(`.platform-select[data-post-id="${postId}"]`);
-  if (!select || !select.value) {
-    alert("Please select platform first");
-    return null;
-  }
+  if (!select || !select.value) return null;
   if (select.value === "instagram") return select.dataset.instagram;
   if (select.value === "facebook") return select.dataset.facebook;
   if (select.value === "linkedin") return select.dataset.linkedin;
@@ -430,7 +476,6 @@ function getSelectedPlatform(postId) {
   return select ? select.value : "";
 }
 
-<<<<<<< HEAD
 /* BUTTON FLOW */
 document.querySelectorAll(".like-btn, .share-btn, .comment-btn")
 .forEach(btn=>{
@@ -441,10 +486,13 @@ let postId=this.dataset.postId;
 let action=this.classList.contains("like-btn") ? "like" :
 this.classList.contains("share-btn") ? "share" : "comment";
 
-let url=getPlatformUrl(postId);
-if(!url) return;
+let platform = getSelectedPlatform(postId);
+if(!platform){
+alert("Please select platform first");
+return;
+}
 
-window.open(url,"_blank");
+let url=getPlatformUrl(postId);
 
 fetch("{% url 'save_action' %}",{
 method:"POST",
@@ -452,129 +500,93 @@ headers:{
 "Content-Type":"application/json",
 "X-CSRFToken": getCSRFToken()
 },
-body:JSON.stringify({ post_id:postId, action:action })
+body:JSON.stringify({ post_id:postId, action:action, platform:platform })
 })
 .then(r=>r.json())
 .then(data=>{
 if(data.status==="success"){
-updateCheckbox(postId,action);
+updateCheckbox(postId,action,platform);
+if(url){
+window.open(url,"_blank");
 }
+} else {
+alert(data.error || "Failed to save action.");
+}
+})
+.catch(()=>{
+alert("Failed to save action. Please try again.");
 });
 });
 });
 
 /* CHECKBOX UPDATE */
-function updateCheckbox(postId,action){
+function updateCheckbox(postId,action,platform){
+const normalizedPlatform = (platform || "").toString().trim().toLowerCase();
 document.querySelectorAll(".action-checkbox").forEach(cb=>{
-if(cb.dataset.postId===postId && cb.dataset.action===action){
+if(
+cb.dataset.postId===postId &&
+cb.dataset.action===action &&
+(cb.dataset.platform || "").toLowerCase()===normalizedPlatform
+){
 cb.checked=true;
 }
 });
 }
 
+function filterPosts(term) {
+const normalized = (term || "").trim().toLowerCase();
+
+document.querySelectorAll(".feed-post-item").forEach((card) => {
+const caption = (card.dataset.caption || "").toLowerCase();
+card.style.display = caption.includes(normalized) ? "" : "none";
+});
+
+document.querySelectorAll(".detail-post-row").forEach((row) => {
+const caption = (row.dataset.caption || "").toLowerCase();
+row.style.display = caption.includes(normalized) ? "" : "none";
+});
+}
+
 /* LOAD SAVED ACTIONS */
 window.onload=function(){
+const params = new URLSearchParams(window.location.search);
+if (params.get("section") === "post-details") {
+  showSection("postDetailsSection");
+} else {
+  showSection("feedSection");
+}
 
-fetch("{% url 'get_affiliate_actions' %}")
+const currentPath = window.location.pathname;
+const isPostDetails = params.get("section") === "post-details";
+document.querySelectorAll(".sidebar a[href]").forEach((link) => {
+  const hrefUrl = new URL(link.href, window.location.origin);
+  const isSamePath = hrefUrl.pathname === currentPath;
+  const linkSection = hrefUrl.searchParams.get("section");
+  if (
+    (isSamePath && isPostDetails && linkSection === "post-details") ||
+    (isSamePath && !isPostDetails && !linkSection)
+  ) {
+    link.classList.add("active-link");
+  }
+});
+
+const searchInput = document.getElementById("postSearchInput");
+if (searchInput) {
+searchInput.addEventListener("input", function() {
+filterPosts(this.value);
+});
+filterPosts(searchInput.value);
+}
+
+fetch("{% url 'get_actions' %}")
 .then(r=>r.json())
 .then(data=>{
 
-if(data.likes) data.likes.forEach(id=>updateCheckbox(id.toString(),"like"));
-if(data.comments) data.comments.forEach(id=>updateCheckbox(id.toString(),"comment"));
-if(data.shares) data.shares.forEach(id=>updateCheckbox(id.toString(),"share"));
+if(data.likes) data.likes.forEach(item=>updateCheckbox(item.post_id.toString(),"like",item.platform));
+if(data.comments) data.comments.forEach(item=>updateCheckbox(item.post_id.toString(),"comment",item.platform));
+if(data.shares) data.shares.forEach(item=>updateCheckbox(item.post_id.toString(),"share",item.platform));
 
 });
-=======
-document.querySelectorAll(".like-btn, .share-btn, .comment-btn").forEach(btn => {
-  btn.addEventListener("click", function() {
-    let postId = this.dataset.postId;
-    let action = this.classList.contains("like-btn") ? "like" : this.classList.contains("share-btn") ? "share" : "comment";
-    let url = getPlatformUrl(postId);
-    if (!url) return;
-    let platform = getSelectedPlatform(postId);
-    if (!platform) {
-      alert("Please select platform first");
-      return;
-    }
-    if (!url.trim()) {
-      alert("Selected platform post URL is not available for this post.");
-      return;
-    }
-
-    window.open(url, "_blank");
-    const confirmed = confirm("After you complete this action on the opened platform page, click OK to mark it as done.");
-    if (!confirmed) return;
-
-    fetch("{% url 'save_action' %}", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-CSRFToken": getCSRFToken() },
-      body: JSON.stringify({ post_id: postId, action: action, platform: platform })
-    })
-    .then(r => r.json())
-    .then(data => {
-      if (data.status === "success") {
-        updateCheckbox(postId, action, platform);
-      } else {
-        alert("Could not save this action. Please try again.");
-      }
-    })
-    .catch(() => {
-      alert("Network error while saving action. Please try again.");
-    });
-  });
-});
-
-function updateCheckbox(postId, action, platform) {
-  document.querySelectorAll(".action-checkbox").forEach(cb => {
-    if (cb.dataset.postId === postId && cb.dataset.action === action && cb.dataset.platform === platform) {
-      cb.checked = true;
-    }
-  });
-}
-
-function applyActionData(data) {
-  if (data.likes) data.likes.forEach(item => updateCheckbox(item.post_id.toString(), "like", item.platform));
-  if (data.comments) data.comments.forEach(item => updateCheckbox(item.post_id.toString(), "comment", item.platform));
-  if (data.shares) data.shares.forEach(item => updateCheckbox(item.post_id.toString(), "share", item.platform));
-}
-
-function filterPosts(term) {
-  const normalized = (term || "").trim().toLowerCase();
-  document.querySelectorAll(".feed-post-item").forEach((card) => {
-    const caption = (card.dataset.caption || "").toLowerCase();
-    card.style.display = caption.includes(normalized) ? "" : "none";
-  });
-  document.querySelectorAll(".detail-post-row").forEach((row) => {
-    const caption = (row.dataset.caption || "").toLowerCase();
-    row.style.display = caption.includes(normalized) ? "" : "none";
-  });
-}
-
-window.onload = function() {
-  applyActionData(initialActions || {});
-
-  fetch("{% url 'get_actions' %}")
-    .then(r => r.json())
-    .then(data => {
-      applyActionData(data || {});
-    });
-
-  const searchInput = document.getElementById("postSearchInput");
-  if (searchInput) {
-    searchInput.addEventListener("input", function() {
-      filterPosts(this.value);
-    });
-  }
-
-  const current = window.location.pathname;
-  document.querySelectorAll(".sidebar a[href]").forEach((link) => {
-    const href = link.getAttribute("href");
-    if (!href || href === "#") return;
-    if (current === href || current.startsWith(href)) {
-      link.classList.add("active-link");
-    }
-  });
->>>>>>> e375af9 (Added gitignore and removed pycache files)
 };
 </script>
 

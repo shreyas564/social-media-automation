@@ -37,14 +37,11 @@
       height: 100vh;
       background: linear-gradient(180deg, #0f5b3a 0%, #1f8d57 58%, #2ba468 100%);
       color: #fff;
-<<<<<<< HEAD
-=======
       position: sticky;
       top: 0;
       align-self: flex-start;
       box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 15px 40px rgba(8, 34, 21, 0.35);
       overflow-y: auto;
->>>>>>> e375af9 (Added gitignore and removed pycache files)
     }
 
     .sidebar a {
@@ -138,6 +135,14 @@
 
       <a href="{% url 'affiliate_feed' %}">
         <i class="bi bi-house-door me-2"></i> Feed
+      </a>
+
+      <a href="{% url 'affiliate_feed' %}?section=post-details">
+        <i class="bi bi-table me-2"></i> Post Details
+      </a>
+
+      <a href="{% url 'affiliate_post_stats' %}">
+        <i class="bi bi-bar-chart me-2"></i> Post Statistics
       </a>
 
       <a href="{% url 'usersettings' %}">
