@@ -30,6 +30,7 @@ from django.shortcuts import render, redirect
 from django.views.decorators.http import require_GET
 from .models import Post, SuperAdmin, InstagramComment
 from utils.facebook import get_insta_user_id
+from django.utils import timezone
 
 
 N8N_WEBHOOK_URL = "http://localhost:5678/webhook-test/social-post"
@@ -38,6 +39,7 @@ N8N_WEBHOOK_URL = "http://localhost:5678/webhook-test/social-post"
 FBTOKEN="EAAJJsrZBrJzwBQnPWHIE5Gooc1jvNlPktigDPWjI0AyUNaLvFWo0ASOX7kUlGTXWqlZAJZBW4OTveRjYskkZC71bs5V1UH4hsZB0dhMvhHdgxfZCS5L1Qz7M2wAWG3ZBgh2Q4kj27Yzk93NHafynoOuHxPSQZA6R6hnKly3JwYIgwDEYj7FxhwIlZAqPPlq3GbEogCMAwkSTjXezAWU5qZBL0ZC2KZAcp3SxiqEdQM2ZAY1sZD"
 
 N8N_Image_Url="http://localhost:5678/webhook-test/image-url"
+MIN_WITHDRAWAL_AMOUNT = Decimal("0.00")
 
 def send_imageurl(image_url) :
     payload = {
@@ -471,6 +473,110 @@ def _attach_affiliate_action_status(posts, affiliate_id):
     return posts
 
 
+def _affiliate_earnings_summary(affiliate_id):
+    super_admin = SuperAdmin.objects.first()
+    rates_map = {}
+    if super_admin:
+        rates_map = {
+            (item.platform, item.action): item.amount
+            for item in PaymentSetting.objects.filter(super_admin=super_admin)
+        }
+
+    affiliate = AffiliateProfile.objects.filter(id=affiliate_id).first()
+    if not affiliate:
+        return {
+            "total_earned": Decimal("0.00"),
+            "current_balance": Decimal("0.00"),
+            "approved_withdrawals": Decimal("0.00"),
+            "total_credits": Decimal("0.00"),
+        }
+
+    def get_rate(platform, action):
+        return rates_map.get((platform, action), Decimal("0.00"))
+
+    def username_tokens(value):
+        token = (value or "").strip().lower()
+        if not token:
+            return set()
+        if token.startswith("@"):
+            token = token[1:]
+        compact = re.sub(r"[^a-z0-9]+", "", token)
+        out = {token}
+        if compact:
+            out.add(compact)
+        return {t for t in out if t}
+
+    def action_count(model_cls, aff_obj, platform):
+        q = models.Q(affiliate=aff_obj, platform__iexact=platform)
+        q = q | models.Q(affiliate=aff_obj, platform__icontains=platform)
+        if platform == "instagram":
+            q = q | models.Q(affiliate=aff_obj, platform__isnull=True) | models.Q(affiliate=aff_obj, platform="")
+        return model_cls.objects.filter(q).count()
+
+    aliases = {
+        "instagram": username_tokens(affiliate.username) | username_tokens(affiliate.instagram_username),
+        "facebook": username_tokens(affiliate.username) | username_tokens(affiliate.facebook_username),
+        "linkedin": username_tokens(affiliate.username) | username_tokens(affiliate.linkedin_username),
+    }
+
+    scraped_like_count = {"instagram": 0, "facebook": 0, "linkedin": 0}
+    scraped_comment_count = {"instagram": 0, "facebook": 0, "linkedin": 0}
+
+    for platform, uname in ScrapedLike.objects.values_list("scraped_post__platform", "username"):
+        if platform in scraped_like_count and aliases[platform].intersection(username_tokens(uname)):
+            scraped_like_count[platform] += 1
+
+    for platform, uname in ScrapedComment.objects.values_list("scraped_post__platform", "username"):
+        if platform in scraped_comment_count and aliases[platform].intersection(username_tokens(uname)):
+            scraped_comment_count[platform] += 1
+
+    ig_like = max(action_count(Like, affiliate, "instagram"), scraped_like_count["instagram"])
+    ig_share = action_count(Share, affiliate, "instagram")
+    ig_comment = max(action_count(Comment, affiliate, "instagram"), scraped_comment_count["instagram"])
+
+    fb_like = max(action_count(Like, affiliate, "facebook"), scraped_like_count["facebook"])
+    fb_share = action_count(Share, affiliate, "facebook")
+    fb_comment = max(action_count(Comment, affiliate, "facebook"), scraped_comment_count["facebook"])
+
+    li_like = max(action_count(Like, affiliate, "linkedin"), scraped_like_count["linkedin"])
+    li_share = action_count(Share, affiliate, "linkedin")
+    li_comment = max(action_count(Comment, affiliate, "linkedin"), scraped_comment_count["linkedin"])
+
+    total_earned = (
+        Decimal(ig_like) * get_rate("instagram", "like")
+        + Decimal(ig_share) * get_rate("instagram", "share")
+        + Decimal(ig_comment) * get_rate("instagram", "comment")
+        + Decimal(fb_like) * get_rate("facebook", "like")
+        + Decimal(fb_share) * get_rate("facebook", "share")
+        + Decimal(fb_comment) * get_rate("facebook", "comment")
+        + Decimal(li_like) * get_rate("linkedin", "like")
+        + Decimal(li_share) * get_rate("linkedin", "share")
+        + Decimal(li_comment) * get_rate("linkedin", "comment")
+    )
+    total_credits = Decimal(
+        ig_like + ig_share + ig_comment
+        + fb_like + fb_share + fb_comment
+        + li_like + li_share + li_comment
+    )
+
+    approved_withdrawals = (
+        WithdrawalRequest.objects.filter(affiliate_id=affiliate_id, status="paid")
+        .aggregate(total=models.Sum("amount"))
+        .get("total")
+        or Decimal("0.00")
+    )
+    current_balance = total_earned - approved_withdrawals
+    if current_balance < 0:
+        current_balance = Decimal("0.00")
+
+    return {
+        "total_earned": total_earned,
+        "current_balance": current_balance,
+        "approved_withdrawals": approved_withdrawals,
+        "total_credits": total_credits,
+    }
+
+
 def affiliate_dashboard(request):
     if not request.session.get('affiliate_id'):
         return redirect('affiliate_login')
@@ -478,11 +584,18 @@ def affiliate_dashboard(request):
     affiliate_id = request.session.get('affiliate_id')
     posts = Post.objects.all().order_by('-created_at')
     posts = _attach_affiliate_action_status(posts, affiliate_id)
+    affiliate = AffiliateProfile.objects.filter(id=affiliate_id).first()
+    earnings_data = _affiliate_earnings_summary(affiliate_id)
 
     return render(
         request,
         'affiliate_userdashboard.html',
-        {'posts': posts}
+        {
+            'posts': posts,
+            'affiliate': affiliate,
+            'current_balance': earnings_data["current_balance"],
+            'total_earned': earnings_data["total_earned"],
+        }
     )
 
 def like_post(request):
@@ -630,6 +743,136 @@ def usersettings(request):
     return render(request, 'affiliatesettings.html', {'affiliate': affiliate})
 
 
+def affiliate_rewards_settings(request):
+    affiliate_id = request.session.get('affiliate_id')
+    if not affiliate_id:
+        return redirect('affiliate_login')
+
+    super_admin = SuperAdmin.objects.first()
+    platforms = ["instagram", "facebook", "linkedin"]
+    actions = ["like", "comment", "share"]
+
+    settings_map = {}
+    if super_admin:
+        settings_map = {
+            (item.platform, item.action): item.amount
+            for item in PaymentSetting.objects.filter(super_admin=super_admin)
+        }
+
+    rates = {
+        platform: {
+            action: settings_map.get((platform, action), Decimal("0.00"))
+            for action in actions
+        }
+        for platform in platforms
+    }
+
+    return render(
+        request,
+        'affiliate_rewards_settings.html',
+        {'rates': rates}
+    )
+
+
+def affiliate_withdrawal_page(request):
+    affiliate_id = request.session.get('affiliate_id')
+    if not affiliate_id:
+        return redirect('affiliate_login')
+
+    earnings_data = _affiliate_earnings_summary(affiliate_id)
+    current_balance = earnings_data["current_balance"]
+    pending_request = WithdrawalRequest.objects.filter(affiliate_id=affiliate_id, action="pending").first()
+    latest_request = WithdrawalRequest.objects.filter(affiliate_id=affiliate_id).first()
+
+    can_request = (current_balance > Decimal("0.00")) and (pending_request is None)
+
+    return render(
+        request,
+        'affiliate_withdrawal.html',
+        {
+            'current_balance': current_balance,
+            'minimum_withdrawal': MIN_WITHDRAWAL_AMOUNT,
+            'can_request': can_request,
+            'latest_request': latest_request,
+        },
+    )
+
+
+@require_POST
+def request_withdrawal(request):
+    affiliate_id = request.session.get('affiliate_id')
+    if not affiliate_id:
+        return redirect('affiliate_login')
+
+    affiliate = get_object_or_404(AffiliateProfile, id=affiliate_id)
+    earnings_data = _affiliate_earnings_summary(affiliate_id)
+    current_balance = earnings_data["current_balance"]
+
+    if current_balance <= Decimal("0.00"):
+        messages.error(
+            request,
+            "No current balance available for withdrawal.",
+        )
+        return redirect('affiliate_withdrawal_page')
+
+    if WithdrawalRequest.objects.filter(affiliate=affiliate, action="pending").exists():
+        messages.warning(request, "You already have a pending withdrawal request.")
+        return redirect('affiliate_withdrawal_page')
+
+    super_admin = SuperAdmin.objects.first()
+    WithdrawalRequest.objects.create(
+        affiliate=affiliate,
+        super_admin=super_admin,
+        amount=current_balance,
+        minimum_withdrawal=MIN_WITHDRAWAL_AMOUNT,
+        status="pending",
+        action="pending",
+    )
+    messages.success(request, "Withdrawal request sent to superadmin.")
+    return redirect('affiliate_withdrawal_page')
+
+
+def affiliate_payment_history(request):
+    affiliate_id = request.session.get('affiliate_id')
+    if not affiliate_id:
+        return redirect('affiliate_login')
+
+    history = WithdrawalRequest.objects.filter(
+        affiliate_id=affiliate_id
+    ).order_by('-requested_at')
+
+    return render(
+        request,
+        'affiliate_payment_history.html',
+        {'history': history}
+    )
+
+
+def user_payment_details(request):
+    affiliate_id = request.session.get('affiliate_id')
+    if not affiliate_id:
+        return redirect('affiliate_login')
+
+    affiliate = get_object_or_404(AffiliateProfile, id=affiliate_id)
+    payment_detail, _ = AffiliatePaymentDetail.objects.get_or_create(affiliate=affiliate)
+
+    if request.method == "POST":
+        payment_detail.preferred_payment_method = (request.POST.get("preferred_payment_method") or "upi").strip()
+        payment_detail.upi_id = (request.POST.get("upi_id") or "").strip()
+        payment_detail.account_holder_name = (request.POST.get("account_holder_name") or "").strip()
+        payment_detail.bank_account_number = (request.POST.get("bank_account_number") or "").strip()
+        payment_detail.ifsc_code = (request.POST.get("ifsc_code") or "").strip().upper()
+        payment_detail.save()
+        messages.success(request, "Payment details updated successfully.")
+        return redirect("user_payment_details")
+
+    return render(
+        request,
+        "user_payment_details.html",
+        {"payment_detail": payment_detail},
+    )
+
+
 
 #UPDATE AFFILIATE PROFILE (POST)
 @require_POST
@@ -723,7 +966,18 @@ def affiliate_feed(request):
     affiliate_id = request.session.get('affiliate_id')
     posts = Post.objects.all().order_by('-created_at')
     posts = _attach_affiliate_action_status(posts, affiliate_id)
-    return render(request, 'affiliate_userdashboard.html', {'posts': posts})
+    affiliate = AffiliateProfile.objects.filter(id=affiliate_id).first()
+    earnings_data = _affiliate_earnings_summary(affiliate_id)
+    return render(
+        request,
+        'affiliate_userdashboard.html',
+        {
+            'posts': posts,
+            'affiliate': affiliate,
+            'current_balance': earnings_data["current_balance"],
+            'total_earned': earnings_data["total_earned"],
+        },
+    )
 
 
 # =========================
@@ -1116,6 +1370,141 @@ def payment_settings(request):
             "rates": rates,
         },
     )
+
+
+@login_required
+def withdrawal_requests(request):
+    super_admin = SuperAdmin.objects.filter(user=request.user).first()
+    if not super_admin:
+        super_admin = SuperAdmin.objects.first()
+
+    queryset = WithdrawalRequest.objects.select_related("affiliate", "super_admin")
+    if super_admin:
+        queryset = queryset.filter(super_admin=super_admin)
+    requests_data = queryset.order_by("-requested_at")
+
+    return render(
+        request,
+        "withdrawal_requests.html",
+        {
+            "requests_data": requests_data,
+        },
+    )
+
+
+@login_required
+def affiliate_wallet(request):
+    affiliates = AffiliateProfile.objects.all().order_by("username")
+    wallet_rows = []
+
+    for affiliate in affiliates:
+        earnings_data = _affiliate_earnings_summary(affiliate.id)
+        total_withdrawn = (
+            WithdrawalRequest.objects.filter(affiliate=affiliate, status="paid")
+            .aggregate(total=models.Sum("amount"))
+            .get("total")
+            or Decimal("0.00")
+        )
+        pending_withdrawal = (
+            WithdrawalRequest.objects.filter(affiliate=affiliate, action="pending")
+            .aggregate(total=models.Sum("amount"))
+            .get("total")
+            or Decimal("0.00")
+        )
+
+        wallet_rows.append(
+            {
+                "affiliate": affiliate,
+                "current_balance": earnings_data["current_balance"],
+                "total_withdrawn": total_withdrawn,
+                "pending_withdrawal": pending_withdrawal,
+            }
+        )
+
+    return render(
+        request,
+        "affiliate_wallet.html",
+        {
+            "wallet_rows": wallet_rows,
+        },
+    )
+
+
+@login_required
+def payment_history(request):
+    super_admin = SuperAdmin.objects.filter(user=request.user).first()
+    if not super_admin:
+        super_admin = SuperAdmin.objects.first()
+
+    # Backfill payment history from existing paid withdrawal requests.
+    paid_requests = WithdrawalRequest.objects.filter(status="paid").select_related("affiliate")
+    if super_admin:
+        paid_requests = paid_requests.filter(super_admin=super_admin)
+    for req in paid_requests:
+        earnings_data = _affiliate_earnings_summary(req.affiliate_id)
+        PaymentHistory.objects.get_or_create(
+            withdrawal_request=req,
+            defaults={
+                "affiliate": req.affiliate,
+                "amount_paid": req.amount,
+                "credits_used": earnings_data["total_credits"],
+                "request_date": req.requested_at,
+                "paid_date": req.updated_at or timezone.now(),
+                "status": "paid",
+                "payment_method": "Manual Transfer",
+            },
+        )
+
+    history = PaymentHistory.objects.select_related("affiliate")
+    if super_admin:
+        history = history.filter(withdrawal_request__super_admin=super_admin)
+    history = history.order_by("-paid_date", "-created_at")
+    return render(
+        request,
+        "payment_history.html",
+        {
+            "history": history,
+        },
+    )
+
+
+@login_required
+@require_POST
+def update_withdrawal_request_status(request):
+    req_id = request.POST.get("request_id")
+    decision = (request.POST.get("decision") or "").strip().lower()
+
+    if decision not in {"approved", "rejected"}:
+        messages.error(request, "Invalid request decision.")
+        return redirect("withdrawal_requests")
+
+    withdraw_req = get_object_or_404(WithdrawalRequest, id=req_id)
+    if withdraw_req.action != "pending":
+        messages.warning(request, "Only pending requests can be updated.")
+        return redirect("withdrawal_requests")
+
+    if decision == "approved":
+        withdraw_req.status = "paid"
+        withdraw_req.action = "approved"
+        earnings_data = _affiliate_earnings_summary(withdraw_req.affiliate_id)
+        PaymentHistory.objects.get_or_create(
+            withdrawal_request=withdraw_req,
+            defaults={
+                "affiliate": withdraw_req.affiliate,
+                "amount_paid": withdraw_req.amount,
+                "credits_used": earnings_data["total_credits"],
+                "request_date": withdraw_req.requested_at,
+                "paid_date": timezone.now(),
+                "status": "paid",
+                "payment_method": "Manual Transfer",
+            },
+        )
+    else:
+        withdraw_req.status = "pending"
+        withdraw_req.action = "rejected"
+    withdraw_req.save(update_fields=["status", "action", "updated_at"])
+    messages.success(request, f"Withdrawal request marked as {decision}.")
+    return redirect("withdrawal_requests")
 
 def profile(request):
     return render(request, 'profile.html')

@@ -1,0 +1,80 @@
+{% extends "affiliate_base.html" %}
+{% block title %}Rewards Settings{% endblock %}
+
+{% block content %}
+<style>
+  .reward-head {
+    border: 1px solid #dbe4f2;
+    border-radius: 14px;
+    background: linear-gradient(140deg, #f8fbff, #eef4ff);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .reward-card {
+    border: 1px solid #dbe4f2;
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .reward-table thead th {
+    background: #f6f9ff;
+    font-weight: 700;
+  }
+
+  .platform-name {
+    font-weight: 700;
+    letter-spacing: 0.2px;
+  }
+
+  .amount-input {
+    min-width: 140px;
+    background: #f8fafc !important;
+    font-weight: 600;
+  }
+</style>
+
+<div class="reward-head">
+  <h4 class="mb-1">Rewards Settings</h4>
+  <p class="text-muted mb-0">These reward amounts are synced from superadmin payment settings.</p>
+</div>
+
+<div class="card reward-card">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-bordered align-middle mb-0 reward-table">
+        <thead>
+          <tr>
+            <th style="width: 24%;">Platform</th>
+            <th>Amount Per Like</th>
+            <th>Amount Per Comment</th>
+            <th>Amount Per Share</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="platform-name text-danger">Instagram</td>
+            <td><input type="text" class="form-control amount-input" value="Rs {{ rates.instagram.like|floatformat:2 }}" readonly></td>
+            <td><input type="text" class="form-control amount-input" value="Rs {{ rates.instagram.comment|floatformat:2 }}" readonly></td>
+            <td><input type="text" class="form-control amount-input" value="Rs {{ rates.instagram.share|floatformat:2 }}" readonly></td>
+          </tr>
+
+          <tr>
+            <td class="platform-name text-primary">Facebook</td>
+            <td><input type="text" class="form-control amount-input" value="Rs {{ rates.facebook.like|floatformat:2 }}" readonly></td>
+            <td><input type="text" class="form-control amount-input" value="Rs {{ rates.facebook.comment|floatformat:2 }}" readonly></td>
+            <td><input type="text" class="form-control amount-input" value="Rs {{ rates.facebook.share|floatformat:2 }}" readonly></td>
+          </tr>
+
+          <tr>
+            <td class="platform-name" style="color:#0A66C2;">LinkedIn</td>
+            <td><input type="text" class="form-control amount-input" value="Rs {{ rates.linkedin.like|floatformat:2 }}" readonly></td>
+            <td><input type="text" class="form-control amount-input" value="Rs {{ rates.linkedin.comment|floatformat:2 }}" readonly></td>
+            <td><input type="text" class="form-control amount-input" value="Rs {{ rates.linkedin.share|floatformat:2 }}" readonly></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

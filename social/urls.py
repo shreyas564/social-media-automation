@@ -37,6 +37,10 @@ urlpatterns = [
     
     path("settings/", views.setting, name="settings"),
     path("payment-settings/", views.payment_settings, name="payment_settings"),
+    path("payment-history/", views.payment_history, name="payment_history"),
+    path("affiliate-wallet/", views.affiliate_wallet, name="affiliate_wallet"),
+    path("withdrawal-requests/", views.withdrawal_requests, name="withdrawal_requests"),
+    path("withdrawal-requests/update/", views.update_withdrawal_request_status, name="update_withdrawal_request_status"),
     path("profile/", views.profile, name="profile"),
     path("update-profile/", views.update_admin_profile, name="update_profile"),
     path("change-password/", views.change_password, name="change_password"),
@@ -87,6 +91,11 @@ urlpatterns = [
     path("share-post/", views.share_post, name="share_post"),
 
     path("user/settings/", views.usersettings, name="usersettings"),
+    path("affiliate/rewards-settings/", views.affiliate_rewards_settings, name="affiliate_rewards_settings"),
+    path("affiliate/withdrawal/", views.affiliate_withdrawal_page, name="affiliate_withdrawal_page"),
+    path("affiliate/withdrawal/request/", views.request_withdrawal, name="request_withdrawal"),
+    path("affiliate/payment-history/", views.affiliate_payment_history, name="affiliate_payment_history"),
+    path("affiliate/user-payment-details/", views.user_payment_details, name="user_payment_details"),
     path("edit-profile/", views.edit_affiliate_profile, name="edit_affiliate_profile"),
     path("affiliate/change-password/", views.change_password_page, name="change_password_page"),
     path("affiliate/update-profile/", views.update_affiliate_profile, name="update_affiliate_profile"),

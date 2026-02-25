@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+import uuid
 
 
 # Create your models here.
@@ -252,3 +253,106 @@ class PaymentSetting(models.Model):
 
     def __str__(self):
         return f"{self.super_admin.name} - {self.platform} {self.action}: {self.amount}"
+
+
+class WithdrawalRequest(models.Model):
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("paid", "Paid"),
+    ]
+    ACTION_CHOICES = [
+        ("pending", "Pending"),
+        ("approved", "Approved"),
+        ("rejected", "Rejected"),
+    ]
+
+    affiliate = models.ForeignKey(
+        AffiliateProfile,
+        on_delete=models.CASCADE,
+        related_name="withdrawal_requests",
+    )
+    super_admin = models.ForeignKey(
+        SuperAdmin,
+        on_delete=models.CASCADE,
+        related_name="withdrawal_requests",
+        null=True,
+        blank=True,
+    )
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    minimum_withdrawal = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES, default="pending")
+    requested_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-requested_at"]
+
+    def __str__(self):
+        return f"{self.affiliate.username} - Rs {self.amount} ({self.status}, {self.action})"
+
+
+def generate_payment_id():
+    return f"PAY-{uuid.uuid4().hex[:10].upper()}"
+
+
+class PaymentHistory(models.Model):
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("paid", "Paid"),
+        ("failed", "Failed"),
+    ]
+
+    affiliate = models.ForeignKey(
+        AffiliateProfile,
+        on_delete=models.CASCADE,
+        related_name="payment_history",
+    )
+    withdrawal_request = models.OneToOneField(
+        WithdrawalRequest,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="payment_history",
+    )
+    payment_id = models.CharField(max_length=40, unique=True, default=generate_payment_id)
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2)
+    credits_used = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    request_date = models.DateTimeField()
+    paid_date = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="paid")
+    payment_method = models.CharField(max_length=80, default="Manual Transfer")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-paid_date", "-created_at"]
+
+    def __str__(self):
+        return f"{self.payment_id} - {self.affiliate.username} - Rs {self.amount_paid}"
+
+
+class AffiliatePaymentDetail(models.Model):
+    PAYMENT_METHOD_CHOICES = [
+        ("upi", "UPI"),
+        ("bank", "Bank Transfer"),
+        ("upi_bank", "UPI + Bank Transfer"),
+    ]
+
+    affiliate = models.OneToOneField(
+        AffiliateProfile,
+        on_delete=models.CASCADE,
+        related_name="payment_detail",
+    )
+    preferred_payment_method = models.CharField(
+        max_length=20,
+        choices=PAYMENT_METHOD_CHOICES,
+        default="upi",
+    )
+    upi_id = models.CharField(max_length=120, blank=True, default="")
+    account_holder_name = models.CharField(max_length=150, blank=True, default="")
+    bank_account_number = models.CharField(max_length=40, blank=True, default="")
+    ifsc_code = models.CharField(max_length=20, blank=True, default="")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.affiliate.username} payment details"

@@ -1,0 +1,80 @@
+{% extends "affiliate_base.html" %}
+{% block title %}Withdrawal{% endblock %}
+
+{% block content %}
+<style>
+  .withdraw-head {
+    border: 1px solid #dbe4f2;
+    border-radius: 14px;
+    background: linear-gradient(140deg, #f8fbff, #eef4ff);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .withdraw-card {
+    border: 1px solid #dbe4f2;
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .field-label {
+    color: #5f6f84;
+    font-weight: 600;
+    margin-bottom: 4px;
+    font-size: 14px;
+  }
+
+  .field-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #163556;
+  }
+</style>
+
+<div class="withdraw-head">
+  <h4 class="mb-1">Withdrawal</h4>
+  <p class="text-muted mb-0">Request your payout. All amounts are shown in Rs.</p>
+</div>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags|default:'info' }} py-2" role="alert">
+      {{ message }}
+    </div>
+  {% endfor %}
+{% endif %}
+
+<div class="card withdraw-card">
+  <div class="card-body">
+    <div class="row g-3 mb-3">
+      <div class="col-md-4">
+        <div class="field-label">Current Balance</div>
+        <div class="field-value">Rs {{ current_balance|floatformat:2 }}</div>
+      </div>
+      <div class="col-md-4">
+        <div class="field-label">Minimum Withdrawal</div>
+        <div class="field-value">Rs {{ minimum_withdrawal|floatformat:2 }}</div>
+      </div>
+      <div class="col-md-4">
+        <div class="field-label">Request Status</div>
+        {% if latest_request %}
+          {% if latest_request.status == "paid" %}
+            <span class="badge text-bg-success fs-6">Paid</span>
+          {% else %}
+            <span class="badge text-bg-warning fs-6">Pending</span>
+          {% endif %}
+        {% else %}
+          <span class="badge text-bg-secondary fs-6">No Request</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <form method="post" action="{% url 'request_withdrawal' %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-primary" {% if not can_request %}disabled{% endif %}>
+        <i class="bi bi-send-check me-1"></i> Withdraw
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

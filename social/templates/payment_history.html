@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Payment History{% endblock %}
+
+{% block content %}
+<style>
+  .pay-head {
+    border: 1px solid #dbe4f2;
+    border-radius: 16px;
+    background: linear-gradient(130deg, #f8fbff, #eef4ff 58%, #e8f2ff);
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+
+  .pay-card {
+    border-radius: 16px;
+    border: 1px solid #dbe4f2;
+    box-shadow: 0 12px 28px rgba(16, 40, 74, 0.1);
+    overflow: hidden;
+  }
+
+  .table thead th {
+    background: #f6f9ff;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .table td {
+    vertical-align: middle;
+  }
+
+  .mono-id {
+    font-family: "Consolas", "Courier New", monospace;
+    font-weight: 700;
+    color: #143b63;
+  }
+</style>
+
+<div class="pay-head">
+  <h4 class="mb-1">Payment History</h4>
+  <p class="text-muted mb-0">All paid withdrawal records for affiliates.</p>
+</div>
+
+<div class="card pay-card">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-bordered align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Payment ID</th>
+            <th>Affiliate Name</th>
+            <th>Amount Paid</th>
+            <th>Credits Used</th>
+            <th>Request Date</th>
+            <th>Paid Date</th>
+            <th>Status</th>
+            <th>Payment Method</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in history %}
+          <tr>
+            <td class="mono-id">{{ item.payment_id }}</td>
+            <td><strong>{{ item.affiliate.username }}</strong></td>
+            <td>Rs {{ item.amount_paid|floatformat:2 }}</td>
+            <td>{{ item.credits_used|floatformat:2 }}</td>
+            <td>{{ item.request_date|date:"d M Y, h:i A" }}</td>
+            <td>
+              {% if item.paid_date %}
+                {{ item.paid_date|date:"d M Y, h:i A" }}
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td>
+              {% if item.status == "paid" %}
+                <span class="badge text-bg-success">Paid</span>
+              {% elif item.status == "pending" %}
+                <span class="badge text-bg-warning">Pending</span>
+              {% else %}
+                <span class="badge text-bg-danger">{{ item.status|title }}</span>
+              {% endif %}
+            </td>
+            <td>{{ item.payment_method }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center text-muted">No payment history found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
