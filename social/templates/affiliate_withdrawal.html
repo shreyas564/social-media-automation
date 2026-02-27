@@ -71,6 +71,23 @@
 
     <form method="post" action="{% url 'request_withdrawal' %}">
       {% csrf_token %}
+      <div class="mb-3">
+        <label for="withdrawal_amount" class="form-label fw-semibold">Withdrawal Amount (Rs)</label>
+        <input
+          type="number"
+          class="form-control"
+          id="withdrawal_amount"
+          name="withdrawal_amount"
+          min="{{ minimum_withdrawal }}"
+          max="{{ current_balance }}"
+          step="0.01"
+          placeholder="Enter amount"
+          required
+        >
+        <div class="form-text">
+          Enter an amount between Rs {{ minimum_withdrawal|floatformat:2 }} and Rs {{ current_balance|floatformat:2 }}.
+        </div>
+      </div>
       <button type="submit" class="btn btn-primary" {% if not can_request %}disabled{% endif %}>
         <i class="bi bi-send-check me-1"></i> Withdraw
       </button>

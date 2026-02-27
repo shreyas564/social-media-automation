@@ -1,47 +1,47 @@
-<div class="col-md-2 sidebar p-3">
-  <h4 class="text-center mb-4">Super Admin</h4>
+<aside class="sidebar">
+  <div class="brand">
+    <p class="brand-title mb-0">Super Admin</p>
+    <p class="brand-sub">Social Automation</p>
+  </div>
 
+  <div class="nav-group">Overview</div>
   <a href="{% url 'super_admin' %}">
-    <i class="bi bi-speedometer2 me-2"></i> Dashboard
+    <i class="bi bi-speedometer2"></i><span class="nav-label">Dashboard</span>
   </a>
-
   <a href="{% url 'posts_list' %}">
-    <i class="bi bi-megaphone me-2"></i> Posts
+    <i class="bi bi-megaphone"></i><span class="nav-label">Posts</span>
   </a>
-
   <a href="{% url 'post_stats' %}">
-    <i class="bi bi-bar-chart me-2"></i> Posts Statistics
+    <i class="bi bi-bar-chart"></i><span class="nav-label">Posts Statistics</span>
   </a>
 
+  <div class="nav-group">Affiliates</div>
   <a href="{% url 'affiliate_users' %}">
-    <i class="bi bi-people me-2"></i> Affiliate Users
+    <i class="bi bi-people"></i><span class="nav-label">Affiliate Users</span>
   </a>
-
-  <a href="{% url 'settings' %}">
-    <i class="bi bi-gear me-2"></i> Settings
-  </a>
-
-  <a href="{% url 'payment_settings' %}">
-    <i class="bi bi-cash-coin me-2"></i> Payment Settings
-  </a>
-
   <a href="{% url 'affiliate_wallet' %}">
-    <i class="bi bi-wallet me-2"></i> Affiliate Wallet
+    <i class="bi bi-wallet"></i><span class="nav-label">Affiliate Wallet</span>
   </a>
-
-  <a href="{% url 'payment_history' %}">
-    <i class="bi bi-receipt me-2"></i> Payment History
-  </a>
-
   <a href="{% url 'withdrawal_requests' %}">
-    <i class="bi bi-wallet2 me-2"></i> Withdrawal Requests
+    <i class="bi bi-wallet2"></i><span class="nav-label">Withdrawal Requests</span>
+  </a>
+  <a href="{% url 'payment_history' %}">
+    <i class="bi bi-receipt"></i><span class="nav-label">Payment History</span>
   </a>
 
-  <a href="{% url 'fbpage'%}">
-    <i class="bi bi-facebook me-2"></i> Add Fb Page
+  <div class="nav-group">Configuration</div>
+  <a href="{% url 'settings' %}">
+    <i class="bi bi-gear"></i><span class="nav-label">Settings</span>
+  </a>
+  <a href="{% url 'payment_settings' %}">
+    <i class="bi bi-cash-coin"></i><span class="nav-label">Payment Settings</span>
+  </a>
+  <a href="{% url 'fbpage' %}">
+    <i class="bi bi-facebook"></i><span class="nav-label">Add Fb Page</span>
   </a>
 
+  <div class="nav-group">Session</div>
   <a href="{% url 'logout' %}">
-    <i class="bi bi-box-arrow-right me-2"></i> Logout
+    <i class="bi bi-box-arrow-right"></i><span class="nav-label">Logout</span>
   </a>
-</div>
+</aside>

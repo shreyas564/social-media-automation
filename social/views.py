@@ -39,7 +39,14 @@ N8N_WEBHOOK_URL = "http://localhost:5678/webhook-test/social-post"
 FBTOKEN="EAAJJsrZBrJzwBQnPWHIE5Gooc1jvNlPktigDPWjI0AyUNaLvFWo0ASOX7kUlGTXWqlZAJZBW4OTveRjYskkZC71bs5V1UH4hsZB0dhMvhHdgxfZCS5L1Qz7M2wAWG3ZBgh2Q4kj27Yzk93NHafynoOuHxPSQZA6R6hnKly3JwYIgwDEYj7FxhwIlZAqPPlq3GbEogCMAwkSTjXezAWU5qZBL0ZC2KZAcp3SxiqEdQM2ZAY1sZD"
 
 N8N_Image_Url="http://localhost:5678/webhook-test/image-url"
-MIN_WITHDRAWAL_AMOUNT = Decimal("0.00")
+MIN_WITHDRAWAL_AMOUNT = Decimal("0.01")
+
+
+def _minimum_withdrawal_amount(super_admin=None):
+    if super_admin is None:
+        super_admin = SuperAdmin.objects.first()
+    configured_minimum = getattr(super_admin, "minimum_withdrawal", None) or MIN_WITHDRAWAL_AMOUNT
+    return max(configured_minimum, Decimal("0.01"))
 
 def send_imageurl(image_url) :
     payload = {
@@ -577,6 +584,15 @@ def _affiliate_earnings_summary(affiliate_id):
     }
 
 
+def _total_paid_credits(affiliate_id):
+    return (
+        PaymentHistory.objects.filter(affiliate_id=affiliate_id, status="paid")
+        .aggregate(total=models.Sum("credits_used"))
+        .get("total")
+        or Decimal("0.00")
+    )
+
+
 def affiliate_dashboard(request):
     if not request.session.get('affiliate_id'):
         return redirect('affiliate_login')
@@ -593,8 +609,9 @@ def affiliate_dashboard(request):
         {
             'posts': posts,
             'affiliate': affiliate,
-            'current_balance': earnings_data["current_balance"],
             'total_earned': earnings_data["total_earned"],
+            'total_withdrawal': earnings_data["approved_withdrawals"],
+            'current_balance': earnings_data["current_balance"],
         }
     )
 
@@ -779,8 +796,10 @@ def affiliate_withdrawal_page(request):
     if not affiliate_id:
         return redirect('affiliate_login')
 
+    super_admin = SuperAdmin.objects.first()
     earnings_data = _affiliate_earnings_summary(affiliate_id)
     current_balance = earnings_data["current_balance"]
+    effective_minimum = _minimum_withdrawal_amount(super_admin)
     pending_request = WithdrawalRequest.objects.filter(affiliate_id=affiliate_id, action="pending").first()
     latest_request = WithdrawalRequest.objects.filter(affiliate_id=affiliate_id).first()
 
@@ -791,7 +810,7 @@ def affiliate_withdrawal_page(request):
         'affiliate_withdrawal.html',
         {
             'current_balance': current_balance,
-            'minimum_withdrawal': MIN_WITHDRAWAL_AMOUNT,
+            'minimum_withdrawal': effective_minimum,
             'can_request': can_request,
             'latest_request': latest_request,
         },
@@ -805,8 +824,10 @@ def request_withdrawal(request):
         return redirect('affiliate_login')
 
     affiliate = get_object_or_404(AffiliateProfile, id=affiliate_id)
+    super_admin = SuperAdmin.objects.first()
     earnings_data = _affiliate_earnings_summary(affiliate_id)
     current_balance = earnings_data["current_balance"]
+    effective_minimum = _minimum_withdrawal_amount(super_admin)
 
     if current_balance <= Decimal("0.00"):
         messages.error(
@@ -819,12 +840,26 @@ def request_withdrawal(request):
         messages.warning(request, "You already have a pending withdrawal request.")
         return redirect('affiliate_withdrawal_page')
 
-    super_admin = SuperAdmin.objects.first()
+    raw_amount = (request.POST.get("withdrawal_amount") or "").strip()
+    try:
+        requested_amount = Decimal(raw_amount)
+    except (InvalidOperation, TypeError):
+        messages.error(request, "Enter a valid withdrawal amount.")
+        return redirect('affiliate_withdrawal_page')
+
+    if requested_amount < effective_minimum:
+        messages.error(request, f"Minimum withdrawal amount is Rs {effective_minimum:.2f}.")
+        return redirect('affiliate_withdrawal_page')
+
+    if requested_amount > current_balance:
+        messages.error(request, "Withdrawal amount cannot be more than current balance.")
+        return redirect('affiliate_withdrawal_page')
+
     WithdrawalRequest.objects.create(
         affiliate=affiliate,
         super_admin=super_admin,
-        amount=current_balance,
-        minimum_withdrawal=MIN_WITHDRAWAL_AMOUNT,
+        amount=requested_amount,
+        minimum_withdrawal=effective_minimum,
         status="pending",
         action="pending",
     )
@@ -974,8 +1009,9 @@ def affiliate_feed(request):
         {
             'posts': posts,
             'affiliate': affiliate,
-            'current_balance': earnings_data["current_balance"],
             'total_earned': earnings_data["total_earned"],
+            'total_withdrawal': earnings_data["approved_withdrawals"],
+            'current_balance': earnings_data["current_balance"],
         },
     )
 
@@ -1135,6 +1171,15 @@ def affiliate_users(request):
             + Decimal(li_share) * get_rate("linkedin", "share")
             + Decimal(li_comment) * get_rate("linkedin", "comment")
         )
+        total_withdrawal = (
+            WithdrawalRequest.objects.filter(affiliate=affiliate, status="paid")
+            .aggregate(total=models.Sum("amount"))
+            .get("total")
+            or Decimal("0.00")
+        )
+        current_amount = amount_total - total_withdrawal
+        if current_amount < 0:
+            current_amount = Decimal("0.00")
 
         affiliate_stats = {
             'affiliate': affiliate,
@@ -1151,7 +1196,8 @@ def affiliate_users(request):
             'total_shares': total_shares,
             'total_comments': total_comments,
             'credits_before_joining_date': credits_before_joining_date,
-            'amount_total': amount_total,
+            'amount_total': current_amount,
+            'total_withdrawal': total_withdrawal,
         }
 
         stats_data.append(affiliate_stats)
@@ -1323,12 +1369,24 @@ def payment_settings(request):
 
     if not super_admin:
         messages.error(request, "No super admin profile found.")
-        return render(request, "payment_settings.html", {"rates": {}})
+        return render(
+            request,
+            "payment_settings.html",
+            {"rates": {}, "minimum_withdrawal": MIN_WITHDRAWAL_AMOUNT},
+        )
 
     platforms = ["instagram", "facebook", "linkedin"]
     actions = ["like", "share", "comment"]
 
     if request.method == "POST":
+        raw_withdrawal_minimum = (request.POST.get("minimum_withdrawal") or "0").strip()
+        try:
+            minimum_withdrawal = Decimal(raw_withdrawal_minimum)
+        except (InvalidOperation, TypeError):
+            minimum_withdrawal = MIN_WITHDRAWAL_AMOUNT
+        super_admin.minimum_withdrawal = max(minimum_withdrawal, Decimal("0.01"))
+        super_admin.save(update_fields=["minimum_withdrawal"])
+
         for platform in platforms:
             for action in actions:
                 field_name = f"{platform}_{action}_amount"
@@ -1368,6 +1426,7 @@ def payment_settings(request):
         "payment_settings.html",
         {
             "rates": rates,
+            "minimum_withdrawal": _minimum_withdrawal_amount(super_admin),
         },
     )
 
@@ -1440,14 +1499,18 @@ def payment_history(request):
     paid_requests = WithdrawalRequest.objects.filter(status="paid").select_related("affiliate")
     if super_admin:
         paid_requests = paid_requests.filter(super_admin=super_admin)
+    paid_requests = paid_requests.order_by("requested_at", "id")
     for req in paid_requests:
         earnings_data = _affiliate_earnings_summary(req.affiliate_id)
+        credits_used = earnings_data["total_credits"] - _total_paid_credits(req.affiliate_id)
+        if credits_used < Decimal("0.00"):
+            credits_used = Decimal("0.00")
         PaymentHistory.objects.get_or_create(
             withdrawal_request=req,
             defaults={
                 "affiliate": req.affiliate,
                 "amount_paid": req.amount,
-                "credits_used": earnings_data["total_credits"],
+                "credits_used": credits_used,
                 "request_date": req.requested_at,
                 "paid_date": req.updated_at or timezone.now(),
                 "status": "paid",
@@ -1487,12 +1550,15 @@ def update_withdrawal_request_status(request):
         withdraw_req.status = "paid"
         withdraw_req.action = "approved"
         earnings_data = _affiliate_earnings_summary(withdraw_req.affiliate_id)
+        credits_used = earnings_data["total_credits"] - _total_paid_credits(withdraw_req.affiliate_id)
+        if credits_used < Decimal("0.00"):
+            credits_used = Decimal("0.00")
         PaymentHistory.objects.get_or_create(
             withdrawal_request=withdraw_req,
             defaults={
                 "affiliate": withdraw_req.affiliate,
                 "amount_paid": withdraw_req.amount,
-                "credits_used": earnings_data["total_credits"],
+                "credits_used": credits_used,
                 "request_date": withdraw_req.requested_at,
                 "paid_date": timezone.now(),
                 "status": "paid",

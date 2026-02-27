@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Dashboard{% endblock %}</title>
 
-  <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,35 +15,94 @@
   <style>
     :root {
       --admin-bg: #eef3f8;
+      --admin-bg-soft: #e6edf9;
       --admin-surface: #ffffff;
+      --admin-surface-soft: #f7faff;
       --admin-primary: #0f5fd7;
       --admin-primary-2: #0b4cb0;
       --admin-text: #0f172a;
       --admin-muted: #5b677a;
       --admin-border: #d8e1ec;
-      --admin-shadow: 0 12px 30px rgba(17, 35, 69, 0.12);
+      --admin-shadow: 0 14px 34px rgba(17, 35, 69, 0.14);
       --admin-radius: 16px;
+      --sidebar-width: 280px;
+      --sidebar-collapsed-width: 96px;
+    }
+
+    body.theme-dark {
+      --admin-bg: #0b1220;
+      --admin-bg-soft: #131d31;
+      --admin-surface: #141f34;
+      --admin-surface-soft: #192842;
+      --admin-primary: #4e8eff;
+      --admin-primary-2: #3f74cc;
+      --admin-text: #dce8ff;
+      --admin-muted: #9cb0d1;
+      --admin-border: #2a3f63;
+      --admin-shadow: 0 18px 42px rgba(0, 0, 0, 0.4);
     }
 
     body {
       background:
-        radial-gradient(1200px 500px at 0% 0%, rgba(31, 111, 235, 0.14), transparent 50%),
-        radial-gradient(900px 400px at 100% 0%, rgba(26, 143, 255, 0.12), transparent 50%),
+        radial-gradient(1200px 520px at 0% 0%, rgba(31, 111, 235, 0.13), transparent 52%),
+        radial-gradient(900px 420px at 100% 0%, rgba(26, 143, 255, 0.1), transparent 55%),
         var(--admin-bg);
       font-family: "Outfit", sans-serif;
       color: var(--admin-text);
       min-height: 100vh;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    .layout-row {
+      display: flex;
+      min-height: 100vh;
+      margin: 0;
     }
 
     .sidebar {
+      width: var(--sidebar-width);
       height: 100vh;
-      background: linear-gradient(180deg, #0e3a7b 0%, #0f5fd7 55%, #1b80f0 100%);
+      background: linear-gradient(180deg, #0e3a7b 0%, #0f5fd7 56%, #1b80f0 100%);
       color: #fff;
       position: sticky;
       top: 0;
-      align-self: flex-start;
-      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 15px 40px rgba(3, 20, 48, 0.35);
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.09), 0 18px 44px rgba(3, 20, 48, 0.35);
       overflow-y: auto;
+      padding: 18px 14px;
+      transition: width 0.2s ease;
+      z-index: 20;
+      flex-shrink: 0;
+    }
+
+    .sidebar .brand {
+      margin-bottom: 14px;
+      padding: 10px 8px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.16);
+    }
+
+    .sidebar .brand-title {
+      font-weight: 700;
+      margin: 0;
+      font-size: 1.1rem;
+      letter-spacing: 0.2px;
+    }
+
+    .sidebar .brand-sub {
+      font-size: 12px;
+      color: rgba(255,255,255,0.78);
+      margin: 2px 0 0;
+    }
+
+    .sidebar .nav-group {
+      color: rgba(255,255,255,0.7);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      padding: 8px 10px 6px;
+      margin-top: 4px;
+      margin-bottom: 2px;
     }
 
     .sidebar a {
@@ -52,115 +110,375 @@
       text-decoration: none;
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 12px 14px;
-      border-radius: 10px;
+      gap: 10px;
+      padding: 11px 12px;
+      border-radius: 12px;
       margin-bottom: 7px;
-      transition: all 0.22s ease;
+      transition: all 0.2s ease;
       border: 1px solid transparent;
+      font-weight: 500;
+    }
+
+    .sidebar a i {
+      font-size: 1rem;
+      width: 18px;
+      text-align: center;
     }
 
     .sidebar a:hover {
-      background: rgba(255, 255, 255, 0.14);
-      border-color: rgba(255, 255, 255, 0.18);
-      transform: translateX(4px);
+      background: rgba(255,255,255,0.16);
+      border-color: rgba(255,255,255,0.22);
+      transform: translateX(3px);
     }
 
     .sidebar a.active-link {
-      background: rgba(255, 255, 255, 0.2);
-      border-color: rgba(255, 255, 255, 0.24);
+      background: rgba(255,255,255,0.24);
+      border-color: rgba(255,255,255,0.28);
       font-weight: 600;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
     }
 
     .main-panel {
+      flex: 1 1 auto;
+      min-width: 0;
       padding: 22px;
     }
 
     .panel-shell {
-      background: rgba(255, 255, 255, 0.72);
-      backdrop-filter: blur(4px);
-      border: 1px solid rgba(216, 225, 236, 0.9);
+      background: rgba(255,255,255,0.76);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--admin-border);
       border-radius: var(--admin-radius);
       box-shadow: var(--admin-shadow);
       padding: 20px;
-      animation: fadeSlideUp 360ms ease both;
+      animation: fadeSlideUp .32s ease both;
+    }
+
+    .topbar {
+      border: 1px solid var(--admin-border);
+      border-radius: 14px;
+      background: var(--admin-surface-soft);
+      padding: 10px 12px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .topbar-title {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.25px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 48vw;
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      border: 1px solid var(--admin-border);
+      background: var(--admin-surface);
+      color: var(--admin-text);
+      border-radius: 10px;
+      padding: 6px 10px;
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    .icon-btn:hover {
+      background: var(--admin-surface-soft);
     }
 
     .table {
       --bs-table-bg: transparent;
+      border-color: var(--admin-border);
     }
 
     .table thead th {
       border-bottom: 1px solid var(--admin-border);
+      background: var(--admin-surface-soft);
+      color: var(--admin-text);
+      font-weight: 700;
     }
 
     .table tbody tr {
-      transition: background 0.18s ease;
+      transition: background .16s ease;
     }
 
     .table tbody tr:hover {
       background: rgba(15, 95, 215, 0.05);
     }
 
+    .card,
+    .form-control,
+    .form-select,
+    .alert,
+    .modal-content {
+      border-radius: 14px;
+      border-color: var(--admin-border);
+      background: var(--admin-surface);
+      color: var(--admin-text);
+    }
+
+    .form-control::placeholder {
+      color: var(--admin-muted);
+      opacity: .7;
+    }
+
+    .text-muted {
+      color: var(--admin-muted) !important;
+    }
+
+    .badge {
+      font-weight: 600;
+      letter-spacing: 0.2px;
+    }
+
+    .btn {
+      border-radius: 10px;
+      font-weight: 600;
+      transition: all .15s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
     .btn-primary {
       background: linear-gradient(120deg, var(--admin-primary), #2f88ff);
       border-color: var(--admin-primary-2);
-      box-shadow: 0 8px 18px rgba(31, 111, 235, 0.25);
+      box-shadow: 0 8px 18px rgba(31, 111, 235, 0.24);
     }
 
     .btn-primary:hover {
-      transform: translateY(-1px);
       background: linear-gradient(120deg, var(--admin-primary-2), var(--admin-primary));
     }
 
-    @keyframes fadeSlideUp {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+    .empty-state {
+      border: 1px dashed var(--admin-border);
+      border-radius: 14px;
+      padding: 22px;
+      text-align: center;
+      color: var(--admin-muted);
+      background: var(--admin-surface-soft);
     }
 
-    @media (max-width: 768px) {
+    .loader-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 3px;
+      width: 100%;
+      z-index: 1200;
+      transform-origin: left;
+      transform: scaleX(0);
+      background: linear-gradient(90deg, #5aa0ff, #0f5fd7);
+      transition: transform .3s ease;
+    }
+
+    .page-loading .loader-bar {
+      transform: scaleX(1);
+    }
+
+    body.sidebar-collapsed .sidebar {
+      width: var(--sidebar-collapsed-width);
+      padding-inline: 10px;
+    }
+
+    body.sidebar-collapsed .sidebar .brand-sub,
+    body.sidebar-collapsed .sidebar .nav-group,
+    body.sidebar-collapsed .sidebar .nav-label {
+      display: none;
+    }
+
+    body.sidebar-collapsed .sidebar .brand {
+      text-align: center;
+      padding: 10px 6px;
+    }
+
+    body.sidebar-collapsed .sidebar a {
+      justify-content: center;
+      padding-inline: 6px;
+    }
+
+    .mobile-overlay {
+      display: none;
+    }
+
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 992px) {
       .sidebar {
-        height: auto;
-        position: relative;
+        position: fixed;
+        left: -100%;
+        top: 0;
+        height: 100vh;
+        width: min(84vw, 320px);
+        transition: left .22s ease;
       }
+
+      body.mobile-sidebar-open .sidebar {
+        left: 0;
+      }
+
+      body.mobile-sidebar-open .mobile-overlay {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(11, 18, 32, .48);
+        z-index: 15;
+      }
+
       .main-panel {
+        width: 100%;
         padding: 12px;
+      }
+
+      .panel-shell {
+        padding: 14px;
+      }
+
+      .topbar-title {
+        max-width: 54vw;
       }
     }
   </style>
 </head>
 
-<body>
-<div class="container-fluid">
-  <div class="row">
+<body class="page-loading">
+<div class="loader-bar"></div>
+<div class="mobile-overlay" id="mobileOverlay"></div>
 
+<div class="container-fluid">
+  <div class="layout-row">
     {% include "sidebar.html" %}
 
-    <div class="col-md-10 main-panel">
+    <main class="main-panel">
       <div class="panel-shell">
+        <div class="topbar">
+          <div class="topbar-left">
+            <button id="sidebarToggleBtn" type="button" class="icon-btn" aria-label="Toggle sidebar">
+              <i class="bi bi-list"></i>
+            </button>
+            <p class="topbar-title">{% block topbar_title %}Super Admin Workspace{% endblock %}</p>
+          </div>
+          <div class="topbar-actions">
+            <button id="themeToggleBtn" type="button" class="icon-btn" aria-label="Toggle theme">
+              <i class="bi bi-moon-stars"></i>
+            </button>
+          </div>
+        </div>
+
+        {% if messages %}
+          <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100;">
+            {% for message in messages %}
+              <div class="toast align-items-center border-0 show mb-2" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                  <div class="toast-body">
+                    {{ message }}
+                  </div>
+                  <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
         {% block content %}{% endblock %}
       </div>
-    </div>
-
+    </main>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
   (function () {
+    const body = document.body;
+    const sidebarToggleBtn = document.getElementById("sidebarToggleBtn");
+    const themeToggleBtn = document.getElementById("themeToggleBtn");
+    const mobileOverlay = document.getElementById("mobileOverlay");
+    const desktopBp = window.matchMedia("(min-width: 993px)");
+
+    const storedTheme = localStorage.getItem("superadmin_theme");
+    if (storedTheme === "dark") body.classList.add("theme-dark");
+
+    const storedSidebar = localStorage.getItem("superadmin_sidebar_collapsed");
+    if (storedSidebar === "1" && desktopBp.matches) body.classList.add("sidebar-collapsed");
+
+    function syncThemeIcon() {
+      if (!themeToggleBtn) return;
+      const dark = body.classList.contains("theme-dark");
+      themeToggleBtn.innerHTML = dark ? '<i class="bi bi-sun"></i>' : '<i class="bi bi-moon-stars"></i>';
+    }
+
+    function closeMobileSidebar() {
+      body.classList.remove("mobile-sidebar-open");
+    }
+
+    function toggleSidebar() {
+      if (desktopBp.matches) {
+        body.classList.toggle("sidebar-collapsed");
+        localStorage.setItem("superadmin_sidebar_collapsed", body.classList.contains("sidebar-collapsed") ? "1" : "0");
+      } else {
+        body.classList.toggle("mobile-sidebar-open");
+      }
+    }
+
+    if (sidebarToggleBtn) sidebarToggleBtn.addEventListener("click", toggleSidebar);
+    if (mobileOverlay) mobileOverlay.addEventListener("click", closeMobileSidebar);
+
+    if (themeToggleBtn) {
+      themeToggleBtn.addEventListener("click", function () {
+        body.classList.toggle("theme-dark");
+        localStorage.setItem("superadmin_theme", body.classList.contains("theme-dark") ? "dark" : "light");
+        syncThemeIcon();
+      });
+    }
+    syncThemeIcon();
+
+    desktopBp.addEventListener("change", function () {
+      if (desktopBp.matches) {
+        closeMobileSidebar();
+        const collapsed = localStorage.getItem("superadmin_sidebar_collapsed") === "1";
+        body.classList.toggle("sidebar-collapsed", collapsed);
+      } else {
+        body.classList.remove("sidebar-collapsed");
+      }
+    });
+
     const current = window.location.pathname;
     document.querySelectorAll(".sidebar a[href]").forEach((link) => {
       const href = link.getAttribute("href");
       if (!href || href === "#") return;
-      if (current === href || current.startsWith(href)) {
-        link.classList.add("active-link");
-      }
+      if (current === href || current.startsWith(href)) link.classList.add("active-link");
+    });
+
+    document.querySelectorAll("form").forEach((form) => {
+      form.addEventListener("submit", function () {
+        form.classList.add("was-validated");
+      });
+    });
+
+    window.addEventListener("load", function () {
+      body.classList.remove("page-loading");
     });
   })();
 </script>
