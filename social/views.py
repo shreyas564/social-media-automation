@@ -1,6 +1,7 @@
 import requests
 import urllib.parse
 import re
+import time
 from decimal import Decimal, InvalidOperation
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -855,7 +856,7 @@ def request_withdrawal(request):
         messages.error(request, "Withdrawal amount cannot be more than current balance.")
         return redirect('affiliate_withdrawal_page')
 
-    WithdrawalRequest.objects.create(
+    withdraw_request = WithdrawalRequest.objects.create(
         affiliate=affiliate,
         super_admin=super_admin,
         amount=requested_amount,
@@ -863,6 +864,15 @@ def request_withdrawal(request):
         status="pending",
         action="pending",
     )
+
+    target_admins = [super_admin] if super_admin else list(SuperAdmin.objects.all())
+    for admin in target_admins:
+        AdminNotification.objects.create(
+            super_admin=admin,
+            withdrawal_request=withdraw_request,
+            message=f"New withdrawal request: {affiliate.username} requested Rs {requested_amount:.2f}.",
+        )
+
     messages.success(request, "Withdrawal request sent to superadmin.")
     return redirect('affiliate_withdrawal_page')
 
@@ -987,7 +997,7 @@ def posts_list(request):
     for post in posts:
         post.scraped_info = {s.platform: s for s in post.scrapes.all()}
         
-    return render(request, 'postslist.html', {'posts': posts})
+    return render(request, 'postslist.html', {'posts': posts, 'suppress_messages': True})
 
 
 
@@ -1442,6 +1452,9 @@ def withdrawal_requests(request):
         queryset = queryset.filter(super_admin=super_admin)
     requests_data = queryset.order_by("-requested_at")
 
+    if super_admin:
+        AdminNotification.objects.filter(super_admin=super_admin, is_read=False).update(is_read=True)
+
     return render(
         request,
         "withdrawal_requests.html",
@@ -1634,27 +1647,237 @@ def update_password(request):
 def editpost(request,post_id):
     post=Post.objects.get(id=post_id)
     return render(request, 'editpost.html', {'post': post})
-def edit_facebook_post(post_id, access_token, new_caption):
-    if not post_id:
-        return True
 
-    url = f"https://graph.facebook.com/v19.0/{post_id}"
 
-    # Different FB objects accept different keys (message/caption/description).
+def _normalize_text(value):
+    return re.sub(r"\s+", " ", (value or "").strip()).lower()
+
+
+def _verify_instagram_caption(media_id, access_token, expected_caption):
+    try:
+        res = requests.get(
+            f"{FB_BASE_URL}/{media_id}",
+            params={
+                "fields": "caption",
+                "access_token": (access_token or "").strip(),
+            },
+            timeout=20
+        ).json()
+    except requests.RequestException as e:
+        return False, f"VERIFY_READ_FAILED: {str(e)}"
+
+    if "error" in res:
+        return False, f"VERIFY_READ_ERROR: {res.get('error')}"
+
+    actual = _normalize_text(res.get("caption"))
+    expected = _normalize_text(expected_caption)
+    if actual == expected:
+        return True, ""
+
+    return False, f"VERIFY_MISMATCH: IG caption unchanged ({actual[:120]})"
+
+
+def _verify_facebook_text(object_id, access_token, expected_caption):
+    try:
+        res = requests.get(
+            f"{FB_BASE_URL}/{object_id}",
+            params={
+                "fields": "message,caption,description",
+                "access_token": (access_token or "").strip(),
+            },
+            timeout=20
+        ).json()
+    except requests.RequestException as e:
+        return False, f"VERIFY_READ_FAILED: {str(e)}"
+
+    if "error" in res:
+        return False, f"VERIFY_READ_ERROR: {res.get('error')}"
+
+    expected = _normalize_text(expected_caption)
     candidates = [
-        {"message": new_caption, "access_token": access_token.strip()},
-        {"caption": new_caption, "access_token": access_token.strip()},
-        {"description": new_caption, "access_token": access_token.strip()},
+        _normalize_text(res.get("message")),
+        _normalize_text(res.get("caption")),
+        _normalize_text(res.get("description")),
     ]
-    for payload in candidates:
+    if any(text == expected for text in candidates if text):
+        return True, ""
+
+    return False, "VERIFY_MISMATCH: Facebook text unchanged"
+
+
+def _extract_instagram_shortcode(post_url):
+    if not post_url:
+        return ""
+    m = re.search(r"/(?:p|reel|tv)/([A-Za-z0-9_-]+)", str(post_url))
+    return m.group(1) if m else ""
+
+
+def _resolve_instagram_media_id(current_media_id, post_url, access_token):
+    token = (access_token or "").strip()
+    if not token:
+        return current_media_id
+
+    shortcode = _extract_instagram_shortcode(post_url)
+
+    # Keep current ID only if it is valid and matches the target permalink shortcode.
+    if current_media_id:
         try:
-            res = requests.post(url, data=payload, timeout=20)
-            print("FB EDIT:", res.status_code, res.text)
-            if res.status_code in [200, 201]:
-                return True
-        except requests.RequestException as e:
-            print("FB EDIT ERROR:", str(e))
-    return False
+            probe = requests.get(
+                f"{FB_BASE_URL}/{current_media_id}",
+                params={"fields": "id,permalink", "access_token": token},
+                timeout=20
+            ).json()
+            if "error" not in probe and probe.get("id"):
+                if not shortcode:
+                    return str(probe.get("id"))
+                if _extract_instagram_shortcode(probe.get("permalink")) == shortcode:
+                    return str(probe.get("id"))
+        except requests.RequestException:
+            pass
+
+    if not shortcode:
+        return current_media_id
+
+    page = Pages.objects.exclude(pageId__isnull=True).exclude(pageId="").first()
+    if not page:
+        return current_media_id
+
+    ig_user_id = get_insta_user_id(token, page.pageId)
+    if not ig_user_id:
+        return current_media_id
+
+    next_url = f"{FB_BASE_URL}/{ig_user_id}/media"
+    params = {"fields": "id,permalink", "limit": 100, "access_token": token}
+    scanned = 0
+
+    while next_url and scanned < 1000:
+        try:
+            res = requests.get(next_url, params=params, timeout=20).json()
+        except requests.RequestException:
+            break
+
+        if "error" in res:
+            break
+
+        items = res.get("data", []) or []
+        scanned += len(items)
+        for item in items:
+            permalink = item.get("permalink") or ""
+            if _extract_instagram_shortcode(permalink) == shortcode:
+                return item.get("id") or current_media_id
+
+        next_url = (res.get("paging") or {}).get("next")
+        params = None
+        time.sleep(0.2)
+
+    return current_media_id
+
+
+def _is_instagram_media_editable(media_id, access_token):
+    if not media_id:
+        return False
+    try:
+        meta = requests.get(
+            f"{FB_BASE_URL}/{media_id}",
+            params={
+                "fields": "media_type,media_product_type",
+                "access_token": (access_token or "").strip(),
+            },
+            timeout=20
+        ).json()
+    except requests.RequestException:
+        return False
+
+    if "error" in meta:
+        return False
+
+    product_type = (meta.get("media_product_type") or "").upper()
+    # Reels commonly reject caption mutation in this flow.
+    if product_type == "REELS":
+        return False
+    return True
+
+
+def edit_facebook_post(post_id, access_token, new_caption, post_url=None):
+    if not post_id and not post_url:
+        return True, ""
+    token = (access_token or "").strip()
+    object_ids = _extract_fb_object_ids(post_id)
+    if post_url:
+        for item in _extract_fb_object_ids(post_url):
+            if item not in object_ids:
+                object_ids.append(item)
+
+    if not object_ids:
+        return False, "NO_VALID_FACEBOOK_OBJECT_ID"
+
+    payload_candidates = [
+        {"message": new_caption},
+        {"caption": new_caption},
+        {"description": new_caption},
+    ]
+    last_error = ""
+
+    for object_id in object_ids:
+        url = f"{FB_BASE_URL}/{object_id}"
+
+        # First try direct edit on the object itself.
+        for payload in payload_candidates:
+            try:
+                res = requests.post(
+                    url,
+                    data={**payload, "access_token": token},
+                    timeout=20
+                )
+                print("FB EDIT:", object_id, res.status_code, res.text)
+                if res.status_code in [200, 201]:
+                    verified, verify_error = _verify_facebook_text(object_id, token, new_caption)
+                    if verified:
+                        return True, ""
+                    last_error = verify_error
+                    continue
+                last_error = res.text
+            except requests.RequestException as e:
+                print("FB EDIT ERROR:", str(e))
+                last_error = str(e)
+
+        # Then try attached video object if this is a post wrapper.
+        try:
+            attachment_res = requests.get(
+                url,
+                params={
+                    "fields": "attachments{media_type,target{id}}",
+                    "access_token": token,
+                },
+                timeout=20
+            ).json()
+            attachment = attachment_res.get("attachments", {}).get("data", [{}])[0]
+            media_type = (attachment.get("media_type") or "").lower()
+            video_id = attachment.get("target", {}).get("id")
+            if "video" in media_type and video_id:
+                video_url = f"{FB_BASE_URL}/{video_id}"
+                for payload in payload_candidates:
+                    try:
+                        res = requests.post(
+                            video_url,
+                            data={**payload, "access_token": token},
+                            timeout=20
+                        )
+                        print("FB VIDEO EDIT:", video_id, res.status_code, res.text)
+                        if res.status_code in [200, 201]:
+                            verified, verify_error = _verify_facebook_text(video_id, token, new_caption)
+                            if verified:
+                                return True, ""
+                            last_error = verify_error
+                            continue
+                        last_error = res.text
+                    except requests.RequestException as e:
+                        print("FB VIDEO EDIT ERROR:", str(e))
+                        last_error = str(e)
+        except requests.RequestException:
+            pass
+
+    return False, (last_error or "UNKNOWN_ERROR")
 
 
 def edit_instagram_post(media_id, access_token, new_caption):
@@ -1662,16 +1885,32 @@ def edit_instagram_post(media_id, access_token, new_caption):
         return True, ""
 
     url = f"https://graph.facebook.com/v19.0/{media_id}"
+    token = (access_token or "").strip()
+    comment_enabled_value = "true"
+
+    # Some IG media edit calls require comment_enabled explicitly.
+    # Try to preserve current state when available.
+    try:
+        meta = requests.get(
+            url,
+            params={"fields": "comment_enabled", "access_token": token},
+            timeout=20
+        ).json()
+        if "error" not in meta and "comment_enabled" in meta:
+            comment_enabled_value = "true" if meta.get("comment_enabled") else "false"
+    except requests.RequestException:
+        pass
+
     candidates = [
         {
             "caption": new_caption,
-            "comment_enabled": "true",
-            "access_token": access_token.strip(),
+            "comment_enabled": comment_enabled_value,
+            "access_token": token,
         },
         {
             "message": new_caption,
-            "comment_enabled": "true",
-            "access_token": access_token.strip(),
+            "comment_enabled": comment_enabled_value,
+            "access_token": token,
         },
     ]
     last_error = ""
@@ -1680,7 +1919,11 @@ def edit_instagram_post(media_id, access_token, new_caption):
             res = requests.post(url, data=payload, timeout=20)
             print("IG EDIT:", res.status_code, res.text)
             if res.status_code in [200, 201]:
-                return True, ""
+                verified, verify_error = _verify_instagram_caption(media_id, token, new_caption)
+                if verified:
+                    return True, ""
+                last_error = verify_error
+                continue
             last_error = res.text
         except requests.RequestException as e:
             print("IG EDIT ERROR:", str(e))
@@ -1763,23 +2006,49 @@ def submit_editpost(request, post_id):
         fb_ok = True
         ig_ok = True
         ln_ok = True
+        fb_error = ""
+        ig_skip_reason = ""
+        fb_skip_reason = ""
 
         if post.fbpostid and super_admin.fbtoken:
-            fb_ok = edit_facebook_post(
+            fb_ok, fb_error = edit_facebook_post(
                 post.fbpostid,
                 super_admin.fbtoken,
-                caption
+                caption,
+                post.Fposturl
             )
+        elif post.fbpostid and not super_admin.fbtoken:
+            fb_skip_reason = "Facebook token missing; caption edit skipped."
 
         ig_error = ""
         ln_error = ""
 
+        ig_attempted = False
+        ig_confirmed = False
         if post.instapostid and super_admin.instatoken:
-            ig_ok, ig_error = edit_instagram_post(
+            ig_media_id = _resolve_instagram_media_id(
                 post.instapostid,
-                super_admin.instatoken,
-                caption
+                post.Ipost_url,
+                super_admin.instatoken
             )
+            if ig_media_id and ig_media_id != post.instapostid:
+                post.instapostid = ig_media_id
+                post.save(update_fields=["instapostid"])
+
+            ig_attempted = True
+            if _is_instagram_media_editable(ig_media_id or post.instapostid, super_admin.instatoken):
+                ig_ok, ig_error = edit_instagram_post(
+                    ig_media_id or post.instapostid,
+                    super_admin.instatoken,
+                    caption
+                )
+                ig_confirmed = bool(ig_ok)
+            else:
+                ig_ok = False
+                ig_error = ""
+                ig_confirmed = False
+        elif post.instapostid and not super_admin.instatoken:
+            ig_skip_reason = "Instagram token missing; caption edit skipped."
 
         if post.lnpostid and super_admin.lntoken:
             ln_ok, ln_error = edit_linkedin_post(
@@ -1791,16 +2060,31 @@ def submit_editpost(request, post_id):
         # -------- N8N --------
         send_caption_to_n8n(caption)
 
-        if fb_ok and ig_ok and ln_ok:
+        has_skip = bool(fb_skip_reason or ig_skip_reason)
+        all_ok = fb_ok and ln_ok and not has_skip
+        if ig_attempted:
+            all_ok = all_ok and ig_confirmed
+        else:
+            all_ok = all_ok and ig_ok
+
+        if all_ok:
             messages.success(request, "Post updated on dashboard and synced to connected platforms.")
         else:
-            messages.warning(request, "Post updated locally, but some platform edits failed or are not supported.")
-            if ig_error:
-                messages.info(request, f"Instagram edit response: {ig_error}")
+            messages.warning(request, "Post updated locally, but some platform syncs could not be completed.")
+            if fb_error:
+                messages.info(request, "Facebook update could not be confirmed on platform.")
+            if fb_skip_reason:
+                messages.info(request, fb_skip_reason)
+            if ig_skip_reason:
+                messages.info(request, ig_skip_reason)
+            if ig_attempted and not ig_confirmed:
+                messages.info(request, "Instagram update could not be confirmed on platform.")
+            elif ig_error:
+                messages.info(request, "Instagram update could not be confirmed on platform.")
             if ln_error == "REVOKED_ACCESS_TOKEN":
                 messages.error(request, "LinkedIn token is revoked. Reconnect LinkedIn token in Settings/Profile.")
             elif ln_error:
-                messages.info(request, f"LinkedIn edit response: {ln_error}")
+                messages.info(request, "LinkedIn update could not be confirmed on platform.")
 
         return redirect('posts_list')
     
@@ -1885,7 +2169,11 @@ def collect_post_data(request):
             updated.add(post.id)
 
         if platform == "facebook":
-            incoming_fb_id = item.get("post_id")
+            incoming_fb_id = (
+                item.get("post_id")
+                or item.get("media_id")
+                or item.get("id")
+            )
             if not incoming_fb_id and post_url:
                 # Fallback for reels/videos where payload may not send post_id.
                 reel_match = re.search(r"/reel/(\d+)", post_url)
@@ -1901,7 +2189,12 @@ def collect_post_data(request):
             post.Fposturl = post_url
 
         elif platform == "instagram":
-            post.instapostid = item.get("post_id")
+            post.instapostid = (
+                item.get("media_id")
+                or item.get("ig_media_id")
+                or item.get("post_id")
+                or item.get("id")
+            )
             post.Ipost_url = post_url
 
         elif platform == "linkedin":
@@ -2250,7 +2543,7 @@ def _extract_fb_object_ids(raw_value):
         return []
 
     value = str(raw_value).strip()
-    candidates = [value]
+    candidates = []
 
     if value.startswith("http://") or value.startswith("https://"):
         parsed = urllib.parse.urlparse(value)
@@ -2269,6 +2562,8 @@ def _extract_fb_object_ids(raw_value):
         trailing_match = re.search(r"/([0-9_]{6,})/?$", path)
         if trailing_match:
             candidates.append(trailing_match.group(1))
+    else:
+        candidates.append(value)
 
     deduped = []
     seen = set()

@@ -293,6 +293,30 @@ class WithdrawalRequest(models.Model):
         return f"{self.affiliate.username} - Rs {self.amount} ({self.status}, {self.action})"
 
 
+class AdminNotification(models.Model):
+    super_admin = models.ForeignKey(
+        SuperAdmin,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+    )
+    withdrawal_request = models.ForeignKey(
+        WithdrawalRequest,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+        null=True,
+        blank=True,
+    )
+    message = models.CharField(max_length=255)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.super_admin.name}: {self.message[:60]}"
+
+
 def generate_payment_id():
     return f"PAY-{uuid.uuid4().hex[:10].upper()}"
 

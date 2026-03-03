@@ -204,6 +204,43 @@
       background: var(--admin-surface-soft);
     }
 
+    .notif-trigger {
+      position: relative;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .notif-badge {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      min-width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: #dc3545;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 5px;
+      border: 2px solid var(--admin-surface);
+    }
+
+    .notification-menu {
+      width: min(360px, 90vw);
+      padding: 8px 0;
+    }
+
+    .notification-menu .dropdown-item {
+      white-space: normal;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
     .table {
       --bs-table-bg: transparent;
       border-color: var(--admin-border);
@@ -381,13 +418,36 @@
             <p class="topbar-title">{% block topbar_title %}Super Admin Workspace{% endblock %}</p>
           </div>
           <div class="topbar-actions">
+            <div class="dropdown">
+              <button type="button" class="icon-btn notif-trigger" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notifications">
+                <i class="bi bi-bell"></i>
+                {% if admin_unread_notification_count %}
+                  <span class="notif-badge">{{ admin_unread_notification_count }}</span>
+                {% endif %}
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end notification-menu">
+                {% if admin_unread_notifications %}
+                  {% for note in admin_unread_notifications %}
+                    <li>
+                      <a class="dropdown-item" href="{% url 'withdrawal_requests' %}">
+                        {{ note.message }}
+                      </a>
+                    </li>
+                  {% endfor %}
+                {% else %}
+                  <li><span class="dropdown-item-text text-muted">No new notifications</span></li>
+                {% endif %}
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item fw-semibold" href="{% url 'withdrawal_requests' %}">Open Withdrawal Requests</a></li>
+              </ul>
+            </div>
             <button id="themeToggleBtn" type="button" class="icon-btn" aria-label="Toggle theme">
               <i class="bi bi-moon-stars"></i>
             </button>
           </div>
         </div>
 
-        {% if messages %}
+        {% if messages and not suppress_messages %}
           <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100;">
             {% for message in messages %}
               <div class="toast align-items-center border-0 show mb-2" role="alert" aria-live="assertive" aria-atomic="true">
