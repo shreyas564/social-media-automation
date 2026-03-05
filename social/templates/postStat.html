@@ -167,224 +167,219 @@
         .headline-title {
             font-size: 1.3rem;
         }
+
         .table-responsive {
             max-height: none;
         }
     }
 </style>
 
-<div class="stats-hero">
-    <div class="headline-wrap">
+<div class="toolbar mb-4">
+    <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap w-100">
         <div>
-            <h5 class="headline-title">Post Statistics</h5>
-            <p class="headline-sub">Track post performance across Instagram, Facebook, and LinkedIn.</p>
+            <h4 class="mb-1 fw-bold">Post Statistics</h4>
+            <p class="text-muted mb-0">Track post performance across Instagram, Facebook, and LinkedIn.</p>
         </div>
-        <form method="post" action="{% url 'sync_post_stats' %}">
+        <form method="post" action="{% url 'sync_post_stats' %}" class="m-0">
             {% csrf_token %}
-            <button type="submit" class="btn btn-sm btn-primary">
+            <button type="submit" class="btn btn-primary">
                 <i class="bi bi-arrow-repeat me-1"></i> Sync Latest Stats
             </button>
         </form>
     </div>
 
-    <div class="kpi-strip">
+    <div class="kpi-strip mt-3">
         <div class="kpi-chip"><i class="bi bi-grid-3x3-gap me-1"></i> Posts: {{ posts|length }}</div>
         <div class="kpi-chip"><i class="bi bi-instagram me-1"></i> IG + FB + LinkedIn tracked from scraped data</div>
     </div>
 </div>
 
-<div class="card shadow-sm border-0 stats-card">
-    <div class="card-body">
-        <div class="table-responsive">
+<div class="panel-shell p-0 overflow-hidden stagger-1">
+    <div class="table-responsive">
+        <table class="table-saas">
 
-            <table class="table table-hover align-middle">
+            <thead class="table-dark">
 
-                <thead class="table-dark">
+                <tr>
+                    <th rowspan="2">#</th>
+                    <th rowspan="2">Post Name</th>
+                    <th rowspan="2">Post Link</th>
+                    <th rowspan="2">Action</th>
 
-                    <tr>
-                        <th rowspan="2">#</th>
-                        <th rowspan="2">Post Name</th>
-                        <th rowspan="2">Post Link</th>
-                        <th rowspan="2">Action</th>
+                    <th colspan="3" class="stats-header instagram-bg">Instagram</th>
+                    <th colspan="3" class="stats-header facebook-bg">Facebook</th>
+                    <th colspan="3" class="stats-header linkedin-bg">LinkedIn</th>
+                </tr>
 
-                        <th colspan="3" class="stats-header instagram-bg">Instagram</th>
-                        <th colspan="3" class="stats-header facebook-bg">Facebook</th>
-                        <th colspan="3" class="stats-header linkedin-bg">LinkedIn</th>
-                    </tr>
+                <tr class="table-secondary sub-header">
 
-                    <tr class="table-secondary sub-header">
+                    <!-- Instagram -->
+                    <th>Likes</th>
+                    <th>Comments</th>
+                    <th>Shares</th>
 
-                        <!-- Instagram -->
-                        <th>Likes</th>
-                        <th>Comments</th>
-                        <th>Shares</th>
+                    <!-- Facebook -->
+                    <th>Likes</th>
+                    <th>Comments</th>
+                    <th>Shares</th>
 
-                        <!-- Facebook -->
-                        <th>Likes</th>
-                        <th>Comments</th>
-                        <th>Shares</th>
+                    <!-- LinkedIn -->
+                    <th>Likes</th>
+                    <th>Comments</th>
+                    <th>Shares</th>
 
-                        <!-- LinkedIn -->
-                        <th>Likes</th>
-                        <th>Comments</th>
-                        <th>Shares</th>
+                </tr>
 
-                    </tr>
+            </thead>
 
-                </thead>
+            <tbody>
 
-                <tbody>
+                {% for post in posts %}
+                <tr>
 
-                    {% for post in posts %}
-                    <tr>
+                    <td>{{ forloop.counter }}</td>
 
-                        <td>{{ forloop.counter }}</td>
+                    <td class="post-name" title="{{ post.post_name }}">{{ post.post_name }}</td>
 
-                        <td class="post-name" title="{{ post.post_name }}">{{ post.post_name }}</td>
+                    <!-- PLATFORM ICON LINKS -->
+                    <td>
+                        <div class="platform-links">
 
-                        <!-- PLATFORM ICON LINKS -->
-                        <td>
-                            <div class="platform-links">
-
-                                <!-- Instagram -->
-                                {% if post.Ipost_url %}
-                                <a href="{{ post.Ipost_url }}" target="_blank" title="Instagram Post"
-                                    class="platform-link" style="color:#E1306C;">
-                                    <i class="bi bi-instagram"></i>
-                                </a>
-                                {% else %}
-                                <span title="No Instagram URL" class="platform-link-muted" style="color:#ccc;">
-                                    <i class="bi bi-instagram"></i>
-                                </span>
-                                {% endif %}
-
-                                <!-- Facebook -->
-                                {% if post.Fposturl %}
-                                <a href="{{ post.Fposturl }}" target="_blank" title="Facebook Post"
-                                    class="platform-link" style="color:#1877F2;">
-                                    <i class="bi bi-facebook"></i>
-                                </a>
-                                {% else %}
-                                <span title="No Facebook URL" class="platform-link-muted" style="color:#ccc;">
-                                    <i class="bi bi-facebook"></i>
-                                </span>
-                                {% endif %}
-
-                                <!-- LinkedIn -->
-                                {% if post.Lposturl %}
-                                <a href="{{ post.Lposturl }}" target="_blank" title="LinkedIn Post"
-                                    class="platform-link" style="color:#0A66C2;">
-                                    <i class="bi bi-linkedin"></i>
-                                </a>
-                                {% else %}
-                                <span title="No LinkedIn URL" class="platform-link-muted" style="color:#ccc;">
-                                    <i class="bi bi-linkedin"></i>
-                                </span>
-                                {% endif %}
-
-                            </div>
-                        </td>
-
-                        <!-- ACTION / SCRAPING CONTROLS -->
-                        <td>
-                            <div class="d-flex gap-2">
-
-                                <!-- Scrape Form (Always All) -->
-                                {% if post.Ipost_url or post.Fposturl or post.Lposturl %}
-                                <form method="POST" action="{% url 'scrape_post' post.id %}"
-                                    class="d-inline scrape-form">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="platform" value="all">
-                                    <button type="submit" class="btn btn-sm btn-outline-secondary scrape-btn"
-                                        title="Scrape All Platforms">
-                                        <i class="bi bi-cloud-download"></i> Scrape
-                                    </button>
-                                </form>
-                                {% else %}
-                                <button class="btn btn-sm btn-outline-secondary" disabled>No URLs</button>
-                                {% endif %}
-
-                            </div>
-                            <small class="text-muted d-block mt-1 scrape-status"></small>
-                        </td>
-
-                        <!-- Instagram Stats -->
-                        <td class="stat-number text-danger">
-                            {% if post.scraped_info.instagram.likes.exists %}
-                            <a href="{% url 'post_details' post.id 'instagram' 'likes' %}"
-                                class="text-danger text-decoration-underline" title="View details">
-                                {{ post.ig_likes|default:0 }}
+                            <!-- Instagram -->
+                            {% if post.Ipost_url %}
+                            <a href="{{ post.Ipost_url }}" target="_blank" title="Instagram Post" class="platform-link"
+                                style="color:#E1306C;">
+                                <i class="bi bi-instagram"></i>
                             </a>
                             {% else %}
+                            <span title="No Instagram URL" class="platform-link-muted" style="color:#ccc;">
+                                <i class="bi bi-instagram"></i>
+                            </span>
+                            {% endif %}
+
+                            <!-- Facebook -->
+                            {% if post.Fposturl %}
+                            <a href="{{ post.Fposturl }}" target="_blank" title="Facebook Post" class="platform-link"
+                                style="color:#1877F2;">
+                                <i class="bi bi-facebook"></i>
+                            </a>
+                            {% else %}
+                            <span title="No Facebook URL" class="platform-link-muted" style="color:#ccc;">
+                                <i class="bi bi-facebook"></i>
+                            </span>
+                            {% endif %}
+
+                            <!-- LinkedIn -->
+                            {% if post.Lposturl %}
+                            <a href="{{ post.Lposturl }}" target="_blank" title="LinkedIn Post" class="platform-link"
+                                style="color:#0A66C2;">
+                                <i class="bi bi-linkedin"></i>
+                            </a>
+                            {% else %}
+                            <span title="No LinkedIn URL" class="platform-link-muted" style="color:#ccc;">
+                                <i class="bi bi-linkedin"></i>
+                            </span>
+                            {% endif %}
+
+                        </div>
+                    </td>
+
+                    <!-- ACTION / SCRAPING CONTROLS -->
+                    <td>
+                        <div class="d-flex gap-2">
+
+                            <!-- Scrape Form (Always All) -->
+                            {% if post.Ipost_url or post.Fposturl or post.Lposturl %}
+                            <form method="POST" action="{% url 'scrape_post' post.id %}" class="d-inline scrape-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="platform" value="all">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary scrape-btn"
+                                    title="Scrape All Platforms">
+                                    <i class="bi bi-cloud-download"></i> Scrape
+                                </button>
+                            </form>
+                            {% else %}
+                            <button class="btn btn-sm btn-outline-secondary" disabled>No URLs</button>
+                            {% endif %}
+
+                        </div>
+                        <small class="text-muted d-block mt-1 scrape-status"></small>
+                    </td>
+
+                    <!-- Instagram Stats -->
+                    <td class="stat-number text-danger">
+                        {% if post.scraped_info.instagram.likes.exists %}
+                        <a href="{% url 'post_details' post.id 'instagram' 'likes' %}"
+                            class="text-danger text-decoration-underline" title="View details">
                             {{ post.ig_likes|default:0 }}
-                            {% endif %}
-                        </td>
-                        <td class="stat-number text-danger">
-                            {% if post.scraped_info.instagram.comments.exists %}
-                            <a href="{% url 'post_details' post.id 'instagram' 'comments' %}"
-                                class="text-danger text-decoration-underline" title="View details">
-                                {{ post.ig_comments|default:0 }}
-                            </a>
-                            {% else %}
+                        </a>
+                        {% else %}
+                        {{ post.ig_likes|default:0 }}
+                        {% endif %}
+                    </td>
+                    <td class="stat-number text-danger">
+                        {% if post.scraped_info.instagram.comments.exists %}
+                        <a href="{% url 'post_details' post.id 'instagram' 'comments' %}"
+                            class="text-danger text-decoration-underline" title="View details">
                             {{ post.ig_comments|default:0 }}
-                            {% endif %}
-                        </td>
-                        <td class="stat-number text-danger">{{ post.ig_shares|default:"NA" }}</td>
+                        </a>
+                        {% else %}
+                        {{ post.ig_comments|default:0 }}
+                        {% endif %}
+                    </td>
+                    <td class="stat-number text-danger">{{ post.ig_shares|default:"NA" }}</td>
 
-                        <!-- Facebook Stats -->
-                        <td class="stat-number text-primary">
-                            {% if post.scraped_info.facebook.likes.exists %}
-                            <a href="{% url 'post_details' post.id 'facebook' 'likes' %}"
-                                class="text-primary text-decoration-underline" title="View details">
-                                {{ post.fb_likes|default:0 }}
-                            </a>
-                            {% else %}
+                    <!-- Facebook Stats -->
+                    <td class="stat-number text-primary">
+                        {% if post.scraped_info.facebook.likes.exists %}
+                        <a href="{% url 'post_details' post.id 'facebook' 'likes' %}"
+                            class="text-primary text-decoration-underline" title="View details">
                             {{ post.fb_likes|default:0 }}
-                            {% endif %}
-                        </td>
-                        <td class="stat-number text-primary">
-                            {% if post.scraped_info.facebook.comments.exists %}
-                            <a href="{% url 'post_details' post.id 'facebook' 'comments' %}"
-                                class="text-primary text-decoration-underline" title="View details">
-                                {{ post.fb_comments|default:0 }}
-                            </a>
-                            {% else %}
+                        </a>
+                        {% else %}
+                        {{ post.fb_likes|default:0 }}
+                        {% endif %}
+                    </td>
+                    <td class="stat-number text-primary">
+                        {% if post.scraped_info.facebook.comments.exists %}
+                        <a href="{% url 'post_details' post.id 'facebook' 'comments' %}"
+                            class="text-primary text-decoration-underline" title="View details">
                             {{ post.fb_comments|default:0 }}
-                            {% endif %}
-                        </td>
-                        <td class="stat-number text-primary">{{ post.fb_shares|default:0 }}</td>
+                        </a>
+                        {% else %}
+                        {{ post.fb_comments|default:0 }}
+                        {% endif %}
+                    </td>
+                    <td class="stat-number text-primary">{{ post.fb_shares|default:0 }}</td>
 
-                        <!-- LinkedIn Stats -->
-                        <td class="stat-number text-success">
-                            {% if post.scraped_info.linkedin.likes.exists %}
-                            <a href="{% url 'post_details' post.id 'linkedin' 'likes' %}"
-                                class="text-success text-decoration-underline" title="View details">
-                                {{ post.li_likes|default:0 }}
-                            </a>
-                            {% else %}
+                    <!-- LinkedIn Stats -->
+                    <td class="stat-number text-success">
+                        {% if post.scraped_info.linkedin.likes.exists %}
+                        <a href="{% url 'post_details' post.id 'linkedin' 'likes' %}"
+                            class="text-success text-decoration-underline" title="View details">
                             {{ post.li_likes|default:0 }}
-                            {% endif %}
-                        </td>
-                        <td class="stat-number text-success">
-                            {% if post.scraped_info.linkedin.comments.exists %}
-                            <a href="{% url 'post_details' post.id 'linkedin' 'comments' %}"
-                                class="text-success text-decoration-underline" title="View details">
-                                {{ post.li_comments|default:0 }}
-                            </a>
-                            {% else %}
+                        </a>
+                        {% else %}
+                        {{ post.li_likes|default:0 }}
+                        {% endif %}
+                    </td>
+                    <td class="stat-number text-success">
+                        {% if post.scraped_info.linkedin.comments.exists %}
+                        <a href="{% url 'post_details' post.id 'linkedin' 'comments' %}"
+                            class="text-success text-decoration-underline" title="View details">
                             {{ post.li_comments|default:0 }}
-                            {% endif %}
-                        </td>
-                        <td class="stat-number text-success">{{ post.li_shares|default:0 }}</td>
+                        </a>
+                        {% else %}
+                        {{ post.li_comments|default:0 }}
+                        {% endif %}
+                    </td>
+                    <td class="stat-number text-success">{{ post.li_shares|default:0 }}</td>
 
-                    </tr>
-                    {% endfor %}
+                </tr>
+                {% endfor %}
 
-                </tbody>
+            </tbody>
 
-            </table>
-
-        </div>
     </div>
 </div>
 

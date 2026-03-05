@@ -3,23 +3,9 @@
 
 {% block content %}
 <style>
-  .pay-head {
-    border: 1px solid #dbe4f2;
-    border-radius: 14px;
-    background: linear-gradient(140deg, #f8fbff, #eef4ff);
-    padding: 16px;
-    margin-bottom: 16px;
-  }
-
-  .pay-card {
-    border: 1px solid #dbe4f2;
-    border-radius: 14px;
-    overflow: hidden;
-  }
-
-  .pay-table thead th {
-    background: #f6f9ff;
+  .platform-name {
     font-weight: 700;
+    letter-spacing: 0.2px;
   }
 
   .platform-name {
@@ -32,41 +18,36 @@
   }
 </style>
 
-<div class="pay-head">
-  <h4 class="mb-1">Payment Settings</h4>
-  <p class="text-muted mb-0">Set amount per action for each platform.</p>
+<div class="toolbar mb-4">
+  <div>
+    <h4 class="mb-1 fw-bold">Payment Settings</h4>
+    <p class="text-muted mb-0">Set amount per action for each platform.</p>
+  </div>
 </div>
 
 {% if messages %}
-  {% for message in messages %}
-    <div class="alert alert-{{ message.tags|default:'info' }} py-2" role="alert">
-      {{ message }}
-    </div>
-  {% endfor %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags|default:'info' }} py-2" role="alert">
+  {{ message }}
+</div>
+{% endfor %}
 {% endif %}
 
-<div class="card pay-card">
-  <div class="card-body">
+<div class="panel-shell p-0 overflow-hidden stagger-1">
+  <div class="px-4 py-4">
     <form method="post">
       {% csrf_token %}
       <div class="row g-3 mb-3">
         <div class="col-md-4">
           <label class="form-label fw-semibold">Minimum Withdrawal (Rs)</label>
-          <input
-            type="number"
-            step="0.01"
-            min="0.01"
-            class="form-control amount-input"
-            name="minimum_withdrawal"
-            value="{{ minimum_withdrawal }}"
-            required
-          >
+          <input type="number" step="0.01" min="0.01" class="form-control amount-input" name="minimum_withdrawal"
+            value="{{ minimum_withdrawal }}" required>
           <div class="form-text">Affiliate withdrawal must be greater than 0 and at least this amount.</div>
         </div>
       </div>
 
       <div class="table-responsive">
-        <table class="table table-bordered align-middle mb-0 pay-table">
+        <table class="table-saas">
           <thead>
             <tr>
               <th style="width: 24%;">Platform</th>
@@ -79,102 +60,48 @@
             <tr>
               <td class="platform-name text-danger">Instagram</td>
               <td>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  class="form-control amount-input"
-                  name="instagram_like_amount"
-                  value="{{ rates.instagram.like }}"
-                >
+                <input type="number" step="0.01" min="0" class="form-control amount-input" name="instagram_like_amount"
+                  value="{{ rates.instagram.like }}">
               </td>
               <td>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  class="form-control amount-input"
-                  name="instagram_comment_amount"
-                  value="{{ rates.instagram.comment }}"
-                >
+                <input type="number" step="0.01" min="0" class="form-control amount-input"
+                  name="instagram_comment_amount" value="{{ rates.instagram.comment }}">
               </td>
               <td>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  class="form-control amount-input"
-                  name="instagram_share_amount"
-                  value="{{ rates.instagram.share }}"
-                >
+                <input type="number" step="0.01" min="0" class="form-control amount-input" name="instagram_share_amount"
+                  value="{{ rates.instagram.share }}">
               </td>
             </tr>
 
             <tr>
               <td class="platform-name text-primary">Facebook</td>
               <td>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  class="form-control amount-input"
-                  name="facebook_like_amount"
-                  value="{{ rates.facebook.like }}"
-                >
+                <input type="number" step="0.01" min="0" class="form-control amount-input" name="facebook_like_amount"
+                  value="{{ rates.facebook.like }}">
               </td>
               <td>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  class="form-control amount-input"
-                  name="facebook_comment_amount"
-                  value="{{ rates.facebook.comment }}"
-                >
+                <input type="number" step="0.01" min="0" class="form-control amount-input"
+                  name="facebook_comment_amount" value="{{ rates.facebook.comment }}">
               </td>
               <td>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  class="form-control amount-input"
-                  name="facebook_share_amount"
-                  value="{{ rates.facebook.share }}"
-                >
+                <input type="number" step="0.01" min="0" class="form-control amount-input" name="facebook_share_amount"
+                  value="{{ rates.facebook.share }}">
               </td>
             </tr>
 
             <tr>
               <td class="platform-name" style="color:#0A66C2;">LinkedIn</td>
               <td>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  class="form-control amount-input"
-                  name="linkedin_like_amount"
-                  value="{{ rates.linkedin.like }}"
-                >
+                <input type="number" step="0.01" min="0" class="form-control amount-input" name="linkedin_like_amount"
+                  value="{{ rates.linkedin.like }}">
               </td>
               <td>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  class="form-control amount-input"
-                  name="linkedin_comment_amount"
-                  value="{{ rates.linkedin.comment }}"
-                >
+                <input type="number" step="0.01" min="0" class="form-control amount-input"
+                  name="linkedin_comment_amount" value="{{ rates.linkedin.comment }}">
               </td>
               <td>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  class="form-control amount-input"
-                  name="linkedin_share_amount"
-                  value="{{ rates.linkedin.share }}"
-                >
+                <input type="number" step="0.01" min="0" class="form-control amount-input" name="linkedin_share_amount"
+                  value="{{ rates.linkedin.share }}">
               </td>
             </tr>
           </tbody>

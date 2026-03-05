@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,28 +9,28 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #ecf3ff;
-      --card: #ffffff;
-      --primary: #1e63db;
-      --primary-2: #184fab;
-      --text: #101b2f;
-      --muted: #62708d;
-      --border: #d7e2f3;
-      --shadow: 0 18px 45px rgba(16, 55, 125, 0.2);
+      --bg-a: #F8FAFC;
+      --bg-b: #F1F5F9;
+      --card: #FFFFFF;
+      --text: #0F172A;
+      --muted: #64748B;
+      --primary: #6366F1;
+      --primary-2: #4F46E5;
+      --cta: #4F46E5;
+      --cta-2: #4338CA;
+      --border: #E2E8F0;
+      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 10px 15px rgba(0, 0, 0, 0.1);
     }
 
     body {
       min-height: 100vh;
       margin: 0;
-      font-family: "Outfit", sans-serif;
+      font-family: "Inter", sans-serif;
       color: var(--text);
-      background:
-        radial-gradient(1000px 460px at 0% 0%, rgba(59, 132, 255, 0.28), transparent 50%),
-        radial-gradient(1000px 460px at 100% 0%, rgba(24, 79, 171, 0.2), transparent 50%),
-        var(--bg);
+      background: linear-gradient(135deg, var(--bg-a), var(--bg-b));
       display: flex;
       align-items: center;
       justify-content: center;
@@ -40,17 +41,17 @@
       width: min(1040px, 100%);
       display: grid;
       grid-template-columns: 1.05fr 1fr;
-      border-radius: 20px;
+      border-radius: 12px;
       overflow: hidden;
       box-shadow: var(--shadow);
-      border: 1px solid rgba(255, 255, 255, 0.5);
+      border: 1px solid var(--border);
       background: var(--card);
     }
 
     .left-pane {
-      background: linear-gradient(145deg, #0f3f90, #1e63db 65%, #5ea6ff);
+      background: linear-gradient(145deg, #0F172A, #1E293B);
       color: #fff;
-      padding: 34px;
+      padding: 40px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -61,11 +62,12 @@
       align-items: center;
       gap: 8px;
       width: fit-content;
-      border-radius: 999px;
-      padding: 7px 12px;
+      border-radius: 6px;
+      padding: 8px 14px;
       font-size: 13px;
-      border: 1px solid rgba(255,255,255,0.28);
-      background: rgba(255,255,255,0.17);
+      font-weight: 500;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.1);
     }
 
     .left-title {
@@ -76,16 +78,16 @@
     }
 
     .left-copy {
-      color: rgba(255,255,255,0.88);
+      color: rgba(255, 255, 255, 0.88);
       max-width: 340px;
       margin: 0;
     }
 
     .preview-card {
       margin-top: 18px;
-      border: 1px dashed rgba(255,255,255,0.55);
+      border: 1px dashed rgba(255, 255, 255, 0.55);
       border-radius: 14px;
-      background: rgba(255,255,255,0.14);
+      background: rgba(255, 255, 255, 0.14);
       padding: 12px;
     }
 
@@ -95,7 +97,7 @@
       object-fit: cover;
       border-radius: 10px;
       display: none;
-      background: rgba(255,255,255,0.2);
+      background: rgba(255, 255, 255, 0.2);
     }
 
     .preview-empty {
@@ -103,8 +105,8 @@
       border-radius: 10px;
       display: grid;
       place-content: center;
-      background: rgba(255,255,255,0.16);
-      color: rgba(255,255,255,0.85);
+      background: rgba(255, 255, 255, 0.16);
+      color: rgba(255, 255, 255, 0.85);
       text-align: center;
       padding: 16px;
     }
@@ -131,14 +133,17 @@
     }
 
     .form-control {
-      border-radius: 11px;
+      border-radius: 8px;
       border-color: var(--border);
-      padding: 11px 12px;
+      padding: 10px 14px;
+      background: #FFFFFF;
+      transition: all 0.2s ease;
     }
 
     .form-control:focus {
-      border-color: #82aef3;
-      box-shadow: 0 0 0 0.2rem rgba(30, 99, 219, 0.16);
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+      outline: none;
     }
 
     textarea.form-control {
@@ -158,19 +163,19 @@
     .btn-submit {
       width: 100%;
       border: 0;
-      border-radius: 11px;
-      padding: 11px;
+      border-radius: 8px;
+      padding: 12px;
       font-weight: 600;
       color: #fff;
-      background: linear-gradient(120deg, var(--primary), #3f84f2);
-      box-shadow: 0 10px 20px rgba(30, 99, 219, 0.22);
+      background: var(--cta);
       transition: 0.2s ease;
     }
 
     .btn-submit:hover {
       transform: translateY(-1px);
       color: #fff;
-      background: linear-gradient(120deg, var(--primary-2), var(--primary));
+      background: var(--cta-2);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
 
     .back-link {
@@ -188,138 +193,145 @@
       .layout {
         grid-template-columns: 1fr;
       }
+
       .left-pane,
       .form-pane {
         padding: 24px;
       }
+
       .left-title {
         font-size: 1.6rem;
       }
     }
   </style>
 </head>
-<body>
-<div class="layout">
-  <section class="left-pane">
-    <div>
-      <span class="chip"><i class="bi bi-megaphone-fill"></i> Content Studio</span>
-      <h1 class="left-title">Create a post that performs across platforms.</h1>
-      <p class="left-copy">Upload your media, define the message, and keep everything ready for automated publishing workflows.</p>
 
-      <div class="preview-card">
-        <img id="imagePreview" class="preview-media" alt="Post preview">
-        <video id="videoPreview" class="preview-media" controls muted playsinline></video>
-        <div id="previewEmpty" class="preview-empty">
-          <div>
-            <i class="bi bi-card-image fs-3 d-block mb-2"></i>
-            Image or video preview appears here after upload
+<body>
+  <div class="layout">
+    <section class="left-pane">
+      <div>
+        <span class="chip"><i class="bi bi-megaphone-fill"></i> Content Studio</span>
+        <h1 class="left-title">Create a post that performs across platforms.</h1>
+        <p class="left-copy">Upload your media, define the message, and keep everything ready for automated publishing
+          workflows.</p>
+
+        <div class="preview-card">
+          <img id="imagePreview" class="preview-media" alt="Post preview">
+          <video id="videoPreview" class="preview-media" controls muted playsinline></video>
+          <div id="previewEmpty" class="preview-empty">
+            <div>
+              <i class="bi bi-card-image fs-3 d-block mb-2"></i>
+              Image or video preview appears here after upload
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    <small class="text-white-50">Walstar Admin Tools</small>
-  </section>
+      <small class="text-white-50">Walstar Admin Tools</small>
+    </section>
 
-  <section class="form-pane">
-    <h2 class="form-title">Create New Post</h2>
-    <p class="form-subtitle">Fill all fields below to publish your next campaign post.</p>
+    <section class="form-pane">
+      <h2 class="form-title">Create New Post</h2>
+      <p class="form-subtitle">Fill all fields below to publish your next campaign post.</p>
 
-    <form action="{% url 'post_submitted' %}" method="post" enctype="multipart/form-data">
-      {% csrf_token %}
-      <input type="hidden" name="user_id" value="{{ user.username }}">
+      <form action="{% url 'post_submitted' %}" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="user_id" value="{{ user.username }}">
 
-      <div class="mb-3">
-        <label class="form-label" for="post_image">Post Image</label>
-        <input id="post_image" type="file" class="form-control" name="post_image" accept="image/*,video/*" required>
-      </div>
-
-      <div class="mb-3">
-        <label class="form-label" for="post_text">Post Text</label>
-        <textarea id="post_text" class="form-control" name="post_text" rows="4" placeholder="Enter post content" required></textarea>
-        <div class="meta-row">
-          <span>Keep copy short and actionable.</span>
-          <span><span id="charCount">0</span> chars</span>
+        <div class="mb-3">
+          <label class="form-label" for="post_image">Post Image</label>
+          <input id="post_image" type="file" class="form-control" name="post_image" accept="image/*,video/*" required>
         </div>
-      </div>
 
-      <div class="mb-3">
-        <label class="form-label" for="post_name">Post Name</label>
-        <input id="post_name" type="text" class="form-control" name="post_name" placeholder="Enter post name" required>
-      </div>
+        <div class="mb-3">
+          <label class="form-label" for="post_text">Post Text</label>
+          <textarea id="post_text" class="form-control" name="post_text" rows="4" placeholder="Enter post content"
+            required></textarea>
+          <div class="meta-row">
+            <span>Keep copy short and actionable.</span>
+            <span><span id="charCount">0</span> chars</span>
+          </div>
+        </div>
 
-      <button type="submit" class="btn btn-submit">
-        <i class="bi bi-upload me-1"></i> Submit Post
-      </button>
-    </form>
+        <div class="mb-3">
+          <label class="form-label" for="post_name">Post Name</label>
+          <input id="post_name" type="text" class="form-control" name="post_name" placeholder="Enter post name"
+            required>
+        </div>
 
-    <a href="{% url 'posts_list' %}" class="back-link"><i class="bi bi-arrow-left"></i> Back to Posts</a>
-  </section>
-</div>
+        <button type="submit" class="btn btn-submit">
+          <i class="bi bi-upload me-1"></i> Submit Post
+        </button>
+      </form>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-  (function () {
-    const fileInput = document.getElementById("post_image");
-    const previewImg = document.getElementById("imagePreview");
-    const previewVideo = document.getElementById("videoPreview");
-    const previewEmpty = document.getElementById("previewEmpty");
-    const postText = document.getElementById("post_text");
-    const charCount = document.getElementById("charCount");
-    let activeObjectUrl = null;
+      <a href="{% url 'posts_list' %}" class="back-link"><i class="bi bi-arrow-left"></i> Back to Posts</a>
+    </section>
+  </div>
 
-    if (postText && charCount) {
-      const updateCount = () => { charCount.textContent = postText.value.length.toString(); };
-      postText.addEventListener("input", updateCount);
-      updateCount();
-    }
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    (function () {
+      const fileInput = document.getElementById("post_image");
+      const previewImg = document.getElementById("imagePreview");
+      const previewVideo = document.getElementById("videoPreview");
+      const previewEmpty = document.getElementById("previewEmpty");
+      const postText = document.getElementById("post_text");
+      const charCount = document.getElementById("charCount");
+      let activeObjectUrl = null;
 
-    if (fileInput && previewImg && previewVideo && previewEmpty) {
-      fileInput.addEventListener("change", function () {
-        const file = this.files && this.files[0];
-        if (activeObjectUrl) {
-          URL.revokeObjectURL(activeObjectUrl);
-          activeObjectUrl = null;
-        }
+      if (postText && charCount) {
+        const updateCount = () => { charCount.textContent = postText.value.length.toString(); };
+        postText.addEventListener("input", updateCount);
+        updateCount();
+      }
 
-        if (!file) {
+      if (fileInput && previewImg && previewVideo && previewEmpty) {
+        fileInput.addEventListener("change", function () {
+          const file = this.files && this.files[0];
+          if (activeObjectUrl) {
+            URL.revokeObjectURL(activeObjectUrl);
+            activeObjectUrl = null;
+          }
+
+          if (!file) {
+            previewImg.style.display = "none";
+            previewVideo.style.display = "none";
+            previewVideo.removeAttribute("src");
+            previewVideo.load();
+            previewEmpty.style.display = "grid";
+            previewImg.removeAttribute("src");
+            return;
+          }
+
+          activeObjectUrl = URL.createObjectURL(file);
+
+          if (file.type.startsWith("video/")) {
+            previewImg.style.display = "none";
+            previewImg.removeAttribute("src");
+            previewVideo.src = activeObjectUrl;
+            previewVideo.style.display = "block";
+            previewVideo.load();
+            previewEmpty.style.display = "none";
+            return;
+          }
+
+          if (file.type.startsWith("image/")) {
+            previewVideo.pause();
+            previewVideo.style.display = "none";
+            previewVideo.removeAttribute("src");
+            previewVideo.load();
+            previewImg.src = activeObjectUrl;
+            previewImg.style.display = "block";
+            previewEmpty.style.display = "none";
+            return;
+          }
+
           previewImg.style.display = "none";
           previewVideo.style.display = "none";
-          previewVideo.removeAttribute("src");
-          previewVideo.load();
           previewEmpty.style.display = "grid";
-          previewImg.removeAttribute("src");
-          return;
-        }
-
-        activeObjectUrl = URL.createObjectURL(file);
-
-        if (file.type.startsWith("video/")) {
-          previewImg.style.display = "none";
-          previewImg.removeAttribute("src");
-          previewVideo.src = activeObjectUrl;
-          previewVideo.style.display = "block";
-          previewVideo.load();
-          previewEmpty.style.display = "none";
-          return;
-        }
-
-        if (file.type.startsWith("image/")) {
-          previewVideo.pause();
-          previewVideo.style.display = "none";
-          previewVideo.removeAttribute("src");
-          previewVideo.load();
-          previewImg.src = activeObjectUrl;
-          previewImg.style.display = "block";
-          previewEmpty.style.display = "none";
-          return;
-        }
-
-        previewImg.style.display = "none";
-        previewVideo.style.display = "none";
-        previewEmpty.style.display = "grid";
-      });
-    }
-  })();
-</script>
+        });
+      }
+    })();
+  </script>
 </body>
+
 </html>

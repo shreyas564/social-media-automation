@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>{% block title %}Affiliate{% endblock %}</title>
@@ -9,108 +10,203 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
     :root {
-      --aff-bg: #edf5ef;
-      --aff-surface: #ffffff;
-      --aff-primary: #1f8d57;
-      --aff-primary-2: #166940;
-      --aff-text: #10211a;
-      --aff-border: #d4e2d8;
-      --aff-shadow: 0 12px 30px rgba(17, 54, 34, 0.15);
+      --aff-bg: #F3F4F6;
+      --aff-surface: #FFFFFF;
+      --aff-primary: #10B981;
+      --aff-primary-2: #059669;
+      --aff-text: #111827;
+      --aff-muted: #6B7280;
+      --aff-border: rgba(229, 231, 235, 0.8);
+      --aff-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+      --aff-shadow-hover: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      --pro-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.08);
+      /* Pro Max deep shadow */
       --aff-radius: 16px;
+      --pro-radius-lg: 24px;
+      --sidebar-bg: #0F172A;
+      --sidebar-muted: #9CA3AF;
+      --sidebar-hover: rgba(255, 255, 255, 0.08);
+      --table-hover: rgba(16, 185, 129, 0.03);
     }
 
     body {
-      background:
-        radial-gradient(1200px 500px at 0% 0%, rgba(44, 170, 103, 0.16), transparent 50%),
-        radial-gradient(900px 400px at 100% 0%, rgba(21, 126, 74, 0.12), transparent 50%),
-        var(--aff-bg);
-      font-family: "Outfit", sans-serif;
+      background: var(--aff-bg);
+      font-family: "Inter", sans-serif;
       color: var(--aff-text);
       min-height: 100vh;
+      margin: 0;
     }
 
     .sidebar {
+      background: var(--sidebar-bg);
+      color: #FFFFFF;
       height: 100vh;
-      background: linear-gradient(180deg, #0f5b3a 0%, #1f8d57 58%, #2ba468 100%);
-      color: #fff;
       position: sticky;
       top: 0;
-      align-self: flex-start;
-      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 15px 40px rgba(8, 34, 21, 0.35);
+      z-index: 1000;
+      padding: 20px 14px;
       overflow-y: auto;
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      align-self: flex-start;
+    }
+
+    .sidebar h4 {
+      color: #FFFFFF;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      font-size: 1.15rem;
+      margin-bottom: 20px !important;
+      padding: 4px 8px;
+    }
+
+    .sidebar .nav-group {
+      color: var(--sidebar-muted);
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-weight: 700;
+      padding: 10px 8px 6px;
+      margin-top: 4px;
     }
 
     .sidebar a {
-      color: #fff;
+      color: var(--sidebar-muted);
       text-decoration: none;
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 12px 14px;
-      border-radius: 10px;
-      margin-bottom: 7px;
-      transition: all 0.22s ease;
-      border: 1px solid transparent;
+      gap: 10px;
+      padding: 6px 12px;
+      border-radius: var(--aff-radius);
+      margin-bottom: 2px;
+      transition: all 0.2s ease;
+      font-weight: 500;
+      font-size: 12.5px;
+    }
+
+    .sidebar a i {
+      font-size: 1.05rem;
+      width: 18px;
+      text-align: center;
     }
 
     .sidebar a:hover {
-      background: rgba(255,255,255,0.16);
-      border-color: rgba(255,255,255,0.22);
-      transform: translateX(4px);
+      background: var(--sidebar-hover);
+      color: var(--sidebar-text);
+      transform: translateX(6px);
     }
 
     .sidebar a.active-link {
-      background: rgba(255,255,255,0.22);
-      border-color: rgba(255,255,255,0.24);
+      background: rgba(99, 102, 241, 0.15);
+      color: var(--aff-primary-2);
       font-weight: 600;
     }
 
     .main-panel {
-      padding: 22px;
+      padding: 24px;
     }
 
     .panel-shell {
-      background: rgba(255, 255, 255, 0.75);
-      backdrop-filter: blur(4px);
-      border: 1px solid rgba(212, 226, 216, 0.88);
+      background: var(--aff-surface);
+      border: 1px solid var(--aff-border);
+      border-radius: var(--pro-radius-lg);
+      box-shadow: var(--pro-shadow);
+      padding: 24px;
+      animation: fadeSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .table-saas {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 13.5px;
+    }
+
+    .table-saas thead th {
+      border-bottom: 1px solid var(--aff-border);
+      background: var(--aff-surface);
+      color: var(--aff-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 11px;
+      padding: 14px 16px;
+      text-align: left;
+    }
+
+    .table-saas tbody tr {
+      transition: all .2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .table-saas tbody td {
+      padding: 18px 16px;
+      border-bottom: 1px dashed var(--aff-border);
+      vertical-align: middle;
+      color: var(--aff-text);
+    }
+
+    .table-saas tbody tr:hover {
+      background: var(--table-hover);
+      transform: scale(1.002);
+    }
+
+    .btn-saas {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 500;
       border-radius: var(--aff-radius);
-      box-shadow: var(--aff-shadow);
-      padding: 20px;
-      animation: fadeSlideUp 360ms ease both;
-    }
-
-    .table tbody tr {
-      transition: background 0.18s ease;
-    }
-
-    .table tbody tr:hover {
-      background: rgba(31, 141, 87, 0.06);
+      transition: all 0.2s ease;
+      cursor: pointer;
+      line-height: 1.2;
     }
 
     .btn-primary {
-      background: linear-gradient(120deg, var(--aff-primary), #36b777);
-      border-color: var(--aff-primary-2);
-      box-shadow: 0 8px 18px rgba(31, 141, 87, 0.24);
+      background: var(--aff-cta);
+      color: white;
+      border: 1px solid var(--aff-cta);
+      box-shadow: var(--aff-shadow);
     }
 
     .btn-primary:hover {
       transform: translateY(-1px);
-      background: linear-gradient(120deg, var(--aff-primary-2), var(--aff-primary));
+      background: var(--aff-cta-2);
+      border-color: var(--aff-cta-2);
+      box-shadow: var(--aff-shadow-hover);
     }
 
     @keyframes fadeSlideUp {
       from {
         opacity: 0;
-        transform: translateY(10px);
+        transform: translateY(20px);
       }
+
       to {
         opacity: 1;
         transform: translateY(0);
       }
+    }
+
+    .stagger-1 {
+      animation-delay: 0.05s;
+    }
+
+    .stagger-2 {
+      animation-delay: 0.1s;
+    }
+
+    .stagger-3 {
+      animation-delay: 0.15s;
+    }
+
+    .stagger-4 {
+      animation-delay: 0.2s;
     }
 
     @media (max-width: 768px) {
@@ -118,79 +214,86 @@
         height: auto;
         position: relative;
       }
+
       .main-panel {
         padding: 12px;
       }
     }
   </style>
 </head>
+
 <body>
 
-<div class="container-fluid">
-  <div class="row">
+  <div class="container-fluid">
+    <div class="row">
 
-    <!-- AFFILIATE SIDEBAR -->
-    <div class="col-md-2 sidebar p-3">
-      <h4 class="text-center mb-4">Affiliate</h4>
+      <!-- AFFILIATE SIDEBAR -->
+      <div class="col-md-2 sidebar p-3">
+        <h4 class="text-center mb-4">Affiliate</h4>
 
-      <a href="{% url 'affiliate_feed' %}">
-        <i class="bi bi-house-door me-2"></i> Feed
-      </a>
+        <div class="nav-group">Overview</div>
+        <a href="{% url 'affiliate_feed' %}">
+          <i class="bi bi-house-door me-2"></i> Feed
+        </a>
 
-      <a href="{% url 'affiliate_feed' %}?section=post-details">
-        <i class="bi bi-table me-2"></i> Post Details
-      </a>
+        <a href="{% url 'affiliate_feed' %}?section=post-details">
+          <i class="bi bi-table me-2"></i> Post Details
+        </a>
 
-      <a href="{% url 'affiliate_post_stats' %}">
-        <i class="bi bi-bar-chart me-2"></i> Post Statistics
-      </a>
+        <a href="{% url 'affiliate_post_stats' %}">
+          <i class="bi bi-bar-chart me-2"></i> Post Statistics
+        </a>
 
-      <a href="{% url 'affiliate_rewards_settings' %}">
-        <i class="bi bi-gift me-2"></i> Rewards Settings
-      </a>
+        <div class="nav-group">Wallet & Earnings</div>
+        <a href="{% url 'affiliate_rewards_settings' %}">
+          <i class="bi bi-gift me-2"></i> Rewards Settings
+        </a>
 
-      <a href="{% url 'affiliate_withdrawal_page' %}">
-        <i class="bi bi-cash-stack me-2"></i> Withdrawal
-      </a>
+        <a href="{% url 'affiliate_withdrawal_page' %}">
+          <i class="bi bi-cash-stack me-2"></i> Withdrawal
+        </a>
 
-      <a href="{% url 'affiliate_payment_history' %}">
-        <i class="bi bi-clock-history me-2"></i> Payment History
-      </a>
+        <a href="{% url 'affiliate_payment_history' %}">
+          <i class="bi bi-clock-history me-2"></i> Payment History
+        </a>
 
-      <a href="{% url 'user_payment_details' %}">
-        <i class="bi bi-credit-card-2-front me-2"></i> User Payment Details
-      </a>
+        <a href="{% url 'user_payment_details' %}">
+          <i class="bi bi-credit-card-2-front me-2"></i> User Payment Details
+        </a>
 
-      <a href="{% url 'usersettings' %}">
-        <i class="bi bi-gear me-2"></i> Settings
-      </a>
+        <div class="nav-group">Configuration</div>
+        <a href="{% url 'usersettings' %}">
+          <i class="bi bi-gear me-2"></i> Settings
+        </a>
 
-      <a href="{% url 'affiliate_logout' %}">
-        <i class="bi bi-box-arrow-right me-2"></i> Logout
-      </a>
-    </div>
-
-    <!-- PAGE CONTENT -->
-    <div class="col-md-10 main-panel">
-      <div class="panel-shell">
-        {% block content %}{% endblock %}
+        <div class="nav-group">Session</div>
+        <a href="{% url 'affiliate_logout' %}">
+          <i class="bi bi-box-arrow-right me-2"></i> Logout
+        </a>
       </div>
-    </div>
 
+      <!-- PAGE CONTENT -->
+      <div class="col-md-10 main-panel">
+        <div class="panel-shell">
+          {% block content %}{% endblock %}
+        </div>
+      </div>
+
+    </div>
   </div>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-  (function () {
-    const current = window.location.pathname;
-    document.querySelectorAll(".sidebar a[href]").forEach((link) => {
-      const href = link.getAttribute("href");
-      if (!href || href === "#") return;
-      if (current === href || current.startsWith(href)) {
-        link.classList.add("active-link");
-      }
-    });
-  })();
-</script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    (function () {
+      const current = window.location.pathname;
+      document.querySelectorAll(".sidebar a[href]").forEach((link) => {
+        const href = link.getAttribute("href");
+        if (!href || href === "#") return;
+        if (current === href || current.startsWith(href)) {
+          link.classList.add("active-link");
+        }
+      });
+    })();
+  </script>
 </body>
+
 </html>

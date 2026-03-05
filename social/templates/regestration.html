@@ -1,75 +1,227 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Affiliate User Registration</title>
-
-  <!-- Bootstrap CSS -->
+  <meta charset="UTF-8">
+  <title>Affiliate Registration</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    body {
-      background: #f4f6f8;
+    :root {
+      --bg-a: #F8FAFC;
+      --bg-b: #F1F5F9;
+      --card: #FFFFFF;
+      --text: #0F172A;
+      --muted: #64748B;
+      --primary: #6366F1;
+      --primary-2: #4F46E5;
+      --cta: #4F46E5;
+      --cta-2: #4338CA;
+      --border: #E2E8F0;
+      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 10px 15px rgba(0, 0, 0, 0.1);
     }
-    .container-box {
-      max-width: 420px;
-      background: #fff;
-      padding: 25px;
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      font-family: "Inter", sans-serif;
+      color: var(--text);
+      background: linear-gradient(135deg, var(--bg-a), var(--bg-b));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .auth-wrap {
+      width: min(980px, 100%);
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      background: var(--card);
+    }
+
+    .brand-pane {
+      background: linear-gradient(145deg, #0F172A, #1E293B);
+      color: #fff;
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .brand-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      padding: 8px 14px;
+      width: fit-content;
+    }
+
+    .brand-title {
+      font-size: 2.2rem;
+      font-weight: 700;
+      line-height: 1.2;
+      margin: 24px 0 12px;
+    }
+
+    .brand-copy {
+      color: rgba(255, 255, 255, 0.9);
+      margin: 0;
+      max-width: 320px;
+      font-size: 1.05rem;
+    }
+
+    .form-pane {
+      padding: 40px;
+      background: #FFFFFF;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .form-title {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .form-subtitle {
+      color: var(--muted);
+      margin-bottom: 24px;
+      font-size: 14px;
+    }
+
+    .form-control {
       border-radius: 8px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      border: 1px solid var(--border);
+      padding: 10px 14px;
+      background: #FFFFFF;
+      color: var(--text);
+      transition: all 0.2s ease;
+    }
+
+    .form-control:focus {
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+      border-color: var(--primary);
+      outline: none;
+    }
+
+    .btn-login {
+      width: 100%;
+      border-radius: 8px;
+      border: 0;
+      padding: 12px;
+      font-weight: 600;
+      color: #fff;
+      background: var(--cta);
+      transition: 0.2s ease;
+      margin-top: 8px;
+    }
+
+    .btn-login:hover {
+      transform: translateY(-1px);
+      background: var(--cta-2);
+      color: #fff;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .helper-row {
+      margin-top: 16px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .helper-row a {
+      color: var(--cta);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .helper-row a:hover {
+      text-decoration: underline;
+    }
+
+    .alert {
+      border-radius: 8px;
+      border: 1px solid #FECACA;
+      background: #FEF2F2;
+      color: #991B1B;
+      font-size: 14px;
+    }
+
+    @media (max-width: 900px) {
+      .auth-wrap {
+        grid-template-columns: 1fr;
+      }
+
+      .brand-pane {
+        padding: 30px;
+      }
+
+      .form-pane {
+        padding: 30px;
+      }
     }
   </style>
 </head>
-<body>
 
-  <div class="container d-flex justify-content-center align-items-center min-vh-100">
-    <div class="container-box">
-      <h2 class="text-center mb-4">Affiliate User Registration</h2>
+<body>
+  <div class="auth-wrap">
+    <section class="brand-pane">
+      <div>
+        <span class="brand-chip"><i class="bi bi-people-fill"></i> Join our Network</span>
+        <h1 class="brand-title">Start earning through engagement.</h1>
+        <p class="brand-copy">Create an affiliate account to engage with posts and earn rewards effortlessly.</p>
+      </div>
+      <small class="text-white-50">Walstar Affiliate Portal</small>
+    </section>
+
+    <section class="form-pane">
+      <h2 class="form-title">Affiliate Registration</h2>
+      <p class="form-subtitle">Fill in the details below to join.</p>
+
+      {% if messages %}
+      {% for message in messages %}
+      <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+      {% endfor %}
+      {% endif %}
+
       <form method="POST" action="{% url 'affiliate_register' %}">
         {% csrf_token %}
-    
-
-
-        
-
         <div class="mb-3">
-          <label class="form-label">Username</label>
-          <input type="text" class="form-control" name="username" required>
+          <label class="form-label fw-semibold">Username</label>
+          <input type="text" class="form-control" name="username" placeholder="Choose a username" required>
         </div>
-
         <div class="mb-3">
-          <label class="form-label">Password</label>
-          <input type="password" class="form-control" name="password" required>
+          <label class="form-label fw-semibold">Password</label>
+          <input type="password" class="form-control" name="password" placeholder="Create a password" required>
         </div>
-
-        {% comment %} <div class="mb-3">
-          <label class="form-label">Instagram Secret Key</label>
-          <input type="password" class="form-control" name="instagram_secret" required>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">LinkedIn Secret Key</label>
-          <input type="password" class="form-control" name="linkedin_secret" required>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">Facebook Secret Key</label>
-          <input type="password" class="form-control" name="facebook_secret" required>
-        </div> {% endcomment %}
-
-        <button type="submit" class="btn btn-primary w-100">Register</button>
-
-        {% comment %} <p class="text-muted small mt-3 text-center">
-          ⚠️ All secret keys are stored securely and encrypted on the server.
-        </p> {% endcomment %}
-
+        <button type="submit" class="btn btn-login">Register Now</button>
       </form>
-    </div>
+
+      <div class="helper-row">
+        Already registered? <a href="{% url 'affiliate_login' %}">Login here</a>
+      </div>
+    </section>
   </div>
-
-  <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
 </body>
+
 </html>

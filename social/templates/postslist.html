@@ -4,59 +4,33 @@
 
 {% block content %}
 <style>
-  .page-head {
-    border: 1px solid var(--admin-border);
-    border-radius: 16px;
-    background: linear-gradient(140deg, #f8fbff, #eef4ff 58%, #e9f2ff);
-    padding: 16px;
-    margin-bottom: 14px;
-  }
-
-  .page-head h3 {
-    margin: 0;
-    font-weight: 700;
-    letter-spacing: .2px;
-  }
-
-  .page-head p {
-    margin: 6px 0 0;
-  }
-
+  /* Standardized Toolbar handles layout */
   .toolbar {
-    border: 1px solid var(--admin-border);
-    border-radius: 14px;
-    background: var(--admin-surface-soft);
-    padding: 12px;
-    margin-bottom: 14px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
+    margin-bottom: 24px;
   }
 
   .post-card {
-    border-radius: 16px;
+    border-radius: var(--pro-radius-lg);
     border: 1px solid var(--admin-border);
     background: var(--admin-surface);
-    box-shadow: 0 12px 26px rgba(16, 40, 74, 0.1);
+    box-shadow: var(--pro-shadow);
     overflow: hidden;
     height: 100%;
     display: flex;
     flex-direction: column;
-    transition: transform .2s ease, box-shadow .2s ease;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .post-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 16px 32px rgba(16, 40, 74, 0.14);
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.12);
   }
 
   .post-media {
     width: 100%;
-    height: 240px;
+    height: 180px;
     object-fit: cover;
-    background: #eaf1fc;
+    background: var(--admin-bg-soft);
   }
 
   .post-name {
@@ -75,21 +49,19 @@
   }
 </style>
 
-<div class="page-head">
-  <h3>Posts</h3>
-  <p class="text-muted">Manage all created social media posts in one place.</p>
-</div>
-
-<div class="toolbar">
-  <div class="d-flex align-items-center gap-2">
-    <span class="badge text-bg-primary">Total: {{ posts|length }}</span>
+<div class="toolbar mb-4">
+  <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap w-100">
+    <div>
+      <h4 class="mb-1 fw-bold">Posts Explorer <span class="badge text-bg-primary ms-2">{{ posts|length }}</span></h4>
+      <p class="text-muted mb-0">Manage all created social media posts in one place.</p>
+    </div>
+    <form action="{% url 'create_post' %}" method="post" class="m-0">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-success">
+        <i class="bi bi-plus-circle me-1"></i> Create New Post
+      </button>
+    </form>
   </div>
-  <form action="{% url 'create_post' %}" method="post" class="m-0">
-    {% csrf_token %}
-    <button type="submit" class="btn btn-success">
-      <i class="bi bi-plus-circle me-1"></i> Create New Post
-    </button>
-  </form>
 </div>
 
 <div class="row g-4">
@@ -97,34 +69,35 @@
   <div class="col-xl-4 col-lg-6">
     <div class="post-card">
       {% if post.image %}
-        <img src="{{ post.image.url }}" class="post-media" alt="Post image">
+      <img src="{{ post.image.url }}" class="post-media" alt="Post image">
       {% elif post.video %}
-        <video class="post-media" controls>
-          <source src="{{ post.video.url }}">
-        </video>
+      <video class="post-media" controls>
+        <source src="{{ post.video.url }}">
+      </video>
       {% elif post.media_url %}
-        {% if post.media_type == "video" %}
-          <video class="post-media" controls>
-            <source src="{{ post.media_url }}">
-          </video>
-        {% else %}
-          <img src="{{ post.media_url }}" class="post-media" alt="Post media">
-        {% endif %}
+      {% if post.media_type == "video" %}
+      <video class="post-media" controls>
+        <source src="{{ post.media_url }}">
+      </video>
       {% else %}
-        <img src="https://via.placeholder.com/400x250?text=No+Media" class="post-media" alt="No media">
+      <img src="{{ post.media_url }}" class="post-media" alt="Post media">
+      {% endif %}
+      {% else %}
+      <img src="https://via.placeholder.com/400x250?text=No+Media" class="post-media" alt="No media">
       {% endif %}
 
-      <div class="card-body d-flex flex-column">
-        <h5 class="post-name">{{ post.post_name|default:"Social Media Post" }}</h5>
-        <div class="post-date mb-2">
+      <div class="card-body d-flex flex-column p-4">
+        <h5 class="post-name mb-1">{{ post.post_name|default:"Social Media Post" }}</h5>
+        <div class="post-date mb-3">
           <i class="bi bi-calendar3 me-1"></i>{{ post.created_at|date:"d M Y" }}
         </div>
-        <p class="post-caption">{{ post.caption|truncatechars:120 }}</p>
-        <div class="d-flex gap-2 mt-auto">
-          <a href="{% url 'edit_post' post.id %}" class="btn btn-outline-primary btn-sm">
+        <p class="post-caption text-truncate-2">{{ post.caption|truncatechars:100 }}</p>
+        <div class="d-flex gap-2 mt-auto pt-2 border-top">
+          <a href="{% url 'edit_post' post.id %}" class="btn btn-sm text-primary w-50 fw-semibold">
             <i class="bi bi-pencil-square me-1"></i>Edit
           </a>
-          <a href="{% url 'delete_post' post.id %}" class="btn btn-outline-danger btn-sm" onclick="return confirm('Delete this post?');">
+          <a href="{% url 'delete_post' post.id %}" class="btn btn-sm text-danger w-50 fw-semibold"
+            onclick="return confirm('Delete this post?');">
             <i class="bi bi-trash me-1"></i>Delete
           </a>
         </div>
