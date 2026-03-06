@@ -29,6 +29,27 @@
     font-weight: 700;
     color: #163556;
   }
+
+  .withdraw-submit-btn {
+    background: #10b981;
+    border-color: #10b981;
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .withdraw-submit-btn:hover,
+  .withdraw-submit-btn:focus {
+    background: #059669;
+    border-color: #059669;
+    color: #fff;
+  }
+
+  .withdraw-submit-btn:disabled {
+    background: #9ca3af;
+    border-color: #9ca3af;
+    color: #fff;
+    opacity: 1;
+  }
 </style>
 
 <div class="withdraw-head">
@@ -69,7 +90,7 @@
       </div>
     </div>
 
-    <form method="post" action="{% url 'request_withdrawal' %}">
+    <form id="withdrawalForm" method="post" action="{% url 'request_withdrawal' %}">
       {% csrf_token %}
       <div class="mb-3">
         <label for="withdrawal_amount" class="form-label fw-semibold">Withdrawal Amount ({{ currency_symbol }})</label>
@@ -87,11 +108,67 @@
         <div class="form-text">
           Enter an amount between {{ currency_symbol }}{{ minimum_withdrawal|floatformat:2 }} and {{ currency_symbol }}{{ current_balance|floatformat:2 }}.
         </div>
+        <div id="withdrawalAmountError" class="text-danger small mt-1 d-none"></div>
       </div>
-      <button type="submit" class="btn btn-primary" {% if not can_request %}disabled{% endif %}>
+      <button type="submit" class="btn btn-primary withdraw-submit-btn" {% if not can_request %}disabled{% endif %}>
         <i class="bi bi-send-check me-1"></i> Withdraw
       </button>
     </form>
   </div>
 </div>
+
+<script>
+  (function () {
+    const form = document.getElementById("withdrawalForm");
+    const amountInput = document.getElementById("withdrawal_amount");
+    const errorBox = document.getElementById("withdrawalAmountError");
+
+    if (!form || !amountInput || !errorBox) return;
+
+    const min = parseFloat(amountInput.min);
+    const max = parseFloat(amountInput.max);
+
+    function showError(message) {
+      errorBox.textContent = message;
+      errorBox.classList.remove("d-none");
+      amountInput.classList.add("is-invalid");
+    }
+
+    function clearError() {
+      errorBox.textContent = "";
+      errorBox.classList.add("d-none");
+      amountInput.classList.remove("is-invalid");
+    }
+
+    function validateAmount() {
+      const raw = (amountInput.value || "").trim();
+      if (!raw) {
+        showError("Please enter withdrawal amount.");
+        return false;
+      }
+
+      const value = parseFloat(raw);
+      if (Number.isNaN(value)) {
+        showError("Please enter a valid number.");
+        return false;
+      }
+
+      if (value < min || value > max) {
+        showError(`Amount must be between Rs ${min.toFixed(2)} and Rs ${max.toFixed(2)}.`);
+        return false;
+      }
+
+      clearError();
+      return true;
+    }
+
+    amountInput.addEventListener("input", validateAmount);
+    amountInput.addEventListener("blur", validateAmount);
+    form.addEventListener("submit", function (event) {
+      if (!validateAmount()) {
+        event.preventDefault();
+      }
+    });
+  })();
+</script>
 {% endblock %}
