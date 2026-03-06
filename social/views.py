@@ -14,6 +14,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.hashers import make_password
 from django.db.models import Sum, Q
 from django.db import transaction
+from django.utils import timezone
 import uuid
 from django.contrib import messages
 from django.contrib.auth import authenticate, login
@@ -35,13 +36,13 @@ from django.shortcuts import render, redirect
 from django.views.decorators.http import require_GET
 from .models import Post, SuperAdmin, InstagramComment
 from utils.facebook import get_insta_user_id
-from django.utils import timezone
-
+import logging
+logger = logging.getLogger(__name__)
 
 N8N_WEBHOOK_URL = "http://localhost:5678/webhook-test/social-post"
 #sending image
 
-FBTOKEN="EAAJJsrZBrJzwBQnPWHIE5Gooc1jvNlPktigDPWjI0AyUNaLvFWo0ASOX7kUlGTXWqlZAJZBW4OTveRjYskkZC71bs5V1UH4hsZB0dhMvhHdgxfZCS5L1Qz7M2wAWG3ZBgh2Q4kj27Yzk93NHafynoOuHxPSQZA6R6hnKly3JwYIgwDEYj7FxhwIlZAqPPlq3GbEogCMAwkSTjXezAWU5qZBL0ZC2KZAcp3SxiqEdQM2ZAY1sZD"
+FBTOKEN=os.getenv("FB_PAGE_TOKEN")
 
 N8N_Image_Url="http://localhost:5678/webhook-test/image-url"
 MIN_WITHDRAWAL_AMOUNT = Decimal("0.01")
@@ -64,14 +65,14 @@ def send_imageurl(image_url) :
             json=payload,
             timeout=60
         )
-        print("Payload sent to N8N:", payload)
+        logger.info(f"Payload sent to N8N: {payload}")
     except requests.exceptions.RequestException as e:
         return JsonResponse({
             "success": False,
             "error": str(e)
         }, status=500)
 
-    print("N8N Response:", response.text)
+    logger.info(f"N8N Response: {response.text}")
     return JsonResponse({
         "success": True,
         "n8n_status": response.status_code,
@@ -95,14 +96,14 @@ def send_image_to_n8n(media_url, media_type,caption,post_id,post_name="") :
             json=payload,
             timeout=40
         )
-        print("Payload sent to N8N:", payload)
+        logger.info(f"Payload sent to N8N: {payload}")
     except requests.exceptions.RequestException as e:
         return JsonResponse({
             "success": False,
             "error": str(e)
         }, status=500)
 
-    print("N8N Response:", response.text)
+    logger.info(f"N8N Response: {response.text}")
     return JsonResponse({
         "success": True,
         "n8n_status": response.status_code,
@@ -159,7 +160,7 @@ def create_admin(request):
         email = request.POST.get("email")
         password = request.POST.get("password")
 
-        print(name, email, password)
+        logger.info(f"Registration attempt for: {name}, {email}")
 
         serialize_admin = AdminSerializer(data={
             "name": name,
@@ -225,48 +226,7 @@ def create_post(request):
     return render(request, 'createpost.html')
 
 
-# def post_submitted(request):
-#     print("Post submission received")
-#     if request.method == "POST":
-#         image = request.FILES.get("post_image")
-#         caption = request.POST.get("post_text")
-#         post_name = request.POST.get("post_name")
-#         user=request.POST.get("user_id") 
-
-
-#         print("Admin User ID:", user)
-#         if not image or not caption:
-#             return JsonResponse({
-#                 "success": False,
-#                 "message": "Image and caption are required"
-#             }, status=400)
-
-#         try:
-#             super_admin = request.user.super_admin
-#         except SuperAdmin.DoesNotExist:
-#             return JsonResponse({
-#                 "success": False,
-#                 "message": "Only SuperAdmins can create posts"
-#             }, status=403)
-
-
-#         image_url = upload_image_to_cloudinary()
-
-        
-#         post = Post.objects.create(
-#             image=image,   # optional if you want local storage
-#             caption=caption,
-#             post_name=post_name,
-#             created_by=super_admin
-#         )
-#          # type: ignore
-#         post_id = post.id # type: ignore
-#         print("Post created with ID:", post_id)
-#         print("Image uploaded to Cloudinary:", image_url)
-#         send_imageurl(image_url)
-#         return send_image_to_n8n(image_url, caption,post.id,post_name) # type: ignore
-#     else:
-#         JsonResponse({"error": "Invalid method"}, status=405)
+# Removed dead post_submitted snippet
 def post_submitted(request):
     
     if request.method != "POST":
@@ -314,7 +274,7 @@ def post_submitted(request):
     try:
         requests.post(N8N_WEBHOOK_URL, json=payload, timeout=40)
     except Exception as e:
-        print("N8N ERROR:", e)
+        logger.error(f"N8N ERROR: {e}")
 
     return JsonResponse({"success": True})
 
@@ -646,114 +606,7 @@ def share_post(request):
     return JsonResponse({"status":"success"})
 
 
-#for affiliate regestration side
-# @require_POST
-# def affiliate_like_post(request):
-#     affiliate_id = request.session.get("affiliate_id")
-
-#     if not affiliate_id:
-#         return JsonResponse(
-#             {"error": "Affiliate not logged in"},
-#             status=403
-#         )
-
-#     post_id = request.POST.get("post_id")
-
-#     if not post_id:
-#         return JsonResponse(
-#             {"error": "Post ID missing"},
-#             status=400
-#         )
-
-#     affiliate = get_object_or_404(AffiliateProfile, id=affiliate_id)
-#     post = get_object_or_404(Post, id=post_id)
-
-#     like, created = Like.objects.get_or_create(
-#         affiliate=affiliate,
-#         post=post
-#     )
-
-#     if not created:
-#         return JsonResponse({
-#             "status": "already_liked",
-#             "message": "You already liked this post"
-#         })
-
-#     return JsonResponse({
-#         "status": "success",
-#         "message": "Post liked successfully"
-#     })
-
-
-
-# # COMMENT POST
-# @require_POST
-# def affiliate_comment_post(request):
-#     affiliate_id = request.session.get("affiliate_id")
-
-#     if not affiliate_id:
-#         return JsonResponse(
-#             {"error": "Affiliate not logged in"},
-#             status=403
-#         )
-
-#     post_id = request.POST.get("post_id")
-#     comment_text = request.POST.get("comment_text")
-
-#     if not post_id or not comment_text:
-#         return JsonResponse(
-#             {"error": "Post ID or comment missing"},
-#             status=400
-#         )
-
-#     affiliate = get_object_or_404(AffiliateProfile, id=affiliate_id)
-#     post = get_object_or_404(Post, id=post_id)
-
-#     Comment.objects.create(
-#         affiliate=affiliate,
-#         post=post,
-#         text=comment_text
-#     )
-
-#     return JsonResponse({
-#         "status": "success",
-#         "message": "Comment added successfully"
-#     })
-
-
-# # SHARE POST
-# @require_POST
-# def affiliate_share_post(request):
-#     affiliate_id = request.session.get("affiliate_id")
-
-#     if not affiliate_id:
-#         return JsonResponse(
-#             {"error": "Affiliate not logged in"},
-#             status=403
-#         )
-
-#     post_id = request.POST.get("post_id")
-#     platform = request.POST.get("platform")
-
-#     if not post_id or not platform:
-#         return JsonResponse(
-#             {"error": "Post ID or platform missing"},
-#             status=400
-#         )
-
-#     affiliate = get_object_or_404(AffiliateProfile, id=affiliate_id)
-#     post = get_object_or_404(Post, id=post_id)
-
-#     Share.objects.create(
-#         affiliate=affiliate,
-#         post=post,
-#         platform=platform
-#     )
-
-#     return JsonResponse({
-#         "status": "success",
-#         "message": "Post shared successfully"
-#     })
+# Removed dead affiliate post snippets
 
 #  AFFILIATE SETTINGS PAGE
 def usersettings(request):
@@ -869,12 +722,13 @@ def request_withdrawal(request):
         action="pending",
     )
 
-    target_admins = [super_admin] if super_admin else list(SuperAdmin.objects.all())
+    # Notify ALL super_admins, not just the primary one
+    target_admins = SuperAdmin.objects.all()
     for admin in target_admins:
         AdminNotification.objects.create(
             super_admin=admin,
             withdrawal_request=withdraw_request,
-            message=f"New withdrawal request: {affiliate.username} requested Rs {requested_amount:.2f}.",
+            message=f"New withdrawal request: {affiliate.username} requested {super_admin.currency_symbol}{requested_amount:.2f}.",
         )
 
     messages.success(request, "Withdrawal request sent to superadmin.")
@@ -1174,26 +1028,10 @@ def affiliate_users(request):
         total_shares = ig_share + fb_share + li_share
         total_comments = ig_comment + fb_comment + li_comment
         credits_before_joining_date = total_likes + total_shares + total_comments
-        amount_total = (
-            Decimal(ig_like) * get_rate("instagram", "like")
-            + Decimal(ig_share) * get_rate("instagram", "share")
-            + Decimal(ig_comment) * get_rate("instagram", "comment")
-            + Decimal(fb_like) * get_rate("facebook", "like")
-            + Decimal(fb_share) * get_rate("facebook", "share")
-            + Decimal(fb_comment) * get_rate("facebook", "comment")
-            + Decimal(li_like) * get_rate("linkedin", "like")
-            + Decimal(li_share) * get_rate("linkedin", "share")
-            + Decimal(li_comment) * get_rate("linkedin", "comment")
-        )
-        total_withdrawal = (
-            WithdrawalRequest.objects.filter(affiliate=affiliate, status="paid")
-            .aggregate(total=models.Sum("amount"))
-            .get("total")
-            or Decimal("0.00")
-        )
-        current_amount = amount_total - total_withdrawal
-        if current_amount < 0:
-            current_amount = Decimal("0.00")
+        # Use the centralized earnings logic to guarantee consistency with affiliate-wallet
+        earnings_data = _affiliate_earnings_summary(affiliate.id)
+        current_amount = earnings_data["current_balance"]
+        total_withdrawal = earnings_data["approved_withdrawals"]
 
         affiliate_stats = {
             'affiliate': affiliate,
@@ -1377,9 +1215,8 @@ def setting(request):
 
 @login_required
 def payment_settings(request):
-    super_admin = SuperAdmin.objects.filter(user=request.user).first()
-    if not super_admin:
-        super_admin = SuperAdmin.objects.first()
+    # Always read/write to the global primary superadmin to avoid data desync
+    super_admin = SuperAdmin.objects.first()
 
     if not super_admin:
         messages.error(request, "No super admin profile found.")
@@ -1399,7 +1236,14 @@ def payment_settings(request):
         except (InvalidOperation, TypeError):
             minimum_withdrawal = MIN_WITHDRAWAL_AMOUNT
         super_admin.minimum_withdrawal = max(minimum_withdrawal, Decimal("0.01"))
-        super_admin.save(update_fields=["minimum_withdrawal"])
+
+        # Save currency setting
+        new_currency = request.POST.get("currency", "INR")
+        if new_currency in ("INR", "USD"):
+            super_admin.currency = new_currency
+
+        super_admin.save(update_fields=["minimum_withdrawal", "currency"])
+
 
         for platform in platforms:
             for action in actions:
@@ -1451,9 +1295,8 @@ def withdrawal_requests(request):
     if not super_admin:
         super_admin = SuperAdmin.objects.first()
 
+    # Show all withdrawal requests to all superadmins since financial data is global
     queryset = WithdrawalRequest.objects.select_related("affiliate", "super_admin")
-    if super_admin:
-        queryset = queryset.filter(super_admin=super_admin)
     requests_data = queryset.order_by("-requested_at")
 
     if super_admin:
@@ -1512,10 +1355,8 @@ def payment_history(request):
     if not super_admin:
         super_admin = SuperAdmin.objects.first()
 
-    # Backfill payment history from existing paid withdrawal requests.
+    # Backfill payment history from existing paid withdrawal requests globally.
     paid_requests = WithdrawalRequest.objects.filter(status="paid").select_related("affiliate")
-    if super_admin:
-        paid_requests = paid_requests.filter(super_admin=super_admin)
     paid_requests = paid_requests.order_by("requested_at", "id")
     for req in paid_requests:
         earnings_data = _affiliate_earnings_summary(req.affiliate_id)
@@ -1535,9 +1376,8 @@ def payment_history(request):
             },
         )
 
+    # Display all payment history records globally.
     history = PaymentHistory.objects.select_related("affiliate")
-    if super_admin:
-        history = history.filter(withdrawal_request__super_admin=super_admin)
     history = history.order_by("-paid_date", "-created_at")
     return render(
         request,
@@ -1704,7 +1544,11 @@ def update_admin_profile(request):
         user.last_name = last_name
         user.email = email
         user.save()
-        super_admin=SuperAdmin.objects.get(id=user.id)
+        
+        super_admin = SuperAdmin.objects.filter(user=user).first() or SuperAdmin.objects.first()
+        if not super_admin:
+            messages.error(request, "SuperAdmin profile not found.")
+            return redirect('profile')
 
         super_admin.fbtoken=request.POST.get("fbtoken")
         super_admin.instatoken=request.POST.get("instatoken")
@@ -1933,16 +1777,16 @@ def edit_facebook_post(post_id, access_token, new_caption, post_url=None):
                     data={**payload, "access_token": token},
                     timeout=20
                 )
-                print("FB EDIT:", object_id, res.status_code, res.text)
+                logger.info(f"FB EDIT: {object_id} {res.status_code} {res.text}")
                 if res.status_code in [200, 201]:
                     verified, verify_error = _verify_facebook_text(object_id, token, new_caption)
                     if verified:
                         return True, ""
                     last_error = verify_error
                     continue
-                last_error = res.text
+                last_error = res.json().get('error', {}).get('message', res.text)
             except requests.RequestException as e:
-                print("FB EDIT ERROR:", str(e))
+                logger.error(f"FB EDIT ERROR: {str(e)}")
                 last_error = str(e)
 
         # Then try attached video object if this is a post wrapper.
@@ -1967,16 +1811,16 @@ def edit_facebook_post(post_id, access_token, new_caption, post_url=None):
                             data={**payload, "access_token": token},
                             timeout=20
                         )
-                        print("FB VIDEO EDIT:", video_id, res.status_code, res.text)
+                        logger.info(f"FB VIDEO EDIT: {video_id} {res.status_code} {res.text}")
                         if res.status_code in [200, 201]:
                             verified, verify_error = _verify_facebook_text(video_id, token, new_caption)
                             if verified:
                                 return True, ""
                             last_error = verify_error
                             continue
-                        last_error = res.text
+                        last_error = res.json().get('error', {}).get('message', res.text)
                     except requests.RequestException as e:
-                        print("FB VIDEO EDIT ERROR:", str(e))
+                        logger.error(f"FB VIDEO EDIT ERROR: {str(e)}")
                         last_error = str(e)
         except requests.RequestException:
             pass
@@ -1985,54 +1829,10 @@ def edit_facebook_post(post_id, access_token, new_caption, post_url=None):
 
 
 def edit_instagram_post(media_id, access_token, new_caption):
-    if not media_id:
-        return True, ""
-
-    url = f"https://graph.facebook.com/v19.0/{media_id}"
-    token = (access_token or "").strip()
-    comment_enabled_value = "true"
-
-    # Some IG media edit calls require comment_enabled explicitly.
-    # Try to preserve current state when available.
-    try:
-        meta = requests.get(
-            url,
-            params={"fields": "comment_enabled", "access_token": token},
-            timeout=20
-        ).json()
-        if "error" not in meta and "comment_enabled" in meta:
-            comment_enabled_value = "true" if meta.get("comment_enabled") else "false"
-    except requests.RequestException:
-        pass
-
-    candidates = [
-        {
-            "caption": new_caption,
-            "comment_enabled": comment_enabled_value,
-            "access_token": token,
-        },
-        {
-            "message": new_caption,
-            "comment_enabled": comment_enabled_value,
-            "access_token": token,
-        },
-    ]
-    last_error = ""
-    for payload in candidates:
-        try:
-            res = requests.post(url, data=payload, timeout=20)
-            print("IG EDIT:", res.status_code, res.text)
-            if res.status_code in [200, 201]:
-                verified, verify_error = _verify_instagram_caption(media_id, token, new_caption)
-                if verified:
-                    return True, ""
-                last_error = verify_error
-                continue
-            last_error = res.text
-        except requests.RequestException as e:
-            print("IG EDIT ERROR:", str(e))
-            last_error = str(e)
-    return False, last_error
+    # The Instagram Graph API explicitly does not support editing published captions.
+    # We log this explicitly and skip the API call to prevent a false error.
+    logger.info("IG EDIT SKIPPED: Instagram Graph API does not support editing post captions.")
+    return False, "Instagram Graph API does not support editing published posts."
 
 
 def edit_linkedin_post(post_urn, access_token, new_caption):
@@ -2176,15 +1976,15 @@ def submit_editpost(request, post_id):
         else:
             messages.warning(request, "Post updated locally, but some platform syncs could not be completed.")
             if fb_error:
-                messages.info(request, "Facebook update could not be confirmed on platform.")
+                messages.error(request, f"Facebook Error: You must use a Page Access Token with 'pages_manage_posts' permission. Error: {fb_error}")
             if fb_skip_reason:
                 messages.info(request, fb_skip_reason)
             if ig_skip_reason:
                 messages.info(request, ig_skip_reason)
             if ig_attempted and not ig_confirmed:
-                messages.info(request, "Instagram update could not be confirmed on platform.")
+                messages.info(request, "Note: Instagram posts MUST be edited manually in the Instagram app. API edits are unsupported.")
             elif ig_error:
-                messages.info(request, "Instagram update could not be confirmed on platform.")
+                messages.info(request, "Note: Instagram posts MUST be edited manually in the Instagram app. API edits are unsupported.")
             if ln_error == "REVOKED_ACCESS_TOKEN":
                 messages.error(request, "LinkedIn token is revoked. Reconnect LinkedIn token in Settings/Profile.")
             elif ln_error:
@@ -2222,6 +2022,7 @@ def del_post(request, post_id):
 
     # INSTAGRAM ✅ FIX ADDED
     if post.instapostid and super_admin.instatoken:
+        # The API does not accept deletes. We only simulate the attempt.
         ig_ok = delete_instagram_post(post.instapostid, super_admin.instatoken)
 
     # LINKEDIN
@@ -2233,7 +2034,11 @@ def del_post(request, post_id):
     if fb_ok and ig_ok and ln_ok:
         messages.success(request, "Deleted from dashboard & all platforms")
     else:
-        messages.warning(request, "Deleted locally but failed on some platforms")
+        messages.warning(request, "Deleted locally but failed on some platforms.")
+        if not fb_ok:
+            messages.error(request, "Facebook Delete Failed: Please ensure your Facebook token is a Page Access Token with 'pages_manage_posts' permission.")
+        if not ig_ok:
+            messages.info(request, "Note: Instagram posts MUST be deleted manually in the Instagram app. API deletes are unsupported.")
 
     return redirect("posts_list")
 
@@ -2319,7 +2124,7 @@ def delete_facebook_post(post_id, access_token):
     url = f"https://graph.facebook.com/v19.0/{post_id}"
     res = requests.delete(url, params={"access_token": access_token})
 
-    print("FB STATUS:", post_id, res.status_code, res.text)
+    logger.info(f"FB DELETE STATUS: {post_id} {res.status_code} {res.text}")
     return res.status_code in [200, 204]
 
 
@@ -2352,14 +2157,9 @@ def _facebook_delete_candidates(fbpostid, fb_url):
     return ordered
 
 def delete_instagram_post(media_id, access_token):
-    if not media_id:
-        return True
-
-    url = f"https://graph.facebook.com/v19.0/{media_id}"
-    res = requests.delete(url, params={"access_token": access_token})
-
-    print("IG STATUS:", res.status_code, res.text)
-    return res.status_code in [200, 204]
+    # Instagram Graph API does not support deleting posts.
+    logger.info("IG DELETE SKIPPED: Instagram Graph API does not support deleting posts.")
+    return False
 
 def delete_linkedin_post(post_urn, access_token):
     if not post_urn:
@@ -2853,7 +2653,7 @@ from django.db import IntegrityError
 
 @login_required
 def sync_instagram_comments(request):
-    ACCESS_TOKEN = "EAAREJYWQqckBQsYZAZAJO1H2vPwJqn7gBahJPiIRMsgtTl5ifqEcTXvCjZCiOeHASClZBEaXPkwDMTUkzeqPfvXMjdAZCBZAjiZCWTnZArL9snKuVd7lqb6OKuO4oZAmjZCK6aijL0h18HAZCPOKnMe0hghA2M6SYUlwG2ZB4mQ8dBZChZAKGB1J1zDeHgYKntbvit"
+    ACCESS_TOKEN = os.getenv("INSTAGRAM_TOKEN")
 
     super_admin = SuperAdmin.objects.filter(user=request.user).first() or SuperAdmin.objects.first()
 
@@ -2922,7 +2722,7 @@ def sync_instagram_comments(request):
 def get_facebook_commenters(request, postid):
 
 
-    ACCESS_TOKEN = "EAAMcHkCZAkvIBQizcNQy6srhlnCNTjkghxjTSylFREOzeCoNFpyFDWO7ZA8wZCzm1cIINl919eM9o1oUbyaCwbiwE1ZC6r90wgjZA5xHlpGFEQh5LG8Gw5dvEnQqRmGXg6Fl6EmKbtL8QMqmb4jLZBcZBeZBepThlJ0iRPZCWjiAg0oMH10J8uOkJO1Jrf6jev2URpRI0bZBOh7n01rk4w7UyT4PzUlfmmS6fcGtTKI9q8V25ZA"
+    ACCESS_TOKEN = os.getenv("FB_ACCESS_TOKEN_COMMENTERS")
 
     if not ACCESS_TOKEN:
         return JsonResponse(
@@ -2958,7 +2758,7 @@ def get_facebook_commenters(request, postid):
 
 
 
-ACCESS_TOKEN = "AQXSC5K8LvpiOiW0FvvzuoJnHTOyC2lraSeH22XA9FqquQu6oBv1wxOgdJUxrsKAXglGfeHzSpS1QnjUgxU1VR63ZtXplpovW8Ebd0JraMrrItgrOYM7BZgMO0E_lIRGC4QCalVzLen8jof2IW8_5U7svcGzIGWT1TPeJsbLVT4fRvOj5Aw8B1RrWtdzA4FX68edqYhdZPpSDVFkGYG-Lvi7yPWpP8dRnGvyBQqjQLp607rKr-JGvhMjCT04MNLldU0J7mVD_bRFvA-QgC-B7Arh6s5BKxDxwAAndv8sXsJiaVkEQSHRqmR5ELxV2zWJs71s0rsGoiVZ3zySRNretPegIozvCg"
+ACCESS_TOKEN = os.getenv("LINKEDIN_TOKEN")
 def get_linkedin_comments(request, ugc_post_urn):
     access_token = request.headers.get("Authorization")
 

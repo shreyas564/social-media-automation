@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger(__name__)
+
 """
 Django-integrated Verification Service
 
@@ -78,7 +81,7 @@ class VerificationService:
         try:
             like = Like.objects.get(id=like_id)
         except Like.DoesNotExist:
-            print(f"❌ Like {like_id} not found")
+            logger.info(f"❌ Like {like_id} not found")
             return False
         
         # Get post URL for the platform
@@ -88,7 +91,7 @@ class VerificationService:
         if platform == 'instagram':
             post_url = post.Ipost_url
             if not post_url:
-                print(f"❌ No Instagram URL for post {post.id}")
+                logger.info(f"❌ No Instagram URL for post {post.id}")
                 return False
             
             likers = self.instagram.scrape_likes(post_url)
@@ -96,7 +99,7 @@ class VerificationService:
         elif platform == 'facebook':
             post_url = post.Fposturl
             if not post_url:
-                print(f"❌ No Facebook URL for post {post.id}")
+                logger.info(f"❌ No Facebook URL for post {post.id}")
                 return False
             
             likers = self.facebook.scrape_likes(post_url)
@@ -104,13 +107,13 @@ class VerificationService:
         elif platform == 'linkedin':
             post_url = post.Lposturl
             if not post_url:
-                print(f"❌ No LinkedIn URL for post {post.id}")
+                logger.info(f"❌ No LinkedIn URL for post {post.id}")
                 return False
             
             likers = self.linkedin.scrape_reactions(post_url)
         
         else:
-            print(f"❌ Unknown platform: {platform}")
+            logger.info(f"❌ Unknown platform: {platform}")
             return False
         
         # Check if affiliate's platform-specific username is in the likers list
@@ -124,7 +127,7 @@ class VerificationService:
         like.save()
         
         status = "✓ VERIFIED" if is_verified else "✗ NOT VERIFIED"
-        print(f"{status}: {affiliate_username} - Like on {platform}")
+        logger.info(f"{status}: {affiliate_username} - Like on {platform}")
         
         return is_verified
     
@@ -142,7 +145,7 @@ class VerificationService:
         try:
             post = Post.objects.get(id=post_id)
         except Post.DoesNotExist:
-            print(f"❌ Post {post_id} not found")
+            logger.info(f"❌ Post {post_id} not found")
             return {}
         
         # Get all unverified likes for this post and platform
@@ -153,10 +156,10 @@ class VerificationService:
         )
         
         if not likes.exists():
-            print(f"ℹ️ No unverified likes for post {post_id} on {platform}")
+            logger.info(f"ℹ️ No unverified likes for post {post_id} on {platform}")
             return {}
         
-        print(f"📊 Batch verifying {likes.count()} likes for post {post_id} on {platform}")
+        logger.info(f"📊 Batch verifying {likes.count()} likes for post {post_id} on {platform}")
         
         # Get post URL
         if platform == 'instagram':
@@ -172,7 +175,7 @@ class VerificationService:
             likers = self.linkedin.scrape_reactions(post_url) if post_url else []
         
         else:
-            print(f"❌ Unknown platform: {platform}")
+            logger.info(f"❌ Unknown platform: {platform}")
             return {}
         
         # Verify each like
@@ -190,7 +193,7 @@ class VerificationService:
             results[affiliate_username] = is_verified
             
             status = "✓" if is_verified else "✗"
-            print(f"  {status} {affiliate_username}")
+            logger.info(f"  {status} {affiliate_username}")
         
         return results
     
@@ -209,7 +212,7 @@ class VerificationService:
         try:
             comment = Comment.objects.get(id=comment_id)
         except Comment.DoesNotExist:
-            print(f"❌ Comment {comment_id} not found")
+            logger.info(f"❌ Comment {comment_id} not found")
             return False
         
         # Get post URL for the platform
@@ -219,7 +222,7 @@ class VerificationService:
         if platform == 'instagram':
             post_url = post.Ipost_url
             if not post_url:
-                print(f"❌ No Instagram URL for post {post.id}")
+                logger.info(f"❌ No Instagram URL for post {post.id}")
                 return False
             
             commenters = self.instagram.scrape_comments(post_url)
@@ -227,7 +230,7 @@ class VerificationService:
         elif platform == 'facebook':
             post_url = post.Fposturl
             if not post_url:
-                print(f"❌ No Facebook URL for post {post.id}")
+                logger.info(f"❌ No Facebook URL for post {post.id}")
                 return False
             
             commenters = self.facebook.scrape_comments(post_url)
@@ -235,13 +238,13 @@ class VerificationService:
         elif platform == 'linkedin':
             post_url = post.Lposturl
             if not post_url:
-                print(f"❌ No LinkedIn URL for post {post.id}")
+                logger.info(f"❌ No LinkedIn URL for post {post.id}")
                 return False
             
             commenters = self.linkedin.scrape_comments(post_url)
         
         else:
-            print(f"❌ Unknown platform: {platform}")
+            logger.info(f"❌ Unknown platform: {platform}")
             return False
         
         # Check if affiliate's platform-specific username is in the commenters list
@@ -255,7 +258,7 @@ class VerificationService:
         comment.save()
         
         status = "✓ VERIFIED" if is_verified else "✗ NOT VERIFIED"
-        print(f"{status}: {affiliate_username} - Comment on {platform}")
+        logger.info(f"{status}: {affiliate_username} - Comment on {platform}")
         
         return is_verified
     
@@ -273,7 +276,7 @@ class VerificationService:
         try:
             post = Post.objects.get(id=post_id)
         except Post.DoesNotExist:
-            print(f"❌ Post {post_id} not found")
+            logger.info(f"❌ Post {post_id} not found")
             return {}
         
         # Get all unverified comments for this post and platform
@@ -284,10 +287,10 @@ class VerificationService:
         )
         
         if not comments.exists():
-            print(f"ℹ️ No unverified comments for post {post_id} on {platform}")
+            logger.info(f"ℹ️ No unverified comments for post {post_id} on {platform}")
             return {}
         
-        print(f"📊 Batch verifying {comments.count()} comments for post {post_id} on {platform}")
+        logger.info(f"📊 Batch verifying {comments.count()} comments for post {post_id} on {platform}")
         
         # Get post URL and scrape
         if platform == 'instagram':
@@ -303,7 +306,7 @@ class VerificationService:
             commenters = self.linkedin.scrape_comments(post_url) if post_url else []
         
         else:
-            print(f"❌ Unknown platform: {platform}")
+            logger.info(f"❌ Unknown platform: {platform}")
             return {}
         
         # Verify each comment
@@ -321,7 +324,7 @@ class VerificationService:
             results[affiliate_username] = is_verified
             
             status = "✓" if is_verified else "✗"
-            print(f"  {status} {affiliate_username}")
+            logger.info(f"  {status} {affiliate_username}")
         
         return results
     
@@ -354,7 +357,7 @@ class VerificationService:
             created_at__gte=cutoff_date
         )[:limit]
         
-        print(f"📊 Verifying {unverified_likes.count()} likes and {unverified_comments.count()} comments from last {days} days")
+        logger.info(f"📊 Verifying {unverified_likes.count()} likes and {unverified_comments.count()} comments from last {days} days")
         
         verified_likes = 0
         verified_comments = 0

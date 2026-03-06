@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger(__name__)
+
 """
 Post Verification Service
 
@@ -53,8 +56,8 @@ class PostVerificationService:
                 'error': f'Post has not been scraped for {platform}. Please scrape first.'
             }
         
-        print(f"📊 Verifying engagement for post {post_id} on {platform}")
-        print(f"   Scraped data: {scraped_post.total_likes_found} likes, {scraped_post.total_comments_found} comments")
+        logger.info(f"📊 Verifying engagement for post {post_id} on {platform}")
+        logger.info(f"   Scraped data: {scraped_post.total_likes_found} likes, {scraped_post.total_comments_found} comments")
         
         # Get scraped usernames
         scraped_likers = list(scraped_post.likes.values_list('username', flat=True))
@@ -81,10 +84,10 @@ class PostVerificationService:
             
             if is_verified:
                 verified_likes += 1
-                print(f"  ✓ {affiliate_username} (like)")
+                logger.info(f"  ✓ {affiliate_username} (like)")
             else:
                 failed_likes += 1
-                print(f"  ✗ {affiliate_username} (like)")
+                logger.info(f"  ✗ {affiliate_username} (like)")
         
         # Verify comments
         comments_to_verify = Comment.objects.filter(
@@ -107,10 +110,10 @@ class PostVerificationService:
             
             if is_verified:
                 verified_comments += 1
-                print(f"  ✓ {affiliate_username} (comment)")
+                logger.info(f"  ✓ {affiliate_username} (comment)")
             else:
                 failed_comments += 1
-                print(f"  ✗ {affiliate_username} (comment)")
+                logger.info(f"  ✗ {affiliate_username} (comment)")
         
         result = {
             'success': True,
@@ -125,8 +128,8 @@ class PostVerificationService:
             'total_verified': verified_likes + verified_comments
         }
         
-        print(f"\n✓ Verification complete!")
-        print(f"  Likes: {verified_likes}/{likes_to_verify.count()} verified")
-        print(f"  Comments: {verified_comments}/{comments_to_verify.count()} verified")
+        logger.info(f"\n✓ Verification complete!")
+        logger.info(f"  Likes: {verified_likes}/{likes_to_verify.count()} verified")
+        logger.info(f"  Comments: {verified_comments}/{comments_to_verify.count()} verified")
         
         return result

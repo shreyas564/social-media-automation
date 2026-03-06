@@ -362,21 +362,21 @@
             <div class="stats-card">
               <div>
                 <span class="label">Total Earnings</span>
-                <span class="value">Rs {{ total_earned|floatformat:2 }}</span>
+                <span class="value">{{ currency_symbol }}{{ total_earned|floatformat:2 }}</span>
               </div>
               <span class="icon"><i class="bi bi-cash-stack"></i></span>
             </div>
             <div class="stats-card">
               <div>
                 <span class="label">Total Withdrawal</span>
-                <span class="value">Rs {{ total_withdrawal|floatformat:2 }}</span>
+                <span class="value">{{ currency_symbol }}{{ total_withdrawal|floatformat:2 }}</span>
               </div>
               <span class="icon"><i class="bi bi-arrow-down-circle"></i></span>
             </div>
             <div class="stats-card">
               <div>
                 <span class="label">Current Balance</span>
-                <span class="value">Rs {{ current_balance|floatformat:2 }}</span>
+                <span class="value">{{ currency_symbol }}{{ current_balance|floatformat:2 }}</span>
               </div>
               <span class="icon"><i class="bi bi-wallet2"></i></span>
             </div>

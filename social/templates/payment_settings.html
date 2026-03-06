@@ -1,119 +1,228 @@
 {% extends "base.html" %}
 {% block title %}Payment Settings{% endblock %}
+{% block topbar_title %}Payment Settings{% endblock %}
 
 {% block content %}
-<style>
-  .platform-name {
-    font-weight: 700;
-    letter-spacing: 0.2px;
-  }
 
-  .platform-name {
-    font-weight: 700;
-    letter-spacing: 0.2px;
-  }
-
-  .amount-input {
-    min-width: 140px;
-  }
-</style>
-
-<div class="toolbar mb-4">
+<!-- Page header -->
+<div class="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-4 anim-fade-up">
   <div>
-    <h4 class="mb-1 fw-bold">Payment Settings</h4>
-    <p class="text-muted mb-0">Set amount per action for each platform.</p>
+    <h1 class="sf-page-title">Payment Settings</h1>
+    <p class="sf-page-sub">Configure per-action rates, minimum withdrawal, and display currency.</p>
   </div>
+  <span class="sf-badge badge-primary" style="padding:7px 14px;font-size:12.5px;border-radius:10px;">
+    <i class="bi bi-currency-exchange me-1"></i>Active: {{ currency }} ({{ currency_symbol }})
+  </span>
 </div>
 
 {% if messages %}
 {% for message in messages %}
-<div class="alert alert-{{ message.tags|default:'info' }} py-2" role="alert">
+<div class="sf-toast-inline mb-3" style="background:{% if 'success' in message.tags %}var(--success-bg){% else %}var(--danger-bg){% endif %};border:1px solid {% if 'success' in message.tags %}rgba(16,185,129,.25){% else %}rgba(239,68,68,.25){% endif %};border-radius:var(--r-md);padding:12px 16px;display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600;color:{% if 'success' in message.tags %}var(--success){% else %}var(--danger){% endif %};">
+  <i class="bi {% if 'success' in message.tags %}bi-check-circle-fill{% else %}bi-exclamation-circle-fill{% endif %}"></i>
   {{ message }}
 </div>
 {% endfor %}
 {% endif %}
 
-<div class="panel-shell p-0 overflow-hidden stagger-1">
-  <div class="px-4 py-4">
-    <form method="post">
-      {% csrf_token %}
-      <div class="row g-3 mb-3">
-        <div class="col-md-4">
-          <label class="form-label fw-semibold">Minimum Withdrawal (Rs)</label>
-          <input type="number" step="0.01" min="0.01" class="form-control amount-input" name="minimum_withdrawal"
-            value="{{ minimum_withdrawal }}" required>
-          <div class="form-text">Affiliate withdrawal must be greater than 0 and at least this amount.</div>
+<form method="post">
+{% csrf_token %}
+
+<!-- ── Currency Selector ── -->
+<div class="sf-section mb-4 anim-fade-up stagger-1">
+  <div class="sf-section-header">
+    <h2 class="sf-section-title"><i class="bi bi-currency-exchange me-2 text-primary-sf"></i>Display Currency</h2>
+    <span class="sf-badge badge-warning">Affects all monetary displays</span>
+  </div>
+  <div style="padding:20px;display:flex;gap:12px;flex-wrap:wrap;">
+
+    <!-- INR Option -->
+    <label style="flex:1;min-width:200px;cursor:pointer;">
+      <input type="radio" name="currency" value="INR" {% if currency == "INR" or not currency %}checked{% endif %} style="display:none;" id="cur-inr">
+      <div id="cur-inr-card" class="sf-card" style="padding:18px 20px;display:flex;align-items:center;gap:14px;cursor:pointer;border:2px solid {% if currency == 'INR' or not currency %}var(--brand-primary){% else %}var(--border){% endif %};transition:all .18s ease;">
+        <div style="width:46px;height:46px;border-radius:var(--r-md);background:rgba(255,153,0,0.1);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#FF9900;flex-shrink:0;">₹</div>
+        <div>
+          <div style="font-weight:700;font-size:14px;color:var(--text);">Indian Rupee</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Displays amounts as ₹10.00</div>
+        </div>
+        <div style="margin-left:auto;">
+          <div id="inr-check" style="width:20px;height:20px;border-radius:50%;background:{% if currency == 'INR' or not currency %}var(--brand-primary){% else %}var(--border){% endif %};display:flex;align-items:center;justify-content:center;">
+            <i class="bi bi-check" style="color:white;font-size:12px;{% if currency != 'INR' and currency %}display:none;{% endif %}"></i>
+          </div>
         </div>
       </div>
+    </label>
 
-      <div class="table-responsive">
-        <table class="table-saas">
-          <thead>
-            <tr>
-              <th style="width: 24%;">Platform</th>
-              <th>Amount Per Like</th>
-              <th>Amount Per Comment</th>
-              <th>Amount Per Share</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td class="platform-name text-danger">Instagram</td>
-              <td>
-                <input type="number" step="0.01" min="0" class="form-control amount-input" name="instagram_like_amount"
-                  value="{{ rates.instagram.like }}">
-              </td>
-              <td>
-                <input type="number" step="0.01" min="0" class="form-control amount-input"
-                  name="instagram_comment_amount" value="{{ rates.instagram.comment }}">
-              </td>
-              <td>
-                <input type="number" step="0.01" min="0" class="form-control amount-input" name="instagram_share_amount"
-                  value="{{ rates.instagram.share }}">
-              </td>
-            </tr>
-
-            <tr>
-              <td class="platform-name text-primary">Facebook</td>
-              <td>
-                <input type="number" step="0.01" min="0" class="form-control amount-input" name="facebook_like_amount"
-                  value="{{ rates.facebook.like }}">
-              </td>
-              <td>
-                <input type="number" step="0.01" min="0" class="form-control amount-input"
-                  name="facebook_comment_amount" value="{{ rates.facebook.comment }}">
-              </td>
-              <td>
-                <input type="number" step="0.01" min="0" class="form-control amount-input" name="facebook_share_amount"
-                  value="{{ rates.facebook.share }}">
-              </td>
-            </tr>
-
-            <tr>
-              <td class="platform-name" style="color:#0A66C2;">LinkedIn</td>
-              <td>
-                <input type="number" step="0.01" min="0" class="form-control amount-input" name="linkedin_like_amount"
-                  value="{{ rates.linkedin.like }}">
-              </td>
-              <td>
-                <input type="number" step="0.01" min="0" class="form-control amount-input"
-                  name="linkedin_comment_amount" value="{{ rates.linkedin.comment }}">
-              </td>
-              <td>
-                <input type="number" step="0.01" min="0" class="form-control amount-input" name="linkedin_share_amount"
-                  value="{{ rates.linkedin.share }}">
-              </td>
-            </tr>
-          </tbody>
-        </table>
+    <!-- USD Option -->
+    <label style="flex:1;min-width:200px;cursor:pointer;">
+      <input type="radio" name="currency" value="USD" {% if currency == "USD" %}checked{% endif %} style="display:none;" id="cur-usd">
+      <div id="cur-usd-card" class="sf-card" style="padding:18px 20px;display:flex;align-items:center;gap:14px;cursor:pointer;border:2px solid {% if currency == 'USD' %}var(--brand-primary){% else %}var(--border){% endif %};transition:all .18s ease;">
+        <div style="width:46px;height:46px;border-radius:var(--r-md);background:rgba(34,197,94,0.1);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#22C55E;flex-shrink:0;">$</div>
+        <div>
+          <div style="font-weight:700;font-size:14px;color:var(--text);">US Dollar</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Displays amounts as $10.00</div>
+        </div>
+        <div style="margin-left:auto;">
+          <div id="usd-check" style="width:20px;height:20px;border-radius:50%;background:{% if currency == 'USD' %}var(--brand-primary){% else %}var(--border){% endif %};display:flex;align-items:center;justify-content:center;">
+            <i class="bi bi-check" style="color:white;font-size:12px;{% if currency != 'USD' %}display:none;{% endif %}"></i>
+          </div>
+        </div>
       </div>
+    </label>
 
-      <div class="mt-3">
-        <button type="submit" class="btn btn-primary">
-          <i class="bi bi-check2-circle me-1"></i> Save Payment Settings
-        </button>
-      </div>
-    </form>
   </div>
 </div>
+
+<!-- ── Minimum Withdrawal ── -->
+<div class="sf-section mb-4 anim-fade-up stagger-2">
+  <div class="sf-section-header">
+    <h2 class="sf-section-title"><i class="bi bi-wallet2 me-2 text-primary-sf"></i>Minimum Withdrawal</h2>
+  </div>
+  <div class="sf-section-body">
+    <div style="max-width:320px;">
+      <label class="sf-label">Minimum amount affiliates can withdraw</label>
+      <div style="position:relative;">
+        <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-weight:700;color:var(--text-muted);font-size:15px;">{{ currency_symbol }}</span>
+        <input type="number" step="0.01" min="0.01" class="sf-input" name="minimum_withdrawal" value="{{ minimum_withdrawal }}" required style="padding-left:32px;">
+      </div>
+      <small style="font-size:11.5px;color:var(--text-muted);margin-top:5px;display:block;">Affiliates must have at least this amount in their wallet to request a withdrawal.</small>
+    </div>
+  </div>
+</div>
+
+<!-- ── Per-action Rates ── -->
+<div class="sf-section mb-4 anim-fade-up stagger-3">
+  <div class="sf-section-header">
+    <h2 class="sf-section-title"><i class="bi bi-bar-chart-line me-2 text-primary-sf"></i>Per-Action Rates</h2>
+    <span class="sf-badge badge-neutral" style="font-size:11px;">Amounts in {{ currency }} ({{ currency_symbol }})</span>
+  </div>
+  <div class="table-responsive">
+    <table class="sf-table">
+      <thead>
+        <tr>
+          <th style="min-width:140px;">Platform</th>
+          <th style="text-align:center;"><i class="bi bi-heart me-1 text-danger"></i>Likes</th>
+          <th style="text-align:center;"><i class="bi bi-chat-dots me-1 text-primary"></i>Comments</th>
+          <th style="text-align:center;"><i class="bi bi-share me-1" style="color:#0A66C2;"></i>Shares</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <!-- Instagram -->
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:32px;height:32px;border-radius:8px;background:rgba(225,48,108,0.1);display:flex;align-items:center;justify-content:center;"><i class="bi bi-instagram" style="color:#E1306C;"></i></div>
+              <span style="font-weight:700;font-size:13.5px;">Instagram</span>
+            </div>
+          </td>
+          <td style="text-align:center;">
+            <div style="position:relative;display:inline-block;">
+              <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--text-muted);font-weight:600;">{{ currency_symbol }}</span>
+              <input type="number" step="0.01" min="0" class="sf-input" name="instagram_like_amount" value="{{ rates.instagram.like }}" style="width:110px;padding-left:24px;text-align:right;">
+            </div>
+          </td>
+          <td style="text-align:center;">
+            <div style="position:relative;display:inline-block;">
+              <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--text-muted);font-weight:600;">{{ currency_symbol }}</span>
+              <input type="number" step="0.01" min="0" class="sf-input" name="instagram_comment_amount" value="{{ rates.instagram.comment }}" style="width:110px;padding-left:24px;text-align:right;">
+            </div>
+          </td>
+          <td style="text-align:center;">
+            <div style="position:relative;display:inline-block;">
+              <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--text-muted);font-weight:600;">{{ currency_symbol }}</span>
+              <input type="number" step="0.01" min="0" class="sf-input" name="instagram_share_amount" value="{{ rates.instagram.share }}" style="width:110px;padding-left:24px;text-align:right;">
+            </div>
+          </td>
+        </tr>
+
+        <!-- Facebook -->
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:32px;height:32px;border-radius:8px;background:rgba(24,119,242,0.1);display:flex;align-items:center;justify-content:center;"><i class="bi bi-facebook" style="color:#1877F2;"></i></div>
+              <span style="font-weight:700;font-size:13.5px;">Facebook</span>
+            </div>
+          </td>
+          <td style="text-align:center;">
+            <div style="position:relative;display:inline-block;">
+              <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--text-muted);font-weight:600;">{{ currency_symbol }}</span>
+              <input type="number" step="0.01" min="0" class="sf-input" name="facebook_like_amount" value="{{ rates.facebook.like }}" style="width:110px;padding-left:24px;text-align:right;">
+            </div>
+          </td>
+          <td style="text-align:center;">
+            <div style="position:relative;display:inline-block;">
+              <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--text-muted);font-weight:600;">{{ currency_symbol }}</span>
+              <input type="number" step="0.01" min="0" class="sf-input" name="facebook_comment_amount" value="{{ rates.facebook.comment }}" style="width:110px;padding-left:24px;text-align:right;">
+            </div>
+          </td>
+          <td style="text-align:center;">
+            <div style="position:relative;display:inline-block;">
+              <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--text-muted);font-weight:600;">{{ currency_symbol }}</span>
+              <input type="number" step="0.01" min="0" class="sf-input" name="facebook_share_amount" value="{{ rates.facebook.share }}" style="width:110px;padding-left:24px;text-align:right;">
+            </div>
+          </td>
+        </tr>
+
+        <!-- LinkedIn -->
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:32px;height:32px;border-radius:8px;background:rgba(10,102,194,0.1);display:flex;align-items:center;justify-content:center;"><i class="bi bi-linkedin" style="color:#0A66C2;"></i></div>
+              <span style="font-weight:700;font-size:13.5px;">LinkedIn</span>
+            </div>
+          </td>
+          <td style="text-align:center;">
+            <div style="position:relative;display:inline-block;">
+              <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--text-muted);font-weight:600;">{{ currency_symbol }}</span>
+              <input type="number" step="0.01" min="0" class="sf-input" name="linkedin_like_amount" value="{{ rates.linkedin.like }}" style="width:110px;padding-left:24px;text-align:right;">
+            </div>
+          </td>
+          <td style="text-align:center;">
+            <div style="position:relative;display:inline-block;">
+              <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--text-muted);font-weight:600;">{{ currency_symbol }}</span>
+              <input type="number" step="0.01" min="0" class="sf-input" name="linkedin_comment_amount" value="{{ rates.linkedin.comment }}" style="width:110px;padding-left:24px;text-align:right;">
+            </div>
+          </td>
+          <td style="text-align:center;">
+            <div style="position:relative;display:inline-block;">
+              <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--text-muted);font-weight:600;">{{ currency_symbol }}</span>
+              <input type="number" step="0.01" min="0" class="sf-input" name="linkedin_share_amount" value="{{ rates.linkedin.share }}" style="width:110px;padding-left:24px;text-align:right;">
+            </div>
+          </td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Save Button -->
+<div class="d-flex justify-content-end gap-2 anim-fade-up stagger-4">
+  <a href="{% url 'super_admin' %}" class="btn-sf btn-ghost-sf">Cancel</a>
+  <button type="submit" class="btn-sf btn-primary-sf">
+    <i class="bi bi-check2-circle"></i> Save Payment Settings
+  </button>
+</div>
+
+</form>
+
+<script>
+  // Currency card toggle UX
+  document.querySelectorAll('input[name="currency"]').forEach(function(radio) {
+    radio.addEventListener('change', function() {
+      var isINR = this.value === 'INR';
+      var brandColor = getComputedStyle(document.documentElement).getPropertyValue('--brand-primary').trim();
+      var borderColor = getComputedStyle(document.documentElement).getPropertyValue('--border').trim();
+
+      document.getElementById('cur-inr-card').style.borderColor = isINR ? 'var(--brand-primary)' : 'var(--border)';
+      document.getElementById('cur-usd-card').style.borderColor = !isINR ? 'var(--brand-primary)' : 'var(--border)';
+
+      document.getElementById('inr-check').style.background = isINR ? 'var(--brand-primary)' : 'var(--border)';
+      document.getElementById('usd-check').style.background = !isINR ? 'var(--brand-primary)' : 'var(--border)';
+
+      document.getElementById('inr-check').querySelector('i').style.display = isINR ? '' : 'none';
+      document.getElementById('usd-check').querySelector('i').style.display = !isINR ? '' : 'none';
+    });
+  });
+</script>
 {% endblock %}

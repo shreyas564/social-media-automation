@@ -54,23 +54,23 @@
         <tbody>
           <tr>
             <td class="platform-name text-danger">Instagram</td>
-            <td><input type="text" class="form-control amount-input" value="Rs {{ rates.instagram.like|floatformat:2 }}" readonly></td>
-            <td><input type="text" class="form-control amount-input" value="Rs {{ rates.instagram.comment|floatformat:2 }}" readonly></td>
-            <td><input type="text" class="form-control amount-input" value="Rs {{ rates.instagram.share|floatformat:2 }}" readonly></td>
+            <td><input type="text" class="form-control amount-input" value="{{ currency_symbol }}{{ rates.instagram.like|floatformat:2 }}" readonly></td>
+            <td><input type="text" class="form-control amount-input" value="{{ currency_symbol }}{{ rates.instagram.comment|floatformat:2 }}" readonly></td>
+            <td><input type="text" class="form-control amount-input" value="{{ currency_symbol }}{{ rates.instagram.share|floatformat:2 }}" readonly></td>
           </tr>
 
           <tr>
             <td class="platform-name text-primary">Facebook</td>
-            <td><input type="text" class="form-control amount-input" value="Rs {{ rates.facebook.like|floatformat:2 }}" readonly></td>
-            <td><input type="text" class="form-control amount-input" value="Rs {{ rates.facebook.comment|floatformat:2 }}" readonly></td>
-            <td><input type="text" class="form-control amount-input" value="Rs {{ rates.facebook.share|floatformat:2 }}" readonly></td>
+            <td><input type="text" class="form-control amount-input" value="{{ currency_symbol }}{{ rates.facebook.like|floatformat:2 }}" readonly></td>
+            <td><input type="text" class="form-control amount-input" value="{{ currency_symbol }}{{ rates.facebook.comment|floatformat:2 }}" readonly></td>
+            <td><input type="text" class="form-control amount-input" value="{{ currency_symbol }}{{ rates.facebook.share|floatformat:2 }}" readonly></td>
           </tr>
 
           <tr>
             <td class="platform-name" style="color:#0A66C2;">LinkedIn</td>
-            <td><input type="text" class="form-control amount-input" value="Rs {{ rates.linkedin.like|floatformat:2 }}" readonly></td>
-            <td><input type="text" class="form-control amount-input" value="Rs {{ rates.linkedin.comment|floatformat:2 }}" readonly></td>
-            <td><input type="text" class="form-control amount-input" value="Rs {{ rates.linkedin.share|floatformat:2 }}" readonly></td>
+            <td><input type="text" class="form-control amount-input" value="{{ currency_symbol }}{{ rates.linkedin.like|floatformat:2 }}" readonly></td>
+            <td><input type="text" class="form-control amount-input" value="{{ currency_symbol }}{{ rates.linkedin.comment|floatformat:2 }}" readonly></td>
+            <td><input type="text" class="form-control amount-input" value="{{ currency_symbol }}{{ rates.linkedin.share|floatformat:2 }}" readonly></td>
           </tr>
         </tbody>
       </table>

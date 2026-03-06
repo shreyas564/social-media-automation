@@ -1,270 +1,376 @@
 {% extends "base.html" %}
 
-{% block title %}SuperAdmin Dashboard{% endblock %}
+{% block title %}Dashboard{% endblock %}
+{% block topbar_title %}Dashboard{% endblock %}
 
 {% block content %}
 <style>
   .dash-hero {
-    border: 1px solid var(--admin-border);
-    border-radius: var(--pro-radius-lg);
-    background: var(--admin-surface);
+    background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-accent) 100%);
+    border-radius: var(--r-2xl);
     padding: 32px;
-    margin-bottom: 32px;
-    box-shadow: var(--pro-shadow);
-    animation: fadeSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+    margin-bottom: 28px;
+    position: relative;
+    overflow: hidden;
+    color: white;
   }
 
-  .dash-title {
-    font-size: 2rem;
-    font-weight: 700;
+  .dash-hero::before {
+    content: '';
+    position: absolute;
+    top: -60px;
+    right: -60px;
+    width: 240px;
+    height: 240px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .dash-hero::after {
+    content: '';
+    position: absolute;
+    bottom: -40px;
+    left: 40%;
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .dash-hero-content {
+    position: relative;
+    z-index: 1;
+  }
+
+  .dash-hero h2 {
+    font-size: 26px;
+    font-weight: 800;
+    margin: 0 0 6px;
+    letter-spacing: -0.4px;
+  }
+
+  .dash-hero p {
     margin: 0;
-    letter-spacing: 0.2px;
-  }
-
-  .dash-subtitle {
-    color: var(--admin-muted);
-    margin: 6px 0 0;
+    opacity: 0.82;
+    font-size: 14px;
     font-weight: 500;
   }
 
-  .metric-card {
-    border: 1px solid var(--admin-border);
-    border-radius: var(--pro-radius-lg);
-    background: var(--admin-surface);
-    box-shadow: var(--pro-shadow);
-    padding: 28px;
-    height: 100%;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .metric-card:hover {
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.12);
-    transform: translateY(-4px) scale(1.01);
-  }
-
-  .metric-label {
-    color: var(--admin-muted);
-    font-weight: 600;
-    font-size: 14px;
-    margin-bottom: 6px;
-  }
-
-  .metric-value {
-    font-size: 2rem;
+  .dash-date-badge {
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(8px);
+    border-radius: var(--r-lg);
+    padding: 10px 18px;
+    font-size: 13px;
     font-weight: 700;
-    color: var(--admin-text);
-    margin: 0;
-    line-height: 1;
+    color: white;
+    white-space: nowrap;
   }
 
-  .metric-icon {
-    width: 56px;
-    height: 56px;
-    border-radius: 16px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.6rem;
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(67, 56, 202, 0.15));
-    color: var(--admin-primary);
-  }
-
-  .toolbar {
-    border: 1px solid var(--admin-border);
-    border-radius: var(--pro-radius-lg);
-    background: var(--admin-surface);
-    padding: 18px 24px;
-    margin: 24px 0 32px;
-    box-shadow: var(--pro-shadow);
-    animation: fadeSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-
+  /* Post card */
   .post-card {
-    border: 1px solid var(--admin-border);
-    border-radius: var(--pro-radius-lg);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-xl);
     overflow: hidden;
-    background: var(--admin-surface);
-    box-shadow: var(--pro-shadow);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    height: 100%;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
+    height: 100%;
+    cursor: default;
   }
 
   .post-card:hover {
-    transform: translateY(-6px) scale(1.02);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.12);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--border-strong);
   }
 
-  .post-media {
-    height: 180px;
-    object-fit: cover;
+  .post-thumb {
     width: 100%;
-    background: var(--admin-bg-soft);
+    height: 175px;
+    object-fit: cover;
+    display: block;
+    background: var(--surface-2);
   }
 
-  .post-title {
-    font-size: 1.1rem;
+  .post-thumb-placeholder {
+    height: 175px;
+    background: linear-gradient(135deg, var(--surface-2) 0%, var(--surface-3) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 2.5rem;
+  }
+
+  .post-body {
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  .post-name {
+    font-size: 14px;
     font-weight: 700;
-    margin-bottom: 4px;
-    color: var(--admin-text);
+    color: var(--text);
+    margin: 0 0 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .post-date {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
   }
 
   .post-caption {
-    color: var(--admin-text);
-    opacity: 0.85;
-    margin-bottom: 12px;
-    font-size: 13.5px;
-    line-height: 1.45;
-  }
-
-  .post-meta {
-    color: var(--admin-muted);
     font-size: 13px;
-    margin-bottom: 12px;
-    font-weight: 500;
+    color: var(--text-2);
+    line-height: 1.5;
+    flex: 1;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 14px;
   }
 
-  .post-action-btn {
+  /* Platform badges on post */
+  .post-platforms {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+
+  .platform-dot {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+  }
+
+  .platform-dot.fb {
+    background: #1877F220;
+    color: #1877F2;
+  }
+
+  .platform-dot.ig {
+    background: #E1306C20;
+    color: #E1306C;
+  }
+
+  .platform-dot.ln {
+    background: #0A66C220;
+    color: #0A66C2;
+  }
+
+  .post-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: auto;
+  }
+
+  .post-action {
     flex: 1;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 12px;
-    font-size: 14px;
+    gap: 6px;
+    padding: 9px;
+    border-radius: var(--r-md);
+    font-size: 12.5px;
     font-weight: 600;
-    border-radius: 12px;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     text-decoration: none;
+    transition: all 0.18s ease;
+    cursor: pointer;
+    border: 1px solid transparent;
+    font-family: inherit;
   }
 
   .post-action-edit {
-    background: var(--admin-bg-soft);
-    border: 1px solid var(--admin-border);
-    color: var(--admin-text);
+    background: var(--surface-2);
+    color: var(--text-2);
+    border-color: var(--border);
   }
 
   .post-action-edit:hover {
-    background: var(--admin-surface);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.06);
+    background: rgba(99, 102, 241, 0.06);
+    color: var(--brand-primary);
+    border-color: rgba(99, 102, 241, 0.2);
   }
 
   .post-action-delete {
-    background: rgba(220, 53, 69, 0.04);
-    border: 1px solid rgba(220, 53, 69, 0.15);
-    color: #dc3545;
+    background: var(--danger-bg);
+    color: var(--danger);
+    border-color: rgba(239, 68, 68, 0.15);
   }
 
   .post-action-delete:hover {
-    background: rgba(220, 53, 69, 0.08);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px -4px rgba(220, 53, 69, 0.15);
-    color: #dc3545;
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: var(--danger);
   }
 
-  @media (max-width: 768px) {
-    .dash-title {
-      font-size: 1.5rem;
-    }
+  /* Toolbar / section header */
+  .section-toolbar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-xl);
+    padding: 16px 22px;
+    margin-bottom: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .section-toolbar-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-toolbar-title i {
+    color: var(--brand-primary);
   }
 </style>
 
-<div class="dash-hero d-flex justify-content-between align-items-center flex-wrap gap-3">
-  <div>
-    <h2 class="dash-title">Super Admin Dashboard</h2>
-    <p class="dash-subtitle">Manage posts, monitor affiliates, and keep platform activity in sync.</p>
+<!-- Hero Banner -->
+<div class="dash-hero anim-fade-up d-flex align-items-center justify-content-between flex-wrap gap-3">
+  <div class="dash-hero-content">
+    <h2>Super Admin Dashboard</h2>
+    <p>Manage posts, affiliates, and keep platform activity in sync.</p>
   </div>
-  <span class="badge text-bg-primary fs-6 px-3 py-2">
-    <i class="bi bi-calendar-event me-1"></i> {% now "d M Y" %}
-  </span>
-</div>
-
-<div class="row g-4 mb-3">
-  <div class="col-md-4">
-    <div class="metric-card d-flex justify-content-between align-items-center stagger-1"
-      style="animation: fadeSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;">
-      <div>
-        <p class="metric-label mb-1">Total Posts</p>
-        <p class="metric-value">{{ posts_count|default:0 }}</p>
-      </div>
-      <span class="metric-icon"><i class="bi bi-grid-3x3-gap"></i></span>
-    </div>
-  </div>
-  <div class="col-md-4">
-    <div class="metric-card d-flex justify-content-between align-items-center stagger-2"
-      style="animation: fadeSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;">
-      <div>
-        <p class="metric-label mb-1">Affiliate Users</p>
-        <p class="metric-value">{{ users|default:0 }}</p>
-      </div>
-      <span class="metric-icon"><i class="bi bi-people"></i></span>
-    </div>
-  </div>
-  <div class="col-md-4">
-    <div class="metric-card d-flex justify-content-between align-items-center stagger-3"
-      style="animation: fadeSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;">
-      <div>
-        <p class="metric-label mb-1">Platforms Connected</p>
-        <p class="metric-value">3</p>
-      </div>
-      <span class="metric-icon"><i class="bi bi-share"></i></span>
-    </div>
+  <div class="dash-date-badge">
+    <i class="bi bi-calendar3 me-2"></i>{% now "d M Y" %}
   </div>
 </div>
 
-<div class="toolbar d-flex justify-content-between align-items-center gap-2 flex-wrap">
-  <h5 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2"></i>Recent Posts</h5>
+<!-- Stat Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-md-4 anim-fade-up stagger-1">
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-indigo">
+        <i class="bi bi-grid-3x3-gap-fill"></i>
+      </div>
+      <div class="stat-info">
+        <div class="stat-label">Total Posts</div>
+        <div class="stat-value">{{ posts_count|default:0 }}</div>
+        <div class="stat-sub">All published content</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4 anim-fade-up stagger-2">
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-violet">
+        <i class="bi bi-people-fill"></i>
+      </div>
+      <div class="stat-info">
+        <div class="stat-label">Affiliate Users</div>
+        <div class="stat-value">{{ users|default:0 }}</div>
+        <div class="stat-sub">Active affiliates</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4 anim-fade-up stagger-3">
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-green">
+        <i class="bi bi-share-fill"></i>
+      </div>
+      <div class="stat-info">
+        <div class="stat-label">Platforms</div>
+        <div class="stat-value">3</div>
+        <div class="stat-sub">FB · IG · LinkedIn</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Posts Toolbar -->
+<div class="section-toolbar anim-fade-up stagger-4">
+  <h2 class="section-toolbar-title">
+    <i class="bi bi-clock-history"></i> Recent Posts
+  </h2>
   <div class="d-flex gap-2 flex-wrap">
     <form action="{% url 'create_post' %}" method="post" class="m-0">
       {% csrf_token %}
-      <button type="submit" class="btn btn-success">
-        <i class="bi bi-plus-circle me-1"></i> Create New Post
+      <button type="submit" class="btn-sf btn-primary-sf">
+        <i class="bi bi-plus-lg"></i> New Post
       </button>
     </form>
-    <a href="{% url 'affiliate_users' %}" class="btn btn-primary">
-      <i class="bi bi-people me-1"></i> Affiliate Users & Verification
+    <a href="{% url 'affiliate_users' %}" class="btn-sf btn-ghost-sf">
+      <i class="bi bi-people"></i> Affiliates
     </a>
   </div>
 </div>
 
-<div class="row g-4 stagger-4" style="animation: fadeSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;">
+<!-- Post Cards -->
+<div class="row g-3 anim-fade-up" style="animation-delay:0.22s;">
   {% for post in posts %}
-  <div class="col-lg-4 col-md-6">
+  <div class="col-xl-4 col-md-6">
     <div class="post-card">
       {% if post.image %}
-      <img src="{{ post.image.url }}" class="post-media" alt="Post image">
+      <img src="{{ post.image.url }}" class="post-thumb" alt="{{ post.post_name|default:'Post' }}">
       {% elif post.video %}
-      <video class="post-media" controls>
+      <video class="post-thumb" muted preload="metadata">
         <source src="{{ post.video.url }}">
       </video>
       {% elif post.media_url %}
       {% if post.media_type == "video" %}
-      <video class="post-media" controls>
+      <video class="post-thumb" muted preload="metadata">
         <source src="{{ post.media_url }}">
       </video>
       {% else %}
-      <img src="{{ post.media_url }}" class="post-media" alt="Post media">
+      <img src="{{ post.media_url }}" class="post-thumb" alt="{{ post.post_name|default:'Post' }}">
       {% endif %}
       {% else %}
-      <img src="https://via.placeholder.com/400x250?text=No+Media" class="post-media" alt="No media">
+      <div class="post-thumb-placeholder">
+        <i class="bi bi-image"></i>
+      </div>
       {% endif %}
 
-      <div class="card-body d-flex flex-column p-3 p-xl-4">
-        <h5 class="post-title mb-1">{{ post.post_name|default:"Untitled Post" }}</h5>
-        <div class="post-meta">
-          <i class="bi bi-calendar3 me-1"></i>{{ post.created_at|date:"d M Y" }}
+      <div class="post-body">
+        <div class="post-name">{{ post.post_name|default:"Untitled Post" }}</div>
+        <div class="post-date">
+          <i class="bi bi-calendar3"></i>{{ post.created_at|date:"d M Y" }}
         </div>
-        <p class="post-caption mb-3 text-truncate-2">{{ post.caption|default:"No caption available"|truncatechars:100 }}
-        </p>
-        <div class="d-flex gap-2 mt-auto">
-          <a href="{% url 'edit_post' post.id %}" class="post-action-btn post-action-edit">
-            <i class="bi bi-pencil-square text-primary fs-5"></i> Edit
+        <div class="post-platforms">
+          {% if post.fbpostid %}
+          <div class="platform-dot fb" title="Facebook"><i class="bi bi-facebook"></i></div>
+          {% endif %}
+          {% if post.instapostid %}
+          <div class="platform-dot ig" title="Instagram"><i class="bi bi-instagram"></i></div>
+          {% endif %}
+          {% if post.lnpostid %}
+          <div class="platform-dot ln" title="LinkedIn"><i class="bi bi-linkedin"></i></div>
+          {% endif %}
+        </div>
+        <p class="post-caption">{{ post.caption|default:"No caption available" }}</p>
+        <div class="post-actions">
+          <a href="{% url 'edit_post' post.id %}" class="post-action post-action-edit">
+            <i class="bi bi-pencil"></i> Edit
           </a>
-          <a href="{% url 'delete_post' post.id %}" class="post-action-btn post-action-delete"
-            onclick="return confirm('Delete this post?');">
-            <i class="bi bi-trash fs-5"></i> Delete
+          <a href="{% url 'delete_post' post.id %}" class="post-action post-action-delete"
+            onclick="return confirm('Delete this post from the dashboard and platforms?')">
+            <i class="bi bi-trash3"></i> Delete
           </a>
         </div>
       </div>
@@ -272,8 +378,16 @@
   </div>
   {% empty %}
   <div class="col-12">
-    <div class="alert alert-info mb-0">
-      <i class="bi bi-info-circle me-1"></i>No posts available.
+    <div class="sf-empty sf-card" style="padding:60px 24px;">
+      <div class="sf-empty-icon"><i class="bi bi-grid-3x3-gap"></i></div>
+      <h6>No posts yet</h6>
+      <p>Create your first post to get started.</p>
+      <form action="{% url 'create_post' %}" method="post" class="mt-3">
+        {% csrf_token %}
+        <button type="submit" class="btn-sf btn-primary-sf">
+          <i class="bi bi-plus-lg"></i> Create First Post
+        </button>
+      </form>
     </div>
   </div>
   {% endfor %}

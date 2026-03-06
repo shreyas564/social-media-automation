@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger(__name__)
+
 """
 Post-Wise Scraping Service
 
@@ -50,7 +53,7 @@ class PostScrapingService:
         try:
             post = Post.objects.get(id=post_id)
         except Post.DoesNotExist:
-            print(f"❌ Post {post_id} not found")
+            logger.info(f"❌ Post {post_id} not found")
             return {'success': False, 'error': 'Post not found'}
         
         # Get post URL
@@ -66,7 +69,7 @@ class PostScrapingService:
         if not post_url:
             return {'success': False, 'error': f'No {platform} URL for post {post_id}'}
         
-        print(f"🔍 Scraping {platform} post: {post_url}")
+        logger.info(f"🔍 Scraping {platform} post: {post_url}")
         
         # Scrape likes and comments
         likers = []
@@ -86,7 +89,7 @@ class PostScrapingService:
                 commenters = self.linkedin.scrape_comments(post_url, max_comments=max_results)
         
         except Exception as e:
-            print(f"❌ Scraping error: {e}")
+            logger.info(f"❌ Scraping error: {e}")
             return {'success': False, 'error': str(e)}
         
         # Save to database
@@ -129,7 +132,7 @@ class PostScrapingService:
             'was_updated': not created
         }
         
-        print(f"✓ Saved {len(likers)} likes and {len(commenters)} comments to database")
+        logger.info(f"✓ Saved {len(likers)} likes and {len(commenters)} comments to database")
         
         return result
     

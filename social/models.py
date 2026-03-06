@@ -5,14 +5,24 @@ import uuid
 
 # Create your models here.
 class SuperAdmin(models.Model):
+    CURRENCY_CHOICES = [
+        ('INR', 'Indian Rupee (₹)'),
+        ('USD', 'US Dollar ($)'),
+    ]
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='super_admin')
     name = models.CharField(max_length=100)
     minimum_withdrawal = models.DecimalField(max_digits=10, decimal_places=2, default=0.01)
+    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default='INR')
     fbtoken=models.CharField(max_length=300,blank=True, null=True)
     instatoken=models.CharField(max_length=300,blank=True, null=True)
     lntoken=models.TextField(blank=True, null=True)
     def __str__(self):
         return self.name
+
+    @property
+    def currency_symbol(self):
+        return '₹' if self.currency == 'INR' else '$'
+
 
 class Pages(models.Model):
     pageId=models.CharField( max_length=500,blank=True,null=True)

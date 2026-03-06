@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger(__name__)
+
 """
 Platform-Specific Apify Scrapers
 
@@ -23,7 +26,7 @@ class FacebookScraper:
         
         Actor: thedoor/facebook-comment-scraper
         """
-        print(f"🔍 [Facebook] Scraping comments from: {post_url}")
+        logger.info(f"🔍 [Facebook] Scraping comments from: {post_url}")
         
         run_input = {
             "postUrls": [post_url],
@@ -34,7 +37,7 @@ class FacebookScraper:
         try:
             # Run Facebook Comments Scraper
             # User requested 'thedoor/facebook-comment-scraper'
-            print(f"🔍 [Facebook] Using 'thedoor/facebook-comment-scraper' for: {post_url}")
+            logger.info(f"🔍 [Facebook] Using 'thedoor/facebook-comment-scraper' for: {post_url}")
             run = self.client.actor("thedoor/facebook-comment-scraper").call(run_input=run_input)
             
             commenters = []
@@ -57,11 +60,11 @@ class FacebookScraper:
                     if author_name:
                         commenters.append(author_name)
             
-            print(f"✓ Found {len(commenters)} commenters")
+            logger.info(f"✓ Found {len(commenters)} commenters")
             return commenters
         
         except Exception as e:
-            print(f"❌ Error scraping Facebook comments: {e}")
+            logger.info(f"❌ Error scraping Facebook comments: {e}")
             return []
     
     def scrape_likes(self, post_url: str, max_likes: int = 100) -> List[str]:
@@ -77,7 +80,7 @@ class FacebookScraper:
         Returns:
             List of liker names
         """
-        print(f"🔍 [Facebook] Scraping likes from: {post_url}")
+        logger.info(f"🔍 [Facebook] Scraping likes from: {post_url}")
         
         # Correct input format for facebook-likes-scraper
         # Based on inspection, it likely expects startUrls with objects
@@ -97,11 +100,11 @@ class FacebookScraper:
                     if user_name:
                         likers.append(user_name)
             
-            print(f"✓ Found {len(likers)} likers")
+            logger.info(f"✓ Found {len(likers)} likers")
             return likers
         
         except Exception as e:
-            print(f"❌ Error scraping Facebook likes: {e}")
+            logger.info(f"❌ Error scraping Facebook likes: {e}")
             return []
 
 
@@ -118,7 +121,7 @@ class InstagramScraper:
         
         Actor: datadoping/instagram-comments-and-replies-scraper
         """
-        print(f"🔍 [Instagram] Scraping comments from: {post_url}")
+        logger.info(f"🔍 [Instagram] Scraping comments from: {post_url}")
         
         run_input = {
             "code_or_id_or_url": [post_url],
@@ -149,11 +152,11 @@ class InstagramScraper:
                     if username:
                         commenters.append(username)
                         
-            print(f"✓ Found {len(commenters)} commenters")
+            logger.info(f"✓ Found {len(commenters)} commenters")
             return commenters
         
         except Exception as e:
-            print(f"❌ Error scraping Instagram comments: {e}")
+            logger.info(f"❌ Error scraping Instagram comments: {e}")
             return []
     
     def scrape_likes(self, post_url: str, max_likes: int = 100) -> List[str]:
@@ -162,7 +165,7 @@ class InstagramScraper:
         
         Actor: datadoping/instagram-likes-scraper
         """
-        print(f"🔍 [Instagram] Scraping likes from: {post_url}")
+        logger.info(f"🔍 [Instagram] Scraping likes from: {post_url}")
         
         run_input = {
             "posts": [post_url],
@@ -186,12 +189,12 @@ class InstagramScraper:
                     if username:
                         likers.append(username)
             
-            print(f"✓ Found {len(likers)} likers")
+            logger.info(f"✓ Found {len(likers)} likers")
             
             return likers
         
         except Exception as e:
-            print(f"❌ Error scraping Instagram likes: {e}")
+            logger.info(f"❌ Error scraping Instagram likes: {e}")
             return []
 
 
@@ -208,7 +211,7 @@ class LinkedInScraper:
         
         Actor: harvestapi/linkedin-post-reactions
         """
-        print(f"🔍 [LinkedIn] Scraping reactions from: {post_url}")
+        logger.info(f"🔍 [LinkedIn] Scraping reactions from: {post_url}")
         
         run_input = {
             "urls": [post_url],
@@ -230,11 +233,11 @@ class LinkedInScraper:
                     if name:
                         reactors.append(name)
                         
-            print(f"✓ Found {len(reactors)} reactors")
+            logger.info(f"✓ Found {len(reactors)} reactors")
             return reactors
         
         except Exception as e:
-            print(f"❌ Error scraping LinkedIn reactions: {e}")
+            logger.info(f"❌ Error scraping LinkedIn reactions: {e}")
             return []
 
     def scrape_comments(self, post_url: str, max_comments: int = 100) -> List[str]:
@@ -243,7 +246,7 @@ class LinkedInScraper:
         
         Actor: harvestapi/linkedin-post-comments
         """
-        print(f"🔍 [LinkedIn] Scraping comments from: {post_url}")
+        logger.info(f"🔍 [LinkedIn] Scraping comments from: {post_url}")
         
         run_input = {
             "urls": [post_url],
@@ -264,9 +267,9 @@ class LinkedInScraper:
                     if author_name:
                         commenters.append(author_name)
             
-            print(f"✓ Found {len(commenters)} commenters")
+            logger.info(f"✓ Found {len(commenters)} commenters")
             return commenters
         
         except Exception as e:
-            print(f"❌ Error scraping LinkedIn comments: {e}")
+            logger.info(f"❌ Error scraping LinkedIn comments: {e}")
             return []
