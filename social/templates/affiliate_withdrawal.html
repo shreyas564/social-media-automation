@@ -1,97 +1,81 @@
 {% extends "affiliate_base.html" %}
+{% load static %}
+
 {% block title %}Withdrawal{% endblock %}
+{% block topbar_title %}Withdrawal requests{% endblock %}
 
 {% block content %}
-<style>
-  .withdraw-head {
-    border: 1px solid #dbe4f2;
-    border-radius: 14px;
-    background: linear-gradient(140deg, #f8fbff, #eef4ff);
-    padding: 16px;
-    margin-bottom: 16px;
-  }
+<div class="page-content">
 
-  .withdraw-card {
-    border: 1px solid #dbe4f2;
-    border-radius: 14px;
-    overflow: hidden;
-  }
-
-  .field-label {
-    color: #5f6f84;
-    font-weight: 600;
-    margin-bottom: 4px;
-    font-size: 14px;
-  }
-
-  .field-value {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #163556;
-  }
-</style>
-
-<div class="withdraw-head">
-  <h4 class="mb-1">Withdrawal</h4>
-  <p class="text-muted mb-0">Request your payout. All amounts are shown in {{ currency_symbol }}.</p>
-</div>
-
-{% if messages %}
-  {% for message in messages %}
-    <div class="alert alert-{{ message.tags|default:'info' }} py-2" role="alert">
-      {{ message }}
+  <!-- Page header -->
+  <div class="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-4 anim-fade-up">
+    <div>
+      <h1 class="sf-page-title">Wallet Withdrawal</h1>
+      <p class="sf-page-sub">Request your payout and view current balance limits. All amounts are shown in {{ currency_symbol }}.</p>
     </div>
-  {% endfor %}
-{% endif %}
+  </div>
 
-<div class="card withdraw-card">
-  <div class="card-body">
-    <div class="row g-3 mb-3">
-      <div class="col-md-4">
-        <div class="field-label">Current Balance</div>
-        <div class="field-value">{{ currency_symbol }}{{ current_balance|floatformat:2 }}</div>
-      </div>
-      <div class="col-md-4">
-        <div class="field-label">Minimum Withdrawal</div>
-        <div class="field-value">{{ currency_symbol }}{{ minimum_withdrawal|floatformat:2 }}</div>
-      </div>
-      <div class="col-md-4">
-        <div class="field-label">Request Status</div>
-        {% if latest_request %}
-          {% if latest_request.status == "paid" %}
-            <span class="badge text-bg-success fs-6">Paid</span>
-          {% else %}
-            <span class="badge text-bg-warning fs-6">Pending</span>
-          {% endif %}
-        {% else %}
-          <span class="badge text-bg-secondary fs-6">No Request</span>
-        {% endif %}
-      </div>
+  <div class="sf-section anim-fade-up stagger-1">
+    <div class="sf-section-header">
+      <h2 class="sf-section-title"><i class="bi bi-cash-stack me-2 text-primary-sf"></i>Withdrawal Status</h2>
     </div>
-
-    <form method="post" action="{% url 'request_withdrawal' %}">
-      {% csrf_token %}
-      <div class="mb-3">
-        <label for="withdrawal_amount" class="form-label fw-semibold">Withdrawal Amount ({{ currency_symbol }})</label>
-        <input
-          type="number"
-          class="form-control"
-          id="withdrawal_amount"
-          name="withdrawal_amount"
-          min="{{ minimum_withdrawal }}"
-          max="{{ current_balance }}"
-          step="0.01"
-          placeholder="Enter amount"
-          required
-        >
-        <div class="form-text">
-          Enter an amount between {{ currency_symbol }}{{ minimum_withdrawal|floatformat:2 }} and {{ currency_symbol }}{{ current_balance|floatformat:2 }}.
+    <div class="sf-section-body">
+      <div class="row g-4 mb-4">
+        <div class="col-md-4">
+          <div style="font-size: 13px; font-weight: 600; color: var(--text-2); margin-bottom: 4px;">Current Balance</div>
+          <div style="font-size: 1.7rem; font-weight: 700; color: var(--text);">{{ currency_symbol }}{{ current_balance|floatformat:2 }}</div>
+        </div>
+        <div class="col-md-4">
+          <div style="font-size: 13px; font-weight: 600; color: var(--text-2); margin-bottom: 4px;">Minimum Withdrawal</div>
+          <div style="font-size: 1.7rem; font-weight: 700; color: var(--text);">{{ currency_symbol }}{{ minimum_withdrawal|floatformat:2 }}</div>
+        </div>
+        <div class="col-md-4">
+          <div style="font-size: 13px; font-weight: 600; color: var(--text-2); margin-bottom: 4px;">Last Request Status</div>
+          <div class="mt-1">
+            {% if latest_request %}
+              {% if latest_request.status == "paid" %}
+                <span class="sf-badge badge-success px-3 py-2"><i class="bi bi-check-circle me-1"></i> Paid</span>
+              {% else %}
+                <span class="sf-badge badge-warning px-3 py-2"><i class="bi bi-clock-history me-1"></i> Pending</span>
+              {% endif %}
+            {% else %}
+              <span class="sf-badge badge-info px-3 py-2"><i class="bi bi-dash-circle me-1"></i> No Request</span>
+            {% endif %}
+          </div>
         </div>
       </div>
-      <button type="submit" class="btn btn-primary" {% if not can_request %}disabled{% endif %}>
-        <i class="bi bi-send-check me-1"></i> Withdraw
-      </button>
-    </form>
+
+      <hr style="border-color: var(--border); margin: 24px 0;">
+
+      <form method="post" action="{% url 'request_withdrawal' %}">
+        {% csrf_token %}
+        <div class="sf-form-group mb-4">
+          <label for="withdrawal_amount" class="sf-label">Withdrawal Amount</label>
+          <div class="input-group">
+            <span class="input-group-text sf-input" style="width: auto; background: var(--surface-2); border-right: none; border-top-right-radius: 0; border-bottom-right-radius: 0;">{{ currency_symbol }}</span>
+            <input
+              type="number"
+              class="sf-input form-control"
+              id="withdrawal_amount"
+              name="withdrawal_amount"
+              min="{{ minimum_withdrawal }}"
+              max="{{ current_balance }}"
+              step="0.01"
+              placeholder="Enter amount"
+              required
+              style="border-left: none; border-top-left-radius: 0; border-bottom-left-radius: 0; outline: none;"
+            >
+          </div>
+          <div class="form-text" style="color: var(--text-2); font-size: 12.5px; margin-top: 6px;">
+            Enter an amount between {{ currency_symbol }}{{ minimum_withdrawal|floatformat:2 }} and {{ currency_symbol }}{{ current_balance|floatformat:2 }}.
+          </div>
+        </div>
+        <button type="submit" class="btn-primary-sf w-100" {% if not can_request %}disabled{% endif %}>
+          <i class="bi bi-send-check me-2"></i> Submit Withdrawal Request
+        </button>
+      </form>
+    </div>
   </div>
+
 </div>
 {% endblock %}

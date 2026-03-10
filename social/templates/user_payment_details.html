@@ -1,137 +1,143 @@
 {% extends "affiliate_base.html" %}
+{% load static %}
+
 {% block title %}User Payment Details{% endblock %}
+{% block topbar_title %}Payment Methods{% endblock %}
 
 {% block content %}
-<style>
-  .payd-head {
-    border: 1px solid #dbe4f2;
-    border-radius: 16px;
-    background: linear-gradient(130deg, #f8fbff, #eef4ff 58%, #e8f2ff);
-    padding: 16px;
-    margin-bottom: 14px;
-  }
+<div class="page-content">
 
-  .payd-card {
-    border-radius: 16px;
-    border: 1px solid #dbe4f2;
-    box-shadow: 0 12px 28px rgba(16, 40, 74, 0.1);
-    overflow: hidden;
-  }
-
-  .sec-title {
-    font-size: 14px;
-    font-weight: 700;
-    color: #1a3b62;
-    margin-bottom: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-  }
-
-  .field-note {
-    color: #607288;
-    font-size: 12px;
-  }
-</style>
-
-<div class="payd-head">
-  <h4 class="mb-1">User Payment Details</h4>
-  <p class="text-muted mb-0">Set your preferred payout details for smooth withdrawal processing.</p>
-</div>
-
-{% if messages %}
-  {% for message in messages %}
-    <div class="alert alert-{{ message.tags|default:'info' }} py-2" role="alert">
-      {{ message }}
+  <!-- Page header -->
+  <div class="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-4 anim-fade-up">
+    <div>
+      <h1 class="sf-page-title">Payout Preferences</h1>
+      <p class="sf-page-sub">Configure your banking and upi details to ensure smooth withdrawal processing.</p>
     </div>
-  {% endfor %}
-{% endif %}
+  </div>
 
-<div class="card payd-card">
-  <div class="card-body p-4">
-    <form method="post">
-      {% csrf_token %}
-
-      <div class="mb-3">
-        <label class="form-label fw-semibold">Preferred Payment Method</label>
-        <select class="form-select" name="preferred_payment_method" id="preferredMethod">
-          <option value="upi" {% if payment_detail.preferred_payment_method == "upi" %}selected{% endif %}>UPI</option>
-          <option value="bank" {% if payment_detail.preferred_payment_method == "bank" %}selected{% endif %}>Bank Transfer</option>
-          <option value="upi_bank" {% if payment_detail.preferred_payment_method == "upi_bank" %}selected{% endif %}>UPI + Bank Transfer</option>
-        </select>
+  {% if messages %}
+    {% for message in messages %}
+      <div class="sf-toast success" role="alert" style="margin-bottom: 24px;">
+        <i class="bi bi-info-circle-fill"></i>
+        <span>{{ message }}</span>
       </div>
+    {% endfor %}
+  {% endif %}
 
-      <div id="upiBlock" class="mb-3">
-        <div class="sec-title">UPI Details</div>
-        <label class="form-label">UPI ID</label>
-        <input
-          type="text"
-          name="upi_id"
-          class="form-control"
-          placeholder="example@upi"
-          value="{{ payment_detail.upi_id }}"
-        >
-        <div class="field-note mt-1">Use your active UPI ID.</div>
-      </div>
+  <div class="sf-section anim-fade-up stagger-1">
+    <div class="sf-section-header">
+      <h2 class="sf-section-title"><i class="bi bi-bank me-2 text-primary-sf"></i>Account Details</h2>
+    </div>
+    <div class="sf-section-body">
+      <form method="post" action="{% url 'user_payment_details' %}">
+        {% csrf_token %}
 
-      <div id="bankBlock" class="mb-2">
-        <div class="sec-title">Bank Details</div>
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label class="form-label">Account Holder Name</label>
-            <input
-              type="text"
-              name="account_holder_name"
-              class="form-control"
-              placeholder="Account holder name"
-              value="{{ payment_detail.account_holder_name }}"
-            >
+        <div class="sf-form-group mb-4">
+          <label class="sf-label">Preferred Payment Method</label>
+          <select class="sf-input form-select" name="preferred_payment_method" id="preferredMethod" style="max-width: 300px;">
+            <option value="upi" {% if payment_detail.preferred_payment_method == "upi" %}selected{% endif %}>UPI Only</option>
+            <option value="bank" {% if payment_detail.preferred_payment_method == "bank" %}selected{% endif %}>Bank Transfer Only</option>
+            <option value="upi_bank" {% if payment_detail.preferred_payment_method == "upi_bank" %}selected{% endif %}>UPI & Bank Transfer</option>
+          </select>
+        </div>
+
+        <div id="upiBlock" class="mb-4 p-4 rounded-3" style="background: var(--surface-2); border: 1px solid var(--border);">
+          <div style="font-size: 13px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">
+            <i class="bi bi-phone-vibrate me-1"></i> UPI Configuration
           </div>
-          <div class="col-md-6">
-            <label class="form-label">Bank Account Number</label>
+          <div class="sf-form-group mb-0">
+            <label class="sf-label">UPI ID / Virtual Payment Address</label>
             <input
               type="text"
-              name="bank_account_number"
-              class="form-control"
-              placeholder="Bank account number"
-              value="{{ payment_detail.bank_account_number }}"
+              name="upi_id"
+              class="sf-input"
+              placeholder="e.g. yourname@ybl"
+              value="{{ payment_detail.upi_id }}"
             >
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">IFSC Code</label>
-            <input
-              type="text"
-              name="ifsc_code"
-              class="form-control"
-              placeholder="e.g. SBIN0001234"
-              value="{{ payment_detail.ifsc_code }}"
-            >
+            <div class="mt-2" style="font-size: 12px; color: var(--text-2);">We will deposit directly into this UPI address via RazorpayX.</div>
           </div>
         </div>
-      </div>
 
-      <div class="mt-4">
-        <button type="submit" class="btn btn-primary">
-          <i class="bi bi-check2-circle me-1"></i> Save Payment Details
-        </button>
-      </div>
-    </form>
+        <div id="bankBlock" class="mb-4 p-4 rounded-3" style="background: var(--surface-2); border: 1px solid var(--border);">
+          <div style="font-size: 13px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px;">
+            <i class="bi bi-building me-1"></i> Direct Bank Transfer
+          </div>
+          <div class="row g-4">
+            <div class="col-md-6 sf-form-group mb-0">
+              <label class="sf-label">Account Holder Name</label>
+              <input
+                type="text"
+                name="account_holder_name"
+                class="sf-input"
+                placeholder="Name as it appears on account"
+                value="{{ payment_detail.account_holder_name }}"
+              >
+            </div>
+            <div class="col-md-6 sf-form-group mb-0">
+              <label class="sf-label">Bank Account Number</label>
+              <input
+                type="text"
+                name="bank_account_number"
+                class="sf-input"
+                placeholder="Account digit string"
+                value="{{ payment_detail.bank_account_number }}"
+              >
+            </div>
+            <div class="col-md-6 sf-form-group mb-0">
+              <label class="sf-label">IFSC Code / Branch Code</label>
+              <input
+                type="text"
+                name="ifsc_code"
+                class="sf-input"
+                placeholder="e.g. SBIN0001234"
+                value="{{ payment_detail.ifsc_code }}"
+                style="text-transform: uppercase;"
+              >
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-2">
+          <button type="submit" class="btn-primary-sf px-4">
+            <i class="bi bi-shield-check me-2"></i> Save Securely
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
-</div>
 
+</div>
+{% endblock %}
+
+{% block extra_script %}
 <script>
-  (function () {
+  document.addEventListener('DOMContentLoaded', () => {
     const methodSelect = document.getElementById("preferredMethod");
     const upiBlock = document.getElementById("upiBlock");
     const bankBlock = document.getElementById("bankBlock");
 
     function toggleBlocks() {
       const v = methodSelect.value;
-      upiBlock.style.display = (v === "upi" || v === "upi_bank") ? "" : "none";
-      bankBlock.style.display = (v === "bank" || v === "upi_bank") ? "" : "none";
+      
+      if (v === "upi" || v === "upi_bank") {
+        upiBlock.style.display = "";
+        setTimeout(() => { upiBlock.style.opacity = "1"; upiBlock.style.transform = "translateY(0)"; }, 10);
+      } else {
+        upiBlock.style.display = "none";
+      }
+
+      if (v === "bank" || v === "upi_bank") {
+        bankBlock.style.display = "";
+        setTimeout(() => { bankBlock.style.opacity = "1"; bankBlock.style.transform = "translateY(0)"; }, 10);
+      } else {
+        bankBlock.style.display = "none";
+      }
     }
 
+    upiBlock.style.transition = "all 0.3s ease";
+    bankBlock.style.transition = "all 0.3s ease";
     methodSelect.addEventListener("change", toggleBlocks);
     toggleBlocks();
-  })();
+  });
 </script>
 {% endblock %}

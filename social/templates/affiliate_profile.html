@@ -1,32 +1,108 @@
-{% extends "base.html" %}
-{% block title %}Profile{% endblock %}
+{% extends "affiliate_base.html" %}
+{% load static %}
+
+{% block title %}Account Settings{% endblock %}
+{% block topbar_title %}Account Settings{% endblock %}
 
 {% block content %}
-<div class="card mt-4">
-  <div class="card-body">
+<div class="page-content">
 
-    <h5>Edit Profile</h5>
-    <form method="POST" action="{% url 'update_affiliate_profile' %}">
-      {% csrf_token %}
-      <input class="form-control mb-2" name="username" value="{{ affiliate.username }}" required>
-      <input class="form-control mb-2" name="instagram_secret" placeholder="Instagram Secret">
-      <input class="form-control mb-2" name="facebook_secret" placeholder="Facebook Secret">
-      <input class="form-control mb-2" name="linkedin_secret" placeholder="LinkedIn Secret">
-      <input class="form-control mb-2" name="twitter_secret" placeholder="Twitter Secret">
-      <button class="btn btn-success">Update Profile</button>
-    </form>
+  <!-- Page header -->
+  <div class="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-4 anim-fade-up">
+    <div>
+      <h1 class="sf-page-title">Profile & Security</h1>
+      <p class="sf-page-sub">Manage your account details and update your password.</p>
+    </div>
+  </div>
 
-    <hr id="password">
+  {% if messages %}
+    <div class="mb-4">
+    {% for message in messages %}
+      <div class="sf-toast {% if message.tags == 'error' %}error{% else %}success{% endif %}" role="alert" style="position: relative; right: auto; transform: none; bottom: auto; display: inline-flex; margin-bottom: 8px;">
+        <i class="bi {% if message.tags == 'error' %}bi-exclamation-circle-fill{% else %}bi-info-circle-fill{% endif %}"></i>
+        <span>{{ message }}</span>
+      </div>
+    {% endfor %}
+    </div>
+  {% endif %}
 
-    <h5>Change Password</h5>
-    <form method="POST" action="{% url 'change_affiliate_password' %}">
-      {% csrf_token %}
-      <input type="password" class="form-control mb-2" name="old_password" placeholder="Old Password" required>
-      <input type="password" class="form-control mb-2" name="new_password" placeholder="New Password" required>
-      <input type="password" class="form-control mb-2" name="confirm_password" placeholder="Confirm Password" required>
-      <button class="btn btn-warning">Change Password</button>
-    </form>
+  <div class="row g-4 anim-fade-up stagger-1">
+    
+    <!-- Profile Edit Section -->
+    <div class="col-lg-6">
+      <div class="sf-section h-100">
+        <div class="sf-section-header">
+          <h2 class="sf-section-title"><i class="bi bi-person-lines-fill me-2 text-primary-sf"></i>Personal Details</h2>
+        </div>
+        <div class="sf-section-body">
+          <form method="POST" action="{% url 'update_affiliate_profile' %}">
+            {% csrf_token %}
+            
+            <div class="sf-form-group mb-4">
+              <label class="sf-label">Username</label>
+              <input type="text" class="sf-input" name="username" value="{{ affiliate.username }}" required>
+            </div>
+
+            <hr style="border-color: var(--border); margin: 24px 0;">
+            <div style="font-size: 13px; font-weight: 700; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px;">Social Secrets (Optional)</div>
+
+            <div class="sf-form-group mb-3">
+              <label class="sf-label"><i class="bi bi-instagram me-1" style="color: #E1306C;"></i> Instagram Secret</label>
+              <input type="text" class="sf-input" name="instagram_secret" placeholder="Optional identifier">
+            </div>
+
+            <div class="sf-form-group mb-3">
+              <label class="sf-label"><i class="bi bi-facebook me-1" style="color: #1877F2;"></i> Facebook Secret</label>
+              <input type="text" class="sf-input" name="facebook_secret" placeholder="Optional identifier">
+            </div>
+
+            <div class="sf-form-group mb-4">
+              <label class="sf-label"><i class="bi bi-linkedin me-1" style="color: #0A66C2;"></i> LinkedIn Secret</label>
+              <input type="text" class="sf-input" name="linkedin_secret" placeholder="Optional identifier">
+            </div>
+
+            <button type="submit" class="btn-primary-sf w-100">
+              <i class="bi bi-save me-2"></i> Save Profile Details
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Password Change Section -->
+    <div class="col-lg-6">
+      <div class="sf-section h-100">
+        <div class="sf-section-header">
+          <h2 class="sf-section-title"><i class="bi bi-shield-lock me-2 text-primary-sf"></i>Change Password</h2>
+        </div>
+        <div class="sf-section-body">
+          <form method="POST" action="{% url 'change_affiliate_password' %}" id="password">
+            {% csrf_token %}
+            
+            <div class="sf-form-group mb-3">
+              <label class="sf-label">Current Password</label>
+              <input type="password" class="sf-input" name="old_password" placeholder="Enter current password" required>
+            </div>
+
+            <div class="sf-form-group mb-3">
+              <label class="sf-label">New Password</label>
+              <input type="password" class="sf-input" name="new_password" placeholder="Create new password" required>
+            </div>
+
+            <div class="sf-form-group mb-4">
+              <label class="sf-label">Confirm New Password</label>
+              <input type="password" class="sf-input" name="confirm_password" placeholder="Repeat new password" required>
+            </div>
+
+            <button type="submit" class="btn btn-outline-danger w-100" style="border-radius: 8px; font-weight: 600; padding: 10px;">
+              <i class="bi bi-key me-2"></i> Update Password
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
 
   </div>
+
 </div>
 {% endblock %}

@@ -34,6 +34,88 @@
         <!-- SETTINGS OPTIONS -->
         <div class="list-group list-group-flush">
 
+            <!-- CONNECTED ACCOUNTS -->
+            <a href="#connectedAccounts" data-bs-toggle="collapse"
+                class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                <span>
+                    <i class="bi bi-link-45deg me-2"></i>
+                    Connected Accounts
+                </span>
+                <i class="bi bi-chevron-down"></i>
+            </a>
+
+            <div class="collapse show" id="connectedAccounts">
+                <div class="px-3 py-3">
+
+                    <!-- INSTAGRAM -->
+                    <div class="d-flex align-items-center justify-content-between mb-3 p-3 rounded-3" style="background: var(--surface-2, #f8f9fe); border: 1px solid var(--border, #eee);">
+                        <div class="d-flex align-items-center gap-3">
+                            <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);display:flex;align-items:center;justify-content:center;">
+                                <i class="bi bi-instagram text-white fs-5"></i>
+                            </div>
+                            <div>
+                                <strong class="d-block" style="font-size:14px;">Instagram</strong>
+                                {% if affiliate.instagram_connected %}
+                                    <span class="badge bg-success bg-opacity-10 text-success" style="font-size:11px;">Connected — @{{ affiliate.instagram_username }}</span>
+                                {% else %}
+                                    <span class="text-muted" style="font-size:12px;">Not connected</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% if affiliate.instagram_connected %}
+                            <a href="{% url 'affiliate_disconnect_platform' 'instagram' %}" class="btn btn-sm btn-outline-danger" style="font-size:12px;">Disconnect</a>
+                        {% else %}
+                            <a href="{% url 'affiliate_connect_instagram' %}" class="btn btn-sm text-white" style="font-size:12px;background:linear-gradient(135deg,#f09433,#dc2743);border:0;">Connect</a>
+                        {% endif %}
+                    </div>
+
+                    <!-- FACEBOOK -->
+                    <div class="d-flex align-items-center justify-content-between mb-3 p-3 rounded-3" style="background: var(--surface-2, #f8f9fe); border: 1px solid var(--border, #eee);">
+                        <div class="d-flex align-items-center gap-3">
+                            <div style="width:40px;height:40px;border-radius:10px;background:#1877F2;display:flex;align-items:center;justify-content:center;">
+                                <i class="bi bi-facebook text-white fs-5"></i>
+                            </div>
+                            <div>
+                                <strong class="d-block" style="font-size:14px;">Facebook</strong>
+                                {% if affiliate.facebook_connected %}
+                                    <span class="badge bg-success bg-opacity-10 text-success" style="font-size:11px;">Connected — {{ affiliate.facebook_username }}</span>
+                                {% else %}
+                                    <span class="text-muted" style="font-size:12px;">Not connected</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% if affiliate.facebook_connected %}
+                            <a href="{% url 'affiliate_disconnect_platform' 'facebook' %}" class="btn btn-sm btn-outline-danger" style="font-size:12px;">Disconnect</a>
+                        {% else %}
+                            <a href="{% url 'affiliate_connect_facebook' %}" class="btn btn-sm btn-primary" style="font-size:12px;background:#1877F2;border-color:#1877F2;">Connect</a>
+                        {% endif %}
+                    </div>
+
+                    <!-- LINKEDIN -->
+                    <div class="d-flex align-items-center justify-content-between p-3 rounded-3" style="background: var(--surface-2, #f8f9fe); border: 1px solid var(--border, #eee);">
+                        <div class="d-flex align-items-center gap-3">
+                            <div style="width:40px;height:40px;border-radius:10px;background:#0A66C2;display:flex;align-items:center;justify-content:center;">
+                                <i class="bi bi-linkedin text-white fs-5"></i>
+                            </div>
+                            <div>
+                                <strong class="d-block" style="font-size:14px;">LinkedIn</strong>
+                                {% if affiliate.linkedin_connected %}
+                                    <span class="badge bg-success bg-opacity-10 text-success" style="font-size:11px;">Connected — {{ affiliate.linkedin_username }}</span>
+                                {% else %}
+                                    <span class="text-muted" style="font-size:12px;">Not connected</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% if affiliate.linkedin_connected %}
+                            <a href="{% url 'affiliate_disconnect_platform' 'linkedin' %}" class="btn btn-sm btn-outline-danger" style="font-size:12px;">Disconnect</a>
+                        {% else %}
+                            <a href="{% url 'affiliate_connect_linkedin' %}" class="btn btn-sm text-white" style="font-size:12px;background:#0A66C2;border:0;">Connect</a>
+                        {% endif %}
+                    </div>
+
+                </div>
+            </div>
+
             <!-- EDIT PROFILE -->
             <a href="{% url 'edit_affiliate_profile' %}"
                 class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">

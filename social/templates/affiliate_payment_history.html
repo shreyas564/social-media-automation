@@ -1,76 +1,61 @@
 {% extends "affiliate_base.html" %}
+{% load static %}
+
 {% block title %}Payment History{% endblock %}
+{% block topbar_title %}Payment History{% endblock %}
 
 {% block content %}
-<style>
-  .pay-history-head {
-    border: 1px solid #dbe4f2;
-    border-radius: 16px;
-    background: linear-gradient(130deg, #f8fbff, #eef4ff 58%, #e8f2ff);
-    padding: 16px;
-    margin-bottom: 14px;
-  }
+<div class="page-content">
 
-  .pay-history-card {
-    border-radius: 16px;
-    border: 1px solid #dbe4f2;
-    box-shadow: 0 12px 28px rgba(16, 40, 74, 0.1);
-    overflow: hidden;
-  }
+  <!-- Page header -->
+  <div class="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-4 anim-fade-up">
+    <div>
+      <h1 class="sf-page-title">Payout History</h1>
+      <p class="sf-page-sub">Track your withdrawal amounts, statuses, and dates in {{ currency }} ({{ currency_symbol }}).</p>
+    </div>
+  </div>
 
-  .table thead th {
-    background: #f6f9ff;
-    font-weight: 700;
-  }
-
-  .amount-val {
-    font-weight: 700;
-    color: #14385f;
-  }
-
-  .date-val {
-    color: #5f6f84;
-    font-weight: 600;
-  }
-</style>
-
-<div class="pay-history-head">
-  <h4 class="mb-1">Payment History</h4>
-  <p class="text-muted mb-0">Track your withdrawal amount, status, and date in {{ currency }} ({{ currency_symbol }}).</p>
-</div>
-
-<div class="card pay-history-card">
-  <div class="card-body">
+  <div class="sf-section anim-fade-up stagger-1">
+    <div class="sf-section-header">
+      <h2 class="sf-section-title"><i class="bi bi-clock-history me-2 text-primary-sf"></i>Recent Transactions</h2>
+    </div>
     <div class="table-responsive">
-      <table class="table table-bordered align-middle mb-0">
+      <table class="table sf-table align-middle mb-0">
         <thead>
           <tr>
-            <th style="width: 28%;">Amount</th>
-            <th style="width: 22%;">Status</th>
-            <th style="width: 30%;">Date</th>
+            <th style="width: 30%;">Amount</th>
+            <th style="width: 25%;">Status</th>
+            <th style="width: 45%;">Date</th>
           </tr>
         </thead>
         <tbody>
           {% for item in history %}
           <tr>
-            <td class="amount-val">{{ currency_symbol }}{{ item.amount|floatformat:2 }}</td>
+            <td style="font-weight: 700; color: var(--text);">{{ currency_symbol }}{{ item.amount|floatformat:2 }}</td>
             <td>
               {% if item.status == "paid" %}
-                <span class="badge text-bg-success">Paid</span>
+                <span class="sf-badge badge-success px-2 py-1"><i class="bi bi-check-circle me-1"></i> Paid</span>
               {% else %}
-                <span class="badge text-bg-warning">Pending</span>
+                <span class="sf-badge badge-warning px-2 py-1"><i class="bi bi-hourglass-split me-1"></i> Pending</span>
               {% endif %}
             </td>
-            <td class="date-val">{{ item.requested_at|date:"d M Y, h:i A" }}</td>
+            <td style="color: var(--text-2); font-weight: 500;">{{ item.requested_at|date:"d M Y, h:i A" }}</td>
           </tr>
           {% empty %}
           <tr>
-            <td colspan="3" class="text-center text-muted">No payment history found.</td>
+            <td colspan="3">
+              <div class="sf-empty">
+                <i class="bi bi-receipt sf-empty-icon"></i>
+                <h6>No payment history found</h6>
+                <p>You haven't made any withdrawal requests yet.</p>
+              </div>
+            </td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
+
 </div>
 {% endblock %}

@@ -36,69 +36,91 @@
 
         <hr>
 
-        <h6 class="text-muted mb-3"><i class="bi bi-person-badge"></i> Platform Usernames (For Verification)</h6>
-        <p class="text-muted small">Add your usernames on each platform so we can verify your engagement</p>
-
-        <!-- Instagram Username -->
-        <div class="mb-3">
-          <label class="form-label">
-            <i class="bi bi-instagram text-danger"></i> Instagram Username
-          </label>
-          <input type="text" name="instagram_username" class="form-control"
-            value="{{ affiliate.instagram_username|default:'' }}" placeholder="e.g. @johnhandle">
-          <small class="text-muted">Your Instagram username shown on the platform</small>
-        </div>
-
-        <!-- Facebook Username -->
-        <div class="mb-3">
-          <label class="form-label">
-            <i class="bi bi-facebook text-primary"></i> Facebook Name/Username
-          </label>
-          <input type="text" name="facebook_username" class="form-control"
-            value="{{ affiliate.facebook_username|default:'' }}" placeholder="e.g. John Doe">
-          <small class="text-muted">Your name as shown on Facebook</small>
-        </div>
-
-        <!-- LinkedIn Username -->
-        <div class="mb-3">
-          <label class="form-label">
-            <i class="bi bi-linkedin text-info"></i> LinkedIn Name
-          </label>
-          <input type="text" name="linkedin_username" class="form-control"
-            value="{{ affiliate.linkedin_username|default:'' }}" placeholder="e.g. John Doe">
-          <small class="text-muted">Your name as shown on LinkedIn</small>
-        </div>
-
-        <hr>
-
-        <h6 class="text-muted mb-3">Social Media Secrets</h6>
+        <!-- ============================================================ -->
+        <!-- CONNECTED SOCIAL ACCOUNTS -->
+        <!-- ============================================================ -->
+        <h6 class="text-muted mb-3"><i class="bi bi-link-45deg"></i> Connected Social Accounts</h6>
+        <p class="text-muted small">Connect your social accounts to automatically link your username for verification. Click "Connect" to sign in via each platform.</p>
 
         <!-- Instagram -->
-        <div class="mb-3">
-          <label class="form-label">Instagram Secret</label>
-          <input type="password" name="instagram_secret" class="form-control"
-            placeholder="Leave blank to keep unchanged">
+        <div class="d-flex align-items-center justify-content-between mb-3 p-3 rounded-3" style="background:#fdf2f8;border:1px solid #fce7f3;">
+          <div class="d-flex align-items-center gap-3">
+            <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);display:flex;align-items:center;justify-content:center;">
+              <i class="bi bi-instagram text-white"></i>
+            </div>
+            <div>
+              <strong style="font-size:13px;">Instagram</strong>
+              {% if affiliate.instagram_connected %}
+                <br><span class="badge bg-success bg-opacity-10 text-success" style="font-size:11px;">✓ @{{ affiliate.instagram_username }}</span>
+                <input type="hidden" name="instagram_username" value="{{ affiliate.instagram_username }}">
+              {% else %}
+                <br><span class="text-muted" style="font-size:11px;">Not connected</span>
+                <input type="hidden" name="instagram_username" value="{{ affiliate.instagram_username|default:'' }}">
+              {% endif %}
+            </div>
+          </div>
+          {% if affiliate.instagram_connected %}
+            <a href="{% url 'affiliate_disconnect_platform' 'instagram' %}" class="btn btn-sm btn-outline-danger" style="font-size:11px;">Disconnect</a>
+          {% else %}
+            <a href="{% url 'affiliate_connect_instagram' %}" class="btn btn-sm text-white" style="font-size:11px;background:linear-gradient(135deg,#f09433,#dc2743);border:0;">
+              <i class="bi bi-box-arrow-in-right me-1"></i>Connect
+            </a>
+          {% endif %}
         </div>
 
         <!-- Facebook -->
-        <div class="mb-3">
-          <label class="form-label">Facebook Secret</label>
-          <input type="password" name="facebook_secret" class="form-control"
-            placeholder="Leave blank to keep unchanged">
+        <div class="d-flex align-items-center justify-content-between mb-3 p-3 rounded-3" style="background:#eff6ff;border:1px solid #dbeafe;">
+          <div class="d-flex align-items-center gap-3">
+            <div style="width:38px;height:38px;border-radius:10px;background:#1877F2;display:flex;align-items:center;justify-content:center;">
+              <i class="bi bi-facebook text-white"></i>
+            </div>
+            <div>
+              <strong style="font-size:13px;">Facebook</strong>
+              {% if affiliate.facebook_connected %}
+                <br><span class="badge bg-success bg-opacity-10 text-success" style="font-size:11px;">✓ {{ affiliate.facebook_username }}</span>
+                <input type="hidden" name="facebook_username" value="{{ affiliate.facebook_username }}">
+              {% else %}
+                <br><span class="text-muted" style="font-size:11px;">Not connected</span>
+                <input type="hidden" name="facebook_username" value="{{ affiliate.facebook_username|default:'' }}">
+              {% endif %}
+            </div>
+          </div>
+          {% if affiliate.facebook_connected %}
+            <a href="{% url 'affiliate_disconnect_platform' 'facebook' %}" class="btn btn-sm btn-outline-danger" style="font-size:11px;">Disconnect</a>
+          {% else %}
+            <a href="{% url 'affiliate_connect_facebook' %}" class="btn btn-sm text-white" style="font-size:11px;background:#1877F2;border:0;">
+              <i class="bi bi-box-arrow-in-right me-1"></i>Connect
+            </a>
+          {% endif %}
         </div>
 
         <!-- LinkedIn -->
-        <div class="mb-3">
-          <label class="form-label">LinkedIn Secret</label>
-          <input type="password" name="linkedin_secret" class="form-control"
-            placeholder="Leave blank to keep unchanged">
+        <div class="d-flex align-items-center justify-content-between mb-3 p-3 rounded-3" style="background:#f0f9ff;border:1px solid #e0f2fe;">
+          <div class="d-flex align-items-center gap-3">
+            <div style="width:38px;height:38px;border-radius:10px;background:#0A66C2;display:flex;align-items:center;justify-content:center;">
+              <i class="bi bi-linkedin text-white"></i>
+            </div>
+            <div>
+              <strong style="font-size:13px;">LinkedIn</strong>
+              {% if affiliate.linkedin_connected %}
+                <br><span class="badge bg-success bg-opacity-10 text-success" style="font-size:11px;">✓ {{ affiliate.linkedin_username }}</span>
+                <input type="hidden" name="linkedin_username" value="{{ affiliate.linkedin_username }}">
+              {% else %}
+                <br><span class="text-muted" style="font-size:11px;">Not connected</span>
+                <input type="hidden" name="linkedin_username" value="{{ affiliate.linkedin_username|default:'' }}">
+              {% endif %}
+            </div>
+          </div>
+          {% if affiliate.linkedin_connected %}
+            <a href="{% url 'affiliate_disconnect_platform' 'linkedin' %}" class="btn btn-sm btn-outline-danger" style="font-size:11px;">Disconnect</a>
+          {% else %}
+            <a href="{% url 'affiliate_connect_linkedin' %}" class="btn btn-sm text-white" style="font-size:11px;background:#0A66C2;border:0;">
+              <i class="bi bi-box-arrow-in-right me-1"></i>Connect
+            </a>
+          {% endif %}
         </div>
 
-        <!-- Twitter -->
-        <div class="mb-3">
-          <label class="form-label">Twitter Secret</label>
-          <input type="password" name="twitter_secret" class="form-control" placeholder="Leave blank to keep unchanged">
-        </div>
+        <hr>
 
         <!-- Buttons -->
         <div class="d-flex justify-content-between mt-4">

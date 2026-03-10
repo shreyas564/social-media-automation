@@ -80,7 +80,7 @@ urlpatterns = [
     path("affiliate-register/", views.affiliate_register, name="affiliate_register"),
     path("affiliate-login/", views.affiliate_login, name="affiliate_login"),
     path("affiliate-dashboard/", views.affiliate_dashboard, name="affiliate_dashboard"),
-    path("affiliate-feed/", views.affiliate_feed, name="affiliate_feed"),
+    path("affiliate/post-details/", views.affiliate_post_details_view, name="affiliate_post_details"),
 
     path("affiliate/like/", views.like_post, name="like_post"),
     path("affiliate/comment/", views.comment_post, name="comment_post"),
@@ -101,4 +101,13 @@ urlpatterns = [
     path("affiliate/update-profile/", views.update_affiliate_profile, name="update_affiliate_profile"),
     path("affiliate/update-password/", views.change_affiliate_password, name="change_affiliate_password"),
     path("affiliate-logout/", views.affiliate_logout, name="affiliate_logout"),
+
+    # AFFILIATE SOCIAL CONNECT (OAuth)
+    path("affiliate/connect/facebook/", views.affiliate_connect_facebook, name="affiliate_connect_facebook"),
+    path("affiliate/connect/facebook/callback/", views.affiliate_facebook_callback, name="affiliate_facebook_callback"),
+    path("affiliate/connect/instagram/", views.affiliate_connect_instagram, name="affiliate_connect_instagram"),
+    path("affiliate/connect/instagram/callback/", views.affiliate_instagram_callback, name="affiliate_instagram_callback"),
+    path("affiliate/connect/linkedin/", views.affiliate_connect_linkedin, name="affiliate_connect_linkedin"),
+    path("affiliate/connect/linkedin/callback/", views.affiliate_linkedin_callback, name="affiliate_linkedin_callback"),
+    path("affiliate/disconnect/<str:platform>/", views.affiliate_disconnect_platform, name="affiliate_disconnect_platform"),
 ]

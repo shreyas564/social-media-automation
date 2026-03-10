@@ -580,6 +580,25 @@ def affiliate_dashboard(request):
         }
     )
 
+def affiliate_post_details_view(request):
+    if not request.session.get('affiliate_id'):
+        return redirect('affiliate_login')
+
+    affiliate_id = request.session.get('affiliate_id')
+    posts = Post.objects.all().order_by('-created_at')
+    posts = _attach_affiliate_action_status(posts, affiliate_id)
+    affiliate = AffiliateProfile.objects.filter(id=affiliate_id).first()
+
+    return render(
+        request,
+        'affiliate_post_details.html',
+        {
+            'posts': posts,
+            'affiliate': affiliate,
+        }
+    )
+
+
 def like_post(request):
     affiliate_id = request.session.get("affiliate_id")
     post_id = request.POST.get("post_id")
@@ -917,6 +936,334 @@ def edit_affiliate_profile(request):
     affiliate = get_object_or_404(AffiliateProfile, id=affiliate_id)
     return render(request, 'edit_affiliate_profile.html', {'affiliate': affiliate})
 
+
+# =============================================================
+# AFFILIATE SOCIAL CONNECT — OAuth Flows
+# =============================================================
+
+def _build_redirect_uri(request, path_name):
+    """Build an absolute redirect URI. Respects X-Forwarded-Proto from ngrok/proxies."""
+    from django.urls import reverse
+    # ngrok sets X-Forwarded-Proto: https but request.is_secure() is False on the local server.
+    forwarded_proto = request.META.get('HTTP_X_FORWARDED_PROTO', '')
+    scheme = forwarded_proto if forwarded_proto in ('http', 'https') else ('https' if request.is_secure() else 'http')
+    host = request.get_host()
+    path = reverse(path_name)
+    return f"{scheme}://{host}{path}"
+
+
+# ---------- FACEBOOK ----------
+def affiliate_connect_facebook(request):
+    affiliate_id = request.session.get('affiliate_id')
+    if not affiliate_id:
+        return redirect('affiliate_login')
+
+    app_id = os.getenv('FACEBOOK_APP_ID', '')
+    redirect_uri = _build_redirect_uri(request, 'affiliate_facebook_callback')
+    # Store state in session to prevent CSRF
+    import secrets
+    state = secrets.token_urlsafe(32)
+    request.session['fb_oauth_state'] = state
+
+    auth_url = (
+        "https://www.facebook.com/v19.0/dialog/oauth"
+        f"?client_id={app_id}"
+        f"&redirect_uri={urllib.parse.quote(redirect_uri, safe='')}"
+        # Business Login requires at least one business-tier permission.
+        # pages_show_list + business_management satisfy this requirement.
+        f"&scope=email,public_profile,pages_show_list,business_management"
+        f"&state={state}"
+    )
+    return redirect(auth_url)
+
+
+def affiliate_facebook_callback(request):
+    affiliate_id = request.session.get('affiliate_id')
+    if not affiliate_id:
+        return redirect('affiliate_login')
+
+    code = request.GET.get('code')
+    state = request.GET.get('state')
+    saved_state = request.session.pop('fb_oauth_state', None)
+
+    if not code or state != saved_state:
+        messages.error(request, "Facebook login failed. Please try again.")
+        return redirect('usersettings')
+
+    app_id = os.getenv('FACEBOOK_APP_ID', '')
+    app_secret = os.getenv('FACEBOOK_APP_SECRET', '')
+    redirect_uri = _build_redirect_uri(request, 'affiliate_facebook_callback')
+
+    # Exchange code for access token
+    try:
+        token_resp = requests.get(
+            "https://graph.facebook.com/v19.0/oauth/access_token",
+            params={
+                'client_id': app_id,
+                'client_secret': app_secret,
+                'redirect_uri': redirect_uri,
+                'code': code,
+            },
+            timeout=15,
+        )
+        token_data = token_resp.json()
+        access_token = token_data.get('access_token')
+        if not access_token:
+            logger.error(f"Facebook token exchange failed: {token_data}")
+            messages.error(request, "Facebook login failed. Could not get access token.")
+            return redirect('usersettings')
+
+        # Fetch profile
+        profile_resp = requests.get(
+            "https://graph.facebook.com/v19.0/me",
+            params={'access_token': access_token, 'fields': 'name,id'},
+            timeout=15,
+        )
+        profile = profile_resp.json()
+        fb_name = profile.get('name', '')
+
+        # Save
+        affiliate = get_object_or_404(AffiliateProfile, id=affiliate_id)
+        affiliate.facebook_username = fb_name
+        affiliate.facebook_connected = True
+        affiliate.facebook_access_token = access_token
+        affiliate.save()
+
+        messages.success(request, f"Facebook connected! Username: {fb_name}")
+    except Exception as e:
+        logger.error(f"Facebook OAuth error: {e}")
+        messages.error(request, "Facebook connection failed. Please try again.")
+
+    return redirect('usersettings')
+
+
+# ---------- INSTAGRAM (Instagram Business Login) ----------
+def affiliate_connect_instagram(request):
+    affiliate_id = request.session.get('affiliate_id')
+    if not affiliate_id:
+        return redirect('affiliate_login')
+
+    ig_app_id = os.getenv('INSTAGRAM_APP_ID', '')
+    redirect_uri = _build_redirect_uri(request, 'affiliate_instagram_callback')
+
+    import secrets
+    state = secrets.token_urlsafe(32)
+    request.session['ig_oauth_state'] = state
+
+    # Instagram Business Login — uses www.instagram.com (not api.instagram.com)
+    scope = (
+        "instagram_business_basic,"
+        "instagram_business_manage_messages,"
+        "instagram_business_manage_comments,"
+        "instagram_business_content_publish,"
+        "instagram_business_manage_insights"
+    )
+    auth_url = (
+        "https://www.instagram.com/oauth/authorize"
+        f"?force_reauth=true"
+        f"&client_id={ig_app_id}"
+        f"&redirect_uri={urllib.parse.quote(redirect_uri, safe='')}"
+        f"&response_type=code"
+        f"&scope={urllib.parse.quote(scope)}"
+        f"&state={state}"
+    )
+    return redirect(auth_url)
+
+
+def affiliate_instagram_callback(request):
+    affiliate_id = request.session.get('affiliate_id')
+    if not affiliate_id:
+        return redirect('affiliate_login')
+
+    code = request.GET.get('code')
+    # Instagram sometimes appends '#_' — strip it
+    if code and code.endswith('#_'):
+        code = code[:-2]
+
+    state = request.GET.get('state')
+    saved_state = request.session.pop('ig_oauth_state', None)
+
+    if not code or state != saved_state:
+        messages.error(request, "Instagram login failed. Please try again.")
+        return redirect('usersettings')
+
+    ig_app_id = os.getenv('INSTAGRAM_APP_ID', '')
+    ig_app_secret = os.getenv('INSTAGRAM_APP_SECRET', '')
+    redirect_uri = _build_redirect_uri(request, 'affiliate_instagram_callback')
+
+    try:
+        # Step 1: Exchange code for access token via Instagram's token endpoint
+        token_resp = requests.post(
+            "https://api.instagram.com/oauth/access_token",
+            data={
+                'client_id': ig_app_id,
+                'client_secret': ig_app_secret,
+                'grant_type': 'authorization_code',
+                'redirect_uri': redirect_uri,
+                'code': code,
+            },
+            timeout=15,
+        )
+        token_data = token_resp.json()
+        access_token = token_data.get('access_token')
+        ig_user_id = token_data.get('user_id')
+
+        if not access_token:
+            logger.error(f"Instagram token exchange failed: {token_data}")
+            messages.error(request, "Instagram login failed. Could not get access token.")
+            return redirect('usersettings')
+
+        # Step 2: Fetch username using Instagram Graph API (Business Login)
+        profile_resp = requests.get(
+            "https://graph.instagram.com/me",
+            params={
+                'fields': 'id,username,name',
+                'access_token': access_token,
+            },
+            timeout=15,
+        )
+        profile = profile_resp.json()
+        ig_username = profile.get('username', '') or profile.get('name', '')
+
+        if not ig_username:
+            logger.error(f"Instagram profile fetch failed: {profile}")
+            messages.error(request, "Could not retrieve Instagram username. Please try again.")
+            return redirect('usersettings')
+
+        # Step 3: Save to AffiliateProfile
+        affiliate = get_object_or_404(AffiliateProfile, id=affiliate_id)
+        affiliate.instagram_username = ig_username
+        affiliate.instagram_connected = True
+        affiliate.instagram_access_token = access_token
+        affiliate.save()
+
+        messages.success(request, f"Instagram connected! @{ig_username}")
+    except Exception as e:
+        logger.error(f"Instagram OAuth error: {e}")
+        messages.error(request, "Instagram connection failed. Please try again.")
+
+    return redirect('usersettings')
+
+
+# ---------- LINKEDIN ----------
+def affiliate_connect_linkedin(request):
+    affiliate_id = request.session.get('affiliate_id')
+    if not affiliate_id:
+        return redirect('affiliate_login')
+
+    client_id = os.getenv('LINKEDIN_CLIENT_ID', '')
+    redirect_uri = _build_redirect_uri(request, 'affiliate_linkedin_callback')
+
+    import secrets
+    state = secrets.token_urlsafe(32)
+    request.session['li_oauth_state'] = state
+
+    scope = "openid profile email"
+    auth_url = (
+        "https://www.linkedin.com/oauth/v2/authorization"
+        f"?response_type=code"
+        f"&client_id={client_id}"
+        f"&redirect_uri={urllib.parse.quote(redirect_uri, safe='')}"
+        f"&scope={urllib.parse.quote(scope)}"
+        f"&state={state}"
+    )
+    return redirect(auth_url)
+
+
+def affiliate_linkedin_callback(request):
+    affiliate_id = request.session.get('affiliate_id')
+    if not affiliate_id:
+        return redirect('affiliate_login')
+
+    code = request.GET.get('code')
+    state = request.GET.get('state')
+    saved_state = request.session.pop('li_oauth_state', None)
+
+    if not code or state != saved_state:
+        messages.error(request, "LinkedIn login failed. Please try again.")
+        return redirect('usersettings')
+
+    client_id = os.getenv('LINKEDIN_CLIENT_ID', '')
+    client_secret = os.getenv('LINKEDIN_CLIENT_SECRET', '')
+    redirect_uri = _build_redirect_uri(request, 'affiliate_linkedin_callback')
+
+    try:
+        # Exchange code for access token
+        token_resp = requests.post(
+            "https://www.linkedin.com/oauth/v2/accessToken",
+            data={
+                'grant_type': 'authorization_code',
+                'code': code,
+                'client_id': client_id,
+                'client_secret': client_secret,
+                'redirect_uri': redirect_uri,
+            },
+            timeout=15,
+        )
+        token_data = token_resp.json()
+        access_token = token_data.get('access_token')
+        if not access_token:
+            logger.error(f"LinkedIn token exchange failed: {token_data}")
+            messages.error(request, "LinkedIn login failed. Could not get access token.")
+            return redirect('usersettings')
+
+        # Fetch profile using OpenID userinfo endpoint
+        profile_resp = requests.get(
+            "https://api.linkedin.com/v2/userinfo",
+            headers={'Authorization': f'Bearer {access_token}'},
+            timeout=15,
+        )
+        profile = profile_resp.json()
+        li_name = profile.get('name', '')
+        if not li_name:
+            # Fallback: combine given_name + family_name
+            given = profile.get('given_name', '')
+            family = profile.get('family_name', '')
+            li_name = f"{given} {family}".strip()
+
+        # Save
+        affiliate = get_object_or_404(AffiliateProfile, id=affiliate_id)
+        affiliate.linkedin_username = li_name
+        affiliate.linkedin_connected = True
+        affiliate.linkedin_access_token = access_token
+        affiliate.save()
+
+        messages.success(request, f"LinkedIn connected! Name: {li_name}")
+    except Exception as e:
+        logger.error(f"LinkedIn OAuth error: {e}")
+        messages.error(request, "LinkedIn connection failed. Please try again.")
+
+    return redirect('usersettings')
+
+
+# ---------- DISCONNECT ----------
+def affiliate_disconnect_platform(request, platform):
+    affiliate_id = request.session.get('affiliate_id')
+    if not affiliate_id:
+        return redirect('affiliate_login')
+
+    affiliate = get_object_or_404(AffiliateProfile, id=affiliate_id)
+    platform = platform.lower()
+
+    if platform == 'facebook':
+        affiliate.facebook_username = ''
+        affiliate.facebook_connected = False
+        affiliate.facebook_access_token = None
+    elif platform == 'instagram':
+        affiliate.instagram_username = ''
+        affiliate.instagram_connected = False
+        affiliate.instagram_access_token = None
+    elif platform == 'linkedin':
+        affiliate.linkedin_username = ''
+        affiliate.linkedin_connected = False
+        affiliate.linkedin_access_token = None
+    else:
+        messages.error(request, "Invalid platform.")
+        return redirect('usersettings')
+
+    affiliate.save()
+    messages.success(request, f"{platform.capitalize()} disconnected.")
+    return redirect('usersettings')
 
 def change_password_page(request):
     affiliate_id = request.session.get('affiliate_id')

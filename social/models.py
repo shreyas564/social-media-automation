@@ -82,6 +82,16 @@ class AffiliateProfile(models.Model):
     facebook_username = models.CharField(max_length=150, blank=True, null=True, help_text="Facebook name/username for verification")
     linkedin_username = models.CharField(max_length=150, blank=True, null=True, help_text="LinkedIn name for verification")
 
+    # Social Connect — OAuth status
+    instagram_connected = models.BooleanField(default=False)
+    facebook_connected = models.BooleanField(default=False)
+    linkedin_connected = models.BooleanField(default=False)
+
+    # Access tokens (stored for future API use, e.g. verification)
+    instagram_access_token = models.TextField(blank=True, null=True)
+    facebook_access_token = models.TextField(blank=True, null=True)
+    linkedin_access_token = models.TextField(blank=True, null=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
