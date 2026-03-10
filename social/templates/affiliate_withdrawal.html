@@ -81,6 +81,8 @@
         {% if latest_request %}
           {% if latest_request.status == "paid" %}
             <span class="badge text-bg-success fs-6">Paid</span>
+          {% elif latest_request.action == "rejected" or latest_request.status == "rejected" %}
+            <span class="badge text-bg-danger fs-6">Rejected</span>
           {% else %}
             <span class="badge text-bg-warning fs-6">Pending</span>
           {% endif %}
@@ -89,6 +91,13 @@
         {% endif %}
       </div>
     </div>
+    {% if latest_request %}
+      {% if latest_request.action == "rejected" or latest_request.status == "rejected" %}
+        <div class="alert alert-warning py-2 mb-3" role="alert">
+          Your last withdrawal request was rejected. You can submit a new request now.
+        </div>
+      {% endif %}
+    {% endif %}
 
     <form id="withdrawalForm" method="post" action="{% url 'request_withdrawal' %}">
       {% csrf_token %}

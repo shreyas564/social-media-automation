@@ -486,6 +486,9 @@ def _affiliate_earnings_summary(affiliate_id):
         qs = model_cls.objects.filter(q)
         if since is not None:
             qs = qs.filter(created_at__gt=since)
+        if model_cls is Comment:
+            # Count one comment action per post for the affiliate.
+            return qs.values("post_id").distinct().count()
         return qs.count()
 
     aliases = {
@@ -639,10 +642,26 @@ def like_post(request):
 def comment_post(request):
     affiliate_id = request.session.get("affiliate_id")
     post_id = request.POST.get("post_id")
-    comment_text = request.POST.get("comment_text")
+    comment_text = (request.POST.get("comment_text") or "").strip()
     affiliate = AffiliateProfile.objects.get(id=affiliate_id)
     post = Post.objects.get(id=post_id)
-    Comment.objects.create(affiliate = affiliate,post=post,text=comment_text)
+    existing_comment = (
+        Comment.objects.filter(affiliate=affiliate, post=post)
+        .filter(Q(platform__iexact="instagram") | Q(platform__isnull=True) | Q(platform=""))
+        .order_by("-created_at")
+        .first()
+    )
+    if existing_comment:
+        existing_comment.text = comment_text or existing_comment.text or "Done"
+        existing_comment.platform = "instagram"
+        existing_comment.save(update_fields=["text", "platform"])
+    else:
+        Comment.objects.create(
+            affiliate=affiliate,
+            post=post,
+            platform="instagram",
+            text=comment_text or "Done",
+        )
     return JsonResponse({"status":"success"})
 
 def share_post(request):
@@ -1011,7 +1030,11 @@ def affiliate_users(request):
         q = q | Q(affiliate=affiliate, platform__icontains=platform)
         if platform == "instagram":
             q = q | Q(affiliate=affiliate, platform__isnull=True) | Q(affiliate=affiliate, platform="")
-        return model_cls.objects.filter(q).count()
+        qs = model_cls.objects.filter(q)
+        if model_cls is Comment:
+            # Count one comment action per post for the affiliate.
+            return qs.values("post_id").distinct().count()
+        return qs.count()
 
     def scraped_action_count(affiliate, platform, action_type):
         aliases = (
@@ -1558,7 +1581,7 @@ def update_withdrawal_request_status(request):
             return redirect("withdrawal_requests")
 
     else:
-        withdraw_req.status = "pending"
+        withdraw_req.status = "rejected"
         withdraw_req.action = "rejected"
         messages.success(request, f"Withdrawal request marked as {decision}.")
 
@@ -2433,46 +2456,6 @@ FB_BASE_URL = "https://graph.facebook.com/v19.0"
 FB_ACCESS_TOKEN = "EAAMcHkCZAkvIBQmgeWZAOZAtYLn0kNdjGlkefFmYf5T5WNE9z3vMK3oCDQ6thSYxvPXJ6qjCTYsbaFjGXO28RLRbqn5aDqonTqV9UEF3O28trT2LhobR9AUcObfl0IZC8dLo9d8QnJnwVjnJ0n69qqnD1BGAL3qnkAFy2a9dnpfyCHaM1lEcgIeJF2erd2cHJ4LYnPzJ4ffuSUaFPvVlu0lcC04zHycSXK7kzSEZD"
 
 
-# def post_stats_view(request):
-#     posts = Post.objects.all()   
-
-#     print("POST COUNT:", posts.count())  
-
-#     return render(
-#         request,
-#         "social/postStat.html",
-#         {"posts": posts}
-#     )
-# def post_stats_view(request):
-    
-#     admin = SuperAdmin.objects.get(user=request.user)
-#     posts = Post.objects.filter(created_by=admin)
-
-#     for post in posts:
-
-#         # INSTAGRAM
-#         insta_stats = fetch_instagram_stats(post.instapostid, admin.instatoken)
-
-#         # FACEBOOK
-#         fb_stats = fetch_facebook_stats(post.fbpostid, admin.fbtoken)
-
-#         # LINKEDIN
-#         ln_stats = fetch_linkedin_stats(post.lnpostid, admin.lntoken)
-
-#         # Save into model
-#         post.insta_likes = insta_stats["likes"]
-#         post.insta_comments = insta_stats["comments"]
-
-#         post.fb_likes = fb_stats["likes"]
-#         post.fb_comments = fb_stats["comments"]
-#         post.fb_shares = fb_stats["shares"]
-
-#         post.ln_likes = ln_stats["likes"]
-#         post.ln_comments = ln_stats["comments"]
-#         post.ln_shares = ln_stats["shares"]
-
-#     return render(request, "post_stats.html", {"posts": posts})
-
 
 # ---------------- FACEBOOK ----------------
 def _extract_fb_object_ids(raw_value):
@@ -2673,7 +2656,7 @@ def get_linkedin_stats(post_urn, access_token):
 
 
 # ---------------- AJAX HANDLER ----------------
-# views.py
+
 from django.http import JsonResponse
 from utils.facebook import (
     get_facebook_likes_count,
@@ -2903,139 +2886,6 @@ def normalize_url(url):
     return url
 
 
-# @csrf_exempt
-# def fetch_post_stats(request):
-#     data = json.loads(request.body)
-
-#     platform = data.get("platform")
-#     incoming_url = normalize_url(data.get("post_url"))
-
-#     posts = Post.objects.all()
-
-#     post = None
-
-#     for p in posts:
-#         if platform == "instagram" and normalize_url(p.Ipost_url) == incoming_url:
-#             post = p
-#             break
-
-#         elif platform == "facebook" and normalize_url(p.Fposturl) == incoming_url:
-#             post = p
-#             print("Checking DB FB URL:", p.Fposturl)
-#             print("Normalized DB:", normalize_url(p.Fposturl))
-#             break
-
-#         elif platform == "linkedin" and normalize_url(p.Lposturl) == incoming_url:
-#             post = p
-#             break
-
-#     if not post:
-#         print("POST NOT FOUND:", incoming_url)
-#         return JsonResponse({"likes": 0, "comments": 0, "shares": 0})
-
-#     if platform == "facebook":
-#         stats = fetch_facebook_stats(post)
-
-#     elif platform == "instagram":
-#         stats = fetch_instagram_stats(post)
-
-#     elif platform == "linkedin":
-#         stats = fetch_linkedin_stats(post)
-
-#     else:
-#         stats = {"likes": 0, "comments": 0, "shares": 0}
-
-#     return JsonResponse(stats)
-
-
-# def fetch_facebook_stats(post):
-    
-#     if not post.fbpostid:
-#         return {"likes": 0, "comments": 0, "shares": 0, "views": 0}
-
-#     # -----------------------------
-#     # STEP 1 → Fetch Post Info
-#     # -----------------------------
-#     url = f"https://graph.facebook.com/v19.0/{post.fbpostid}"
-
-#     params = {
-#         "fields": "reactions.summary(true),comments.summary(true),shares,attachments{media,type}",
-#         "access_token": FACEBOOK_TOKEN
-#     }
-
-#     res = requests.get(url, params=params)
-#     data = res.json()
-
-#     print("FB POST RESPONSE:", data)
-
-#     likes = data.get("reactions", {}).get("summary", {}).get("total_count", 0)
-#     comments = data.get("comments", {}).get("summary", {}).get("total_count", 0)
-#     shares = data.get("shares", {}).get("count", 0)
-
-#     # -----------------------------
-#     # STEP 2 → Detect Video
-#     # -----------------------------
-#     video_id = None
-
-#     try:
-#         attachments = data.get("attachments",{}).get("data",[])[0]
-
-
-#         if attachments.get("media", {}).get("type") == "video":
-#             video_id = attachments.get("target",{}).get("id")
-        
-#         if not video_id:
-#             video_id = attachments.get("media",{}).get("id")
-
-#     except Exception:
-#         pass
-
-#     # -----------------------------
-#     # STEP 3 → Fetch Video Insights
-#     # -----------------------------
-#     views = 0
-
-#     if video_id:
-#         insight_url = f"https://graph.facebook.com/v19.0/{video_id}/insights"
-
-#         insight_params = {
-#             "metric": "total_video_views",
-#             "access_token": FACEBOOK_TOKEN
-#         }
-
-#         insight_res = requests.get(insight_url, params=insight_params).json()
-
-#         print("VIDEO INSIGHTS:", insight_res)
-
-#         try:
-#             for item in insight_res.get("data", []):
-#                 if item["name"] == "total_video_views":
-#                     views = item["values"][0]["value"]
-#         except Exception:
-#             pass
-
-#     return {
-#         "likes": likes,
-#         "comments": comments,
-#         "shares": shares,
-#         "views": views
-#     }
-
-
-# def fetch_instagram_stats(post):
-#     url = f"https://graph.facebook.com/v19.0/{post.instapostid}"
-#     params = {
-#         "fields": "like_count,comments_count",
-#         "access_token": INSTAGRAM_TOKEN
-#     }
-
-#     r = requests.get(url, params=params).json()
-
-#     return {
-#         "likes": r.get("like_count", 0),
-#         "comments": r.get("comments_count", 0),
-#         "shares": "NA"
-#     }
 
 def fetch_linkedin_stats(post):
     if not post.lnpostid:
@@ -3167,7 +3017,7 @@ def affiliate_post_status(request, post_id):
             Comment.objects.filter(
                 affiliate=affiliate,
                 post_id=post_id
-            ).values_list("platform",flat=True)
+            ).values_list("platform",flat=True).distinct()
         ),
 
         "shares": list(
@@ -3210,12 +3060,23 @@ def save_action(request):
         )
 
     elif action == "comment":
-        Comment.objects.get_or_create(
-            affiliate=affiliate,
-            post=post,
-            platform=platform,
-            text="Done"
+        comment_text = (data.get("comment_text") or "").strip()
+        existing_comment = (
+            Comment.objects.filter(affiliate=affiliate, post=post)
+            .filter(Q(platform__iexact=platform))
+            .order_by("-created_at")
+            .first()
         )
+        if existing_comment:
+            existing_comment.text = comment_text or existing_comment.text or "Done"
+            existing_comment.save(update_fields=["text"])
+        else:
+            Comment.objects.create(
+                affiliate=affiliate,
+                post=post,
+                platform=platform,
+                text=comment_text or "Done",
+            )
 
     elif action == "share":
         Share.objects.get_or_create(
@@ -3240,6 +3101,7 @@ def get_actions(request):
     comments = list(
         Comment.objects.filter(affiliate_id=affiliate_id)
         .values("post_id", "platform")
+        .distinct()
     )
 
     shares = list(
@@ -3256,9 +3118,7 @@ def get_actions(request):
             post_id = item["post_id"]
             raw_platform = (item.get("platform") or "").strip().lower()
 
-            # Backward compatibility:
-            # 1) null/empty platform from old rows -> treat as instagram
-            # 2) comma-joined platforms like "facebook,instagram" -> split
+            
             if not raw_platform:
                 candidates = ["instagram"]
             elif "," in raw_platform:
@@ -3297,9 +3157,9 @@ def get_affiliate_actions(request):
     except AffiliateProfile.DoesNotExist:
          return JsonResponse({"likes": [], "comments": [], "shares": []})
 
-    likes = Like.objects.filter(affiliate=affiliate).values_list("post_id", flat=True)
-    comments = Comment.objects.filter(affiliate=affiliate).values_list("post_id", flat=True)
-    shares = Share.objects.filter(affiliate=affiliate).values_list("post_id", flat=True)
+    likes = Like.objects.filter(affiliate=affiliate).values_list("post_id", flat=True).distinct()
+    comments = Comment.objects.filter(affiliate=affiliate).values_list("post_id", flat=True).distinct()
+    shares = Share.objects.filter(affiliate=affiliate).values_list("post_id", flat=True).distinct()
 
     return JsonResponse({
         "likes": list(likes),
@@ -3430,8 +3290,15 @@ def post_details(request, post_id, platform, type):
             items = ScrapedComment.objects.filter(scraped_post=scraped_post)
             
         # Split and Enrich
+        seen_usernames = set()
         for item in items:
             item_username_lower = item.username.lower().strip()
+
+            # For comments, only count one entry per user on this post/platform
+            if type == 'comments':
+                if item_username_lower in seen_usernames:
+                    continue
+                seen_usernames.add(item_username_lower)
             
             if item_username_lower in affiliate_map:
                 aff = affiliate_map[item_username_lower]
