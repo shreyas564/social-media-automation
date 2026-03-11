@@ -244,16 +244,8 @@ class ApifyVerificationService:
     
     def scrape_linkedin_post(self, post_url: str) -> Dict[str, List[str]]:
         """
-        Scrape LinkedIn post to get list of users who liked and commented
-        
-        Args:
-            post_url: LinkedIn post URL
-        
-        Returns:
-            {
-                'likers': ['Name1', 'Name2', ...],
-                'commenters': ['Name3', 'Name4', ...]
-            }
+        Scrape LinkedIn post to get list of users who liked and commented.
+        Uses supreme_coder/linkedin-post with deepScrape (cookie-free, $1/1k).
         """
         print(f"🔍 Scraping LinkedIn post: {post_url}")
         
@@ -271,47 +263,55 @@ class ApifyVerificationService:
                 'commenters': cached_comments
             }
         
-        # 1. Scrape Reactions (Likers) using harvestapi/linkedin-post-reactions
         reactors = []
-        try:
-            print(f"🔍 [LinkedIn] Scraping reactions using 'harvestapi/linkedin-post-reactions'")
-            run_input_reactions = {
-                "urls": [post_url],
-            }
-            
-            run_reactions = self.client.actor("harvestapi/linkedin-post-reactions").call(run_input=run_input_reactions)
-            
-            if run_reactions:
-                for item in self.client.dataset(run_reactions["defaultDatasetId"]).iterate_items():
-                     # harvestapi usually returns 'name' or 'profile_url'
-                     name = item.get('name') or item.get('title')
-                     if name:
-                        reactors.append(name)
-            print(f"✓ Found {len(reactors)} reactors")
-            
-        except Exception as e:
-            print(f"❌ Error scraping LinkedIn reactions: {e}")
-
-        # 2. Scrape Comments using harvestapi/linkedin-post-comments
         commenters = []
+
         try:
-            print(f"🔍 [LinkedIn] Scraping comments using 'harvestapi/linkedin-post-comments'")
-            run_input_comments = {
+            print(f"🔍 [LinkedIn] Using 'supreme_coder/linkedin-post' with deepScrape")
+            run_input = {
                 "urls": [post_url],
+                "limitPerSource": 1,
+                "deepScrape": True,
+                "rawData": False,
             }
             
-            run_comments = self.client.actor("harvestapi/linkedin-post-comments").call(run_input=run_input_comments)
+            run = self.client.actor("supreme_coder/linkedin-post").call(run_input=run_input)
             
-            if run_comments:
-                for item in self.client.dataset(run_comments["defaultDatasetId"]).iterate_items():
-                    # Extract author name
-                    author_name = item.get('author_name') or item.get('name') or item.get('author', {}).get('name')
-                    if author_name:
-                        commenters.append(author_name)
-            print(f"✓ Found {len(commenters)} commenters")
-            
+            if run:
+                for item in self.client.dataset(run["defaultDatasetId"]).iterate_items():
+                    # ── Extract likers from reactions[] ──
+                    reactions = item.get("reactions") or []
+                    if isinstance(reactions, list):
+                        for r in reactions:
+                            if not isinstance(r, dict):
+                                continue
+                            profile = r.get("profile") or r
+                            first = profile.get("firstName", "")
+                            last = profile.get("lastName", "")
+                            full_name = f"{first} {last}".strip()
+                            public_id = profile.get("publicId", "")
+                            if full_name:
+                                reactors.append(full_name)
+
+                    # ── Extract commenters from comments[] ──
+                    comments_list = item.get("comments") or []
+                    if isinstance(comments_list, list):
+                        for c in comments_list:
+                            if not isinstance(c, dict):
+                                continue
+                            author = c.get("author") or {}
+                            if isinstance(author, dict):
+                                first = author.get("firstName", "")
+                                last = author.get("lastName", "")
+                                full_name = f"{first} {last}".strip()
+                                public_id = author.get("publicId", "")
+                                if full_name:
+                                    commenters.append(full_name)
+
+            print(f"✓ Found {len(reactors)} reactors, {len(commenters)} commenters")
+
         except Exception as e:
-            print(f"❌ Error scraping LinkedIn comments: {e}")
+            print(f"❌ Error scraping LinkedIn post: {e}")
             
         # Save to cache
         self._save_to_cache(cache_key_likes, reactors)

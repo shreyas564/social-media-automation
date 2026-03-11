@@ -199,77 +199,99 @@ class InstagramScraper:
 
 
 class LinkedInScraper:
-    """LinkedIn-specific scrapers using proper Apify actors"""
-    
+    """
+    LinkedIn scraper using the cookie-free supreme_coder/linkedin-post actor.
+    A single deepScrape call returns both likers and commenters.
+    Cost: ~$1 per 1,000 posts.  No cookies required.
+    """
+
     def __init__(self, apify_client: ApifyClient, li_at_cookie: str = None):
         self.client = apify_client
-        self.cookie = li_at_cookie
-    
-    def scrape_reactions(self, post_url: str, max_reactions: int = 100) -> List[str]:
+        # Internal cache so reactions + comments share one API call
+        self._cache: Dict[str, Dict] = {}
+
+    # ── private: single API call, cached ──────────────────────────
+    def _fetch_post_data(self, post_url: str) -> Dict:
         """
-        Scrape reactions (likers) from LinkedIn post
-        
-        Actor: harvestapi/linkedin-post-reactions
+        Call supreme_coder/linkedin-post with deepScrape once per URL
+        and cache the parsed likers / commenters lists.
+
+        Response shape (confirmed):
+          reactions[].profile.firstName / lastName / publicId
+          comments[].author.firstName / lastName / publicId
         """
-        logger.info(f"🔍 [LinkedIn] Scraping reactions from: {post_url}")
-        
+        if post_url in self._cache:
+            logger.info(f"✓ [LinkedIn] Using cached data for: {post_url}")
+            return self._cache[post_url]
+
+        logger.info(f"🔍 [LinkedIn] Fetching post data via supreme_coder/linkedin-post: {post_url}")
+
         run_input = {
             "urls": [post_url],
+            "limitPerSource": 1,
+            "deepScrape": True,
+            "rawData": False,
         }
-        
-        # Add cookie if available
-        if self.cookie:
-             run_input["cookies"] = [{"name": "li_at", "value": self.cookie, "domain": ".linkedin.com", "path": "/"}]
-        
+
+        likers: List[str] = []
+        commenters: List[str] = []
+
         try:
-            # Run LinkedIn Reactions Scraper
-            run = self.client.actor("harvestapi/linkedin-post-reactions").call(run_input=run_input)
-            
-            reactors = []
+            run = self.client.actor("supreme_coder/linkedin-post").call(run_input=run_input)
+
             if run:
                 for item in self.client.dataset(run["defaultDatasetId"]).iterate_items():
-                    # harvestapi usually returns 'name' or 'profile_url'
-                    name = item.get('name') or item.get('title')
-                    if name:
-                        reactors.append(name)
-                        
-            logger.info(f"✓ Found {len(reactors)} reactors")
-            return reactors
-        
+                    logger.info(f"📋 [LinkedIn] Dataset item keys: {list(item.keys())}")
+
+                    # ── Extract likers from reactions[] ──
+                    reactions = item.get("reactions") or []
+                    if isinstance(reactions, list):
+                        for r in reactions:
+                            if not isinstance(r, dict):
+                                continue
+                            # Profile is nested: reactions[].profile.firstName/lastName
+                            profile = r.get("profile") or r
+                            first = profile.get("firstName", "")
+                            last = profile.get("lastName", "")
+                            full_name = f"{first} {last}".strip()
+                            public_id = profile.get("publicId", "")
+
+                            if full_name:
+                                likers.append(full_name)
+
+                    # ── Extract commenters from comments[] ──
+                    comments = item.get("comments") or []
+                    if isinstance(comments, list):
+                        for c in comments:
+                            if not isinstance(c, dict):
+                                continue
+                            # Author is nested: comments[].author.firstName/lastName
+                            author = c.get("author") or {}
+                            if isinstance(author, dict):
+                                first = author.get("firstName", "")
+                                last = author.get("lastName", "")
+                                full_name = f"{first} {last}".strip()
+                                public_id = author.get("publicId", "")
+
+                                if full_name:
+                                    commenters.append(full_name)
+
+            logger.info(f"✓ [LinkedIn] {len(likers)} likers, {len(commenters)} commenters")
+
         except Exception as e:
-            logger.info(f"❌ Error scraping LinkedIn reactions: {e}")
-            return []
+            logger.error(f"❌ Error scraping LinkedIn post: {e}")
+
+        result = {"likers": likers, "commenters": commenters}
+        self._cache[post_url] = result
+        return result
+
+    # ── public API (signatures unchanged) ─────────────────────────
+    def scrape_reactions(self, post_url: str, max_reactions: int = 100) -> List[str]:
+        """Return list of liker / reactor names for a LinkedIn post."""
+        data = self._fetch_post_data(post_url)
+        return data["likers"][:max_reactions]
 
     def scrape_comments(self, post_url: str, max_comments: int = 100) -> List[str]:
-        """
-        Scrape commenters from LinkedIn post
-        
-        Actor: harvestapi/linkedin-post-comments
-        """
-        logger.info(f"🔍 [LinkedIn] Scraping comments from: {post_url}")
-        
-        run_input = {
-            "urls": [post_url],
-        }
-        
-        if self.cookie:
-            run_input["cookies"] = [{"name": "li_at", "value": self.cookie, "domain": ".linkedin.com", "path": "/"}]
-        
-        try:
-            # Run LinkedIn Comments Scraper
-            run = self.client.actor("harvestapi/linkedin-post-comments").call(run_input=run_input)
-            
-            commenters = []
-            if run:
-                for item in self.client.dataset(run["defaultDatasetId"]).iterate_items():
-                    # Extract author name
-                    author_name = item.get('author_name') or item.get('name') or item.get('author', {}).get('name')
-                    if author_name:
-                        commenters.append(author_name)
-            
-            logger.info(f"✓ Found {len(commenters)} commenters")
-            return commenters
-        
-        except Exception as e:
-            logger.info(f"❌ Error scraping LinkedIn comments: {e}")
-            return []
+        """Return list of commenter names for a LinkedIn post."""
+        data = self._fetch_post_data(post_url)
+        return data["commenters"][:max_comments]
