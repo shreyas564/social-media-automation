@@ -91,6 +91,20 @@ class PostScrapingService:
         except Exception as e:
             logger.info(f"❌ Scraping error: {e}")
             return {'success': False, 'error': str(e)}
+
+        # De-duplicate commenters by normalized username (case/whitespace).
+        # Keep the first-seen display name for storage.
+        def _norm_username(value: str) -> str:
+            return (value or "").strip().lower()
+
+        unique_commenter_map = {}
+        for username in commenters:
+            key = _norm_username(username)
+            if not key:
+                continue
+            if key not in unique_commenter_map:
+                unique_commenter_map[key] = username
+        unique_commenters = list(unique_commenter_map.values())
         
         # Save to database
         scraped_post, created = ScrapedPost.objects.update_or_create(
@@ -98,7 +112,7 @@ class PostScrapingService:
             platform=platform,
             defaults={
                 'total_likes_found': len(likers),
-                'total_comments_found': len(commenters),
+                'total_comments_found': len(unique_commenters),
                 'scraped_at': timezone.now()
             }
         )
@@ -116,7 +130,7 @@ class PostScrapingService:
             )
         
         # Save comments
-        for username in commenters:
+        for username in unique_commenters:
             ScrapedComment.objects.create(
                 scraped_post=scraped_post,
                 username=username
@@ -127,12 +141,12 @@ class PostScrapingService:
             'platform': platform,
             'post_id': post_id,
             'likes_found': len(likers),
-            'comments_found': len(commenters),
+            'comments_found': len(unique_commenters),
             'scraped_at': scraped_post.scraped_at,
             'was_updated': not created
         }
         
-        logger.info(f"✓ Saved {len(likers)} likes and {len(commenters)} comments to database")
+        logger.info(f"✓ Saved {len(likers)} likes and {len(unique_commenters)} comments to database")
         
         return result
     

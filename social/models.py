@@ -280,6 +280,7 @@ class WithdrawalRequest(models.Model):
     STATUS_CHOICES = [
         ("pending", "Pending"),
         ("paid", "Paid"),
+        ("rejected", "Rejected"),
     ]
     ACTION_CHOICES = [
         ("pending", "Pending"),
