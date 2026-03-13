@@ -12,58 +12,16 @@
     <div>
       <h1 class="sf-page-title">Wallet Withdrawal</h1>
       <p class="sf-page-sub">Request your payout and view current balance limits. All amounts are shown in {{ currency_symbol }}.</p>
-  .withdraw-card {
-    border: 1px solid #dbe4f2;
-    border-radius: 14px;
-    overflow: hidden;
-  }
-
-  .field-label {
-    color: #5f6f84;
-    font-weight: 600;
-    margin-bottom: 4px;
-    font-size: 14px;
-  }
-
-  .field-value {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #163556;
-  }
-
-  .withdraw-submit-btn {
-    background: #10b981;
-    border-color: #10b981;
-    color: #fff;
-    font-weight: 600;
-  }
-
-  .withdraw-submit-btn:hover,
-  .withdraw-submit-btn:focus {
-    background: #059669;
-    border-color: #059669;
-    color: #fff;
-  }
-
-  .withdraw-submit-btn:disabled {
-    background: #9ca3af;
-    border-color: #9ca3af;
-    color: #fff;
-    opacity: 1;
-  }
-</style>
-
-<div class="withdraw-head">
-  <h4 class="mb-1">Withdrawal</h4>
-  <p class="text-muted mb-0">Request your payout. All amounts are shown in {{ currency_symbol }}.</p>
-</div>
-
-{% if messages %}
-  {% for message in messages %}
-    <div class="alert alert-{{ message.tags|default:'info' }} py-2" role="alert">
-      {{ message }}
     </div>
   </div>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags|default:'info' }} py-2" role="alert">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
 
   <div class="sf-section anim-fade-up stagger-1">
     <div class="sf-section-header">
@@ -85,6 +43,8 @@
             {% if latest_request %}
               {% if latest_request.status == "paid" %}
                 <span class="sf-badge badge-success px-3 py-2"><i class="bi bi-check-circle me-1"></i> Paid</span>
+              {% elif latest_request.action == "rejected" or latest_request.status == "rejected" %}
+                <span class="sf-badge badge-danger px-3 py-2"><i class="bi bi-x-circle me-1"></i> Rejected</span>
               {% else %}
                 <span class="sf-badge badge-warning px-3 py-2"><i class="bi bi-clock-history me-1"></i> Pending</span>
               {% endif %}
@@ -92,64 +52,20 @@
               <span class="sf-badge badge-info px-3 py-2"><i class="bi bi-dash-circle me-1"></i> No Request</span>
             {% endif %}
           </div>
-<div class="card withdraw-card">
-  <div class="card-body">
-    <div class="row g-3 mb-3">
-      <div class="col-md-4">
-        <div class="field-label">Current Balance</div>
-        <div class="field-value">{{ currency_symbol }}{{ current_balance|floatformat:2 }}</div>
-      </div>
-      <div class="col-md-4">
-        <div class="field-label">Minimum Withdrawal</div>
-        <div class="field-value">{{ currency_symbol }}{{ minimum_withdrawal|floatformat:2 }}</div>
-      </div>
-      <div class="col-md-4">
-        <div class="field-label">Request Status</div>
-        {% if latest_request %}
-          {% if latest_request.status == "paid" %}
-            <span class="badge text-bg-success fs-6">Paid</span>
-          {% elif latest_request.action == "rejected" or latest_request.status == "rejected" %}
-            <span class="badge text-bg-danger fs-6">Rejected</span>
-          {% else %}
-            <span class="badge text-bg-warning fs-6">Pending</span>
-          {% endif %}
-        {% else %}
-          <span class="badge text-bg-secondary fs-6">No Request</span>
-        {% endif %}
-      </div>
-    </div>
-    {% if latest_request %}
-      {% if latest_request.action == "rejected" or latest_request.status == "rejected" %}
-        <div class="alert alert-warning py-2 mb-3" role="alert">
-          Your last withdrawal request was rejected. You can submit a new request now.
         </div>
-      {% endif %}
-    {% endif %}
+      </div>
 
-    <form id="withdrawalForm" method="post" action="{% url 'request_withdrawal' %}">
-      {% csrf_token %}
-      <div class="mb-3">
-        <label for="withdrawal_amount" class="form-label fw-semibold">Withdrawal Amount ({{ currency_symbol }})</label>
-        <input
-          type="number"
-          class="form-control"
-          id="withdrawal_amount"
-          name="withdrawal_amount"
-          min="{{ minimum_withdrawal }}"
-          max="{{ current_balance }}"
-          step="0.01"
-          placeholder="Enter amount"
-          required
-        >
-        <div class="form-text">
-          Enter an amount between {{ currency_symbol }}{{ minimum_withdrawal|floatformat:2 }} and {{ currency_symbol }}{{ current_balance|floatformat:2 }}.
-        </div>
-        <div id="withdrawalAmountError" class="text-danger small mt-1 d-none"></div>
-      </div>
+      {% if latest_request %}
+        {% if latest_request.action == "rejected" or latest_request.status == "rejected" %}
+          <div class="alert alert-warning py-2 mb-3" role="alert">
+            Your last withdrawal request was rejected. You can submit a new request now.
+          </div>
+        {% endif %}
+      {% endif %}
 
       <hr style="border-color: var(--border); margin: 24px 0;">
 
-      <form method="post" action="{% url 'request_withdrawal' %}">
+      <form id="withdrawalForm" method="post" action="{% url 'request_withdrawal' %}">
         {% csrf_token %}
         <div class="sf-form-group mb-4">
           <label for="withdrawal_amount" class="sf-label">Withdrawal Amount</label>
@@ -171,16 +87,13 @@
           <div class="form-text" style="color: var(--text-2); font-size: 12.5px; margin-top: 6px;">
             Enter an amount between {{ currency_symbol }}{{ minimum_withdrawal|floatformat:2 }} and {{ currency_symbol }}{{ current_balance|floatformat:2 }}.
           </div>
+          <div id="withdrawalAmountError" class="text-danger small mt-1 d-none"></div>
         </div>
         <button type="submit" class="btn-primary-sf w-100" {% if not can_request %}disabled{% endif %}>
           <i class="bi bi-send-check me-2"></i> Submit Withdrawal Request
         </button>
       </form>
     </div>
-      <button type="submit" class="btn btn-primary withdraw-submit-btn" {% if not can_request %}disabled{% endif %}>
-        <i class="bi bi-send-check me-1"></i> Withdraw
-      </button>
-    </form>
   </div>
 
 </div>

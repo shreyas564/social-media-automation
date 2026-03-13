@@ -851,6 +851,7 @@ def user_payment_details(request):
         payment_detail.account_holder_name = (request.POST.get("account_holder_name") or "").strip()
         payment_detail.bank_account_number = (request.POST.get("bank_account_number") or "").strip()
         payment_detail.ifsc_code = (request.POST.get("ifsc_code") or "").strip().upper()
+        payment_detail.paypal_email = (request.POST.get("paypal_email") or "").strip()
         payment_detail.save()
         messages.success(request, "Payment details updated successfully.")
         return redirect("user_payment_details")
@@ -1817,115 +1818,216 @@ def update_withdrawal_request_status(request):
             messages.error(request, f"Cannot approve: {affiliate.username} has not provided any payment details.")
             return redirect("withdrawal_requests")
 
-        # --- RAZORPAYX API (credentials from .env) ---
-        RZP_KEY = os.getenv("RAZORPAYX_KEY_ID", "")
-        RZP_SECRET = os.getenv("RAZORPAYX_KEY_SECRET", "")
-        RZP_ACCOUNT = os.getenv("RAZORPAYX_ACCOUNT_NUMBER", "")
-        auth = (RZP_KEY, RZP_SECRET)
+        super_admin = SuperAdmin.objects.first()
+        currency = getattr(super_admin, "currency", "INR") if super_admin else "INR"
 
-        print(f"[RazorpayX] Starting payout: affiliate={affiliate.username}, withdrawal_id={withdraw_req.id}, amount=Rs {withdraw_req.amount}")
-        print(f"[RazorpayX] KEY loaded: {'YES' if RZP_KEY else 'NO — check .env!'} | ACCOUNT loaded: {'YES' if RZP_ACCOUNT else 'NO — check .env!'}")
-
-        try:
-            # ── STEP 1: Create Contact ──────────────────────────────
-            contact_payload = {
-                "name": payment_detail.account_holder_name or affiliate.username,
-                "email": f"{affiliate.username}@example.com",
-                "contact": "9999999999",  # Placeholder phone
-                "type": "vendor",
-                "reference_id": f"aff_{affiliate.id}"
-            }
-            print(f"[RazorpayX] STEP 1 → Creating Razorpay Contact for '{affiliate.username}'...")
-            res_contact = requests.post("https://api.razorpay.com/v1/contacts", json=contact_payload, auth=auth)
-            print(f"[RazorpayX] Contact API status: {res_contact.status_code} | Response: {res_contact.text}")
-            res_contact.raise_for_status()
-            contact_id = res_contact.json().get("id")
-            print(f"[RazorpayX] ✓ Contact created → contact_id={contact_id}")
-
-            # ── STEP 2: Create Fund Account ─────────────────────────
-            fund_payload = {"contact_id": contact_id}
-
-            if payment_detail.preferred_payment_method == "upi" and payment_detail.upi_id:
-                fund_payload["account_type"] = "vpa"
-                fund_payload["vpa"] = {"address": payment_detail.upi_id}
-                print(f"[RazorpayX] STEP 2 → Creating UPI fund account (vpa={payment_detail.upi_id})...")
-            elif payment_detail.preferred_payment_method in ["bank", "upi_bank"]:
-                if not payment_detail.bank_account_number or not payment_detail.ifsc_code:
-                    raise Exception("Incomplete bank details provided by affiliate.")
-                fund_payload["account_type"] = "bank_account"
-                fund_payload["bank_account"] = {
-                    "name": payment_detail.account_holder_name,
-                    "ifsc": payment_detail.ifsc_code,
-                    "account_number": payment_detail.bank_account_number
+        if currency == "USD":
+            if payment_detail.preferred_payment_method != "paypal" or not payment_detail.paypal_email:
+                messages.error(request, f"Cannot approve: {affiliate.username} has not provided a valid PayPal email.")
+                return redirect("withdrawal_requests")
+            
+            # --- PAYPAL API (credentials from .env) ---
+            PAYPAL_CLIENT_ID = os.getenv("PAYPAL_CLIENT_ID", "")
+            PAYPAL_SECRET = os.getenv("PAYPAL_SECRET", "")
+            PAYPAL_MODE = os.getenv("PAYPAL_MODE", "sandbox").lower()
+            paypal_base_url = "https://api.paypal.com" if PAYPAL_MODE == "live" else "https://api.sandbox.paypal.com"
+            
+            print(f"[PayPal] Starting payout: affiliate={affiliate.username}, withdrawal_id={withdraw_req.id}, amount=$ {withdraw_req.amount}")
+            
+            try:
+                # ── STEP 1: Get Access Token ──────────────────────────────
+                auth_res = requests.post(
+                    f"{paypal_base_url}/v1/oauth2/token",
+                    data={"grant_type": "client_credentials"},
+                    auth=(PAYPAL_CLIENT_ID, PAYPAL_SECRET)
+                )
+                auth_res.raise_for_status()
+                access_token = auth_res.json()["access_token"]
+                
+                # ── STEP 2: Initiate Payout ─────────────────────────
+                headers = {
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {access_token}"
                 }
-                print(f"[RazorpayX] STEP 2 → Creating Bank fund account (ifsc={payment_detail.ifsc_code})...")
-            else:
-                raise Exception("Invalid or missing payment method details.")
+                
+                payout_payload = {
+                    "sender_batch_header": {
+                        "sender_batch_id": f"wd_{withdraw_req.id}_{uuid.uuid4().hex[:6]}",
+                        "email_subject": "You have a payout!",
+                        "email_message": "You have received a payout for your affiliate earnings."
+                    },
+                    "items": [
+                        {
+                            "recipient_type": "EMAIL",
+                            "amount": {
+                                "value": f"{withdraw_req.amount:.2f}",
+                                "currency": "USD"
+                            },
+                            "note": "Thanks for your work!",
+                            "sender_item_id": f"item_{withdraw_req.id}",
+                            "receiver": payment_detail.paypal_email
+                        }
+                    ]
+                }
+                
+                res_payout = requests.post(
+                    f"{paypal_base_url}/v1/payments/payouts",
+                    json=payout_payload,
+                    headers=headers
+                )
+                res_payout.raise_for_status()
+                payout_data = res_payout.json()
+                paypal_payout_id = payout_data.get("batch_header", {}).get("payout_batch_id", "")
+                paypal_status = payout_data.get("batch_header", {}).get("batch_status", "")
+                print(f"[PayPal] ✓ Payout initiated → batch_id={paypal_payout_id}, status={paypal_status}")
+                
+                # ── STEP 3: Persist to Database ─────────────────────────
+                withdraw_req.status = "paid"
+                withdraw_req.action = "approved"
 
-            res_fund = requests.post("https://api.razorpay.com/v1/fund_accounts", json=fund_payload, auth=auth)
-            print(f"[RazorpayX] Fund Account API status: {res_fund.status_code} | Response: {res_fund.text}")
-            res_fund.raise_for_status()
-            fund_account_id = res_fund.json().get("id")
-            print(f"[RazorpayX] ✓ Fund account created → fund_account_id={fund_account_id}")
+                earnings_data = _affiliate_earnings_summary(withdraw_req.affiliate_id)
+                credits_used = earnings_data["total_credits"] - _total_paid_credits(withdraw_req.affiliate_id)
+                if credits_used < Decimal("0.00"):
+                    credits_used = Decimal("0.00")
 
-            # ── STEP 3: Create Payout ────────────────────────────────
-            payout_mode = "UPI" if fund_payload["account_type"] == "vpa" else "IMPS"
-            payout_payload = {
-                "account_number": RZP_ACCOUNT,
-                "fund_account_id": fund_account_id,
-                "amount": int(withdraw_req.amount * 100),  # paise
-                "currency": "INR",
-                "mode": payout_mode,
-                "purpose": "payout",
-                "queue_if_low_balance": True,
-                "reference_id": f"wd_{withdraw_req.id}_{uuid.uuid4().hex[:6]}"
-            }
-            print(f"[RazorpayX] STEP 3 → Initiating payout (amount={payout_payload['amount']} paise, mode={payout_mode})...")
-            res_payout = requests.post("https://api.razorpay.com/v1/payouts", json=payout_payload, auth=auth)
-            print(f"[RazorpayX] Payout API status: {res_payout.status_code} | Response: {res_payout.text}")
-            res_payout.raise_for_status()
-            payout_data = res_payout.json()
-            razorpay_payout_id = payout_data.get("id")
-            razorpay_status = payout_data.get("status")
-            print(f"[RazorpayX] ✓ Payout initiated → payout_id={razorpay_payout_id}, status={razorpay_status}")
+                PaymentHistory.objects.get_or_create(
+                    withdrawal_request=withdraw_req,
+                    defaults={
+                        "affiliate": withdraw_req.affiliate,
+                        "amount_paid": withdraw_req.amount,
+                        "credits_used": credits_used,
+                        "request_date": withdraw_req.requested_at,
+                        "paid_date": timezone.now(),
+                        "status": "paid",
+                        "payment_method": "PayPal API",
+                        "payment_id": paypal_payout_id
+                    },
+                )
+                messages.success(request, f"Payout successful! PayPal Batch ID: {paypal_payout_id} | Status: {paypal_status}")
+            
+            except requests.exceptions.RequestException as e:
+                err_msg = str(e)
+                if e.response is not None:
+                    try:
+                        err_msg = e.response.json().get("message", err_msg)
+                    except ValueError:
+                        pass
+                messages.error(request, f"PayPal API Error: {err_msg}")
+                return redirect("withdrawal_requests")
+            except Exception as e:
+                messages.error(request, f"Payout Error: {str(e)}")
+                return redirect("withdrawal_requests")
 
-            # ── STEP 4: Persist to Database ─────────────────────────
-            withdraw_req.status = "paid"
-            withdraw_req.action = "approved"
+        else:
+            # --- RAZORPAYX API (credentials from .env) ---
+            RZP_KEY = os.getenv("RAZORPAYX_KEY_ID", "")
+            RZP_SECRET = os.getenv("RAZORPAYX_KEY_SECRET", "")
+            RZP_ACCOUNT = os.getenv("RAZORPAYX_ACCOUNT_NUMBER", "")
+            auth = (RZP_KEY, RZP_SECRET)
 
-            earnings_data = _affiliate_earnings_summary(withdraw_req.affiliate_id)
-            credits_used = earnings_data["total_credits"] - _total_paid_credits(withdraw_req.affiliate_id)
-            if credits_used < Decimal("0.00"):
-                credits_used = Decimal("0.00")
+            print(f"[RazorpayX] Starting payout: affiliate={affiliate.username}, withdrawal_id={withdraw_req.id}, amount=Rs {withdraw_req.amount}")
+            print(f"[RazorpayX] KEY loaded: {'YES' if RZP_KEY else 'NO — check .env!'} | ACCOUNT loaded: {'YES' if RZP_ACCOUNT else 'NO — check .env!'}")
 
-            PaymentHistory.objects.get_or_create(
-                withdrawal_request=withdraw_req,
-                defaults={
-                    "affiliate": withdraw_req.affiliate,
-                    "amount_paid": withdraw_req.amount,
-                    "credits_used": credits_used,
-                    "request_date": withdraw_req.requested_at,
-                    "paid_date": timezone.now(),
-                    "status": "paid",
-                    "payment_method": "RazorpayX API",
-                    "payment_id": razorpay_payout_id
-                },
-            )
-            print(f"[RazorpayX] ✓ PaymentHistory saved. Payout complete for withdrawal_id={withdraw_req.id}")
-            messages.success(request, f"Payout successful! Razorpay ID: {razorpay_payout_id} | Status: {razorpay_status}")
+            try:
+                # ── STEP 1: Create Contact ──────────────────────────────
+                contact_payload = {
+                    "name": payment_detail.account_holder_name or affiliate.username,
+                    "email": f"{affiliate.username}@example.com",
+                    "contact": "9999999999",  # Placeholder phone
+                    "type": "vendor",
+                    "reference_id": f"aff_{affiliate.id}"
+                }
+                print(f"[RazorpayX] STEP 1 → Creating Razorpay Contact for '{affiliate.username}'...")
+                res_contact = requests.post("https://api.razorpay.com/v1/contacts", json=contact_payload, auth=auth)
+                print(f"[RazorpayX] Contact API status: {res_contact.status_code} | Response: {res_contact.text}")
+                res_contact.raise_for_status()
+                contact_id = res_contact.json().get("id")
+                print(f"[RazorpayX] ✓ Contact created → contact_id={contact_id}")
 
-        except requests.exceptions.RequestException as e:
-            err_msg = str(e)
-            if e.response is not None:
-                try:
-                    err_msg = e.response.json().get("error", {}).get("description", err_msg)
-                except ValueError:
-                    pass
-            messages.error(request, f"Razorpay API Error: {err_msg}")
-            return redirect("withdrawal_requests")
-        except Exception as e:
-            messages.error(request, f"Payout Error: {str(e)}")
-            return redirect("withdrawal_requests")
+                # ── STEP 2: Create Fund Account ─────────────────────────
+                fund_payload = {"contact_id": contact_id}
+
+                if payment_detail.preferred_payment_method == "upi" and payment_detail.upi_id:
+                    fund_payload["account_type"] = "vpa"
+                    fund_payload["vpa"] = {"address": payment_detail.upi_id}
+                    print(f"[RazorpayX] STEP 2 → Creating UPI fund account (vpa={payment_detail.upi_id})...")
+                elif payment_detail.preferred_payment_method in ["bank", "upi_bank"]:
+                    if not payment_detail.bank_account_number or not payment_detail.ifsc_code:
+                        raise Exception("Incomplete bank details provided by affiliate.")
+                    fund_payload["account_type"] = "bank_account"
+                    fund_payload["bank_account"] = {
+                        "name": payment_detail.account_holder_name,
+                        "ifsc": payment_detail.ifsc_code,
+                        "account_number": payment_detail.bank_account_number
+                    }
+                    print(f"[RazorpayX] STEP 2 → Creating Bank fund account (ifsc={payment_detail.ifsc_code})...")
+                else:
+                    raise Exception("Invalid or missing payment method details.")
+
+                res_fund = requests.post("https://api.razorpay.com/v1/fund_accounts", json=fund_payload, auth=auth)
+                print(f"[RazorpayX] Fund Account API status: {res_fund.status_code} | Response: {res_fund.text}")
+                res_fund.raise_for_status()
+                fund_account_id = res_fund.json().get("id")
+                print(f"[RazorpayX] ✓ Fund account created → fund_account_id={fund_account_id}")
+
+                # ── STEP 3: Create Payout ────────────────────────────────
+                payout_mode = "UPI" if fund_payload["account_type"] == "vpa" else "IMPS"
+                payout_payload = {
+                    "account_number": RZP_ACCOUNT,
+                    "fund_account_id": fund_account_id,
+                    "amount": int(withdraw_req.amount * 100),  # paise
+                    "currency": "INR",
+                    "mode": payout_mode,
+                    "purpose": "payout",
+                    "queue_if_low_balance": True,
+                    "reference_id": f"wd_{withdraw_req.id}_{uuid.uuid4().hex[:6]}"
+                }
+                print(f"[RazorpayX] STEP 3 → Initiating payout (amount={payout_payload['amount']} paise, mode={payout_mode})...")
+                res_payout = requests.post("https://api.razorpay.com/v1/payouts", json=payout_payload, auth=auth)
+                print(f"[RazorpayX] Payout API status: {res_payout.status_code} | Response: {res_payout.text}")
+                res_payout.raise_for_status()
+                payout_data = res_payout.json()
+                razorpay_payout_id = payout_data.get("id")
+                razorpay_status = payout_data.get("status")
+                print(f"[RazorpayX] ✓ Payout initiated → payout_id={razorpay_payout_id}, status={razorpay_status}")
+
+                # ── STEP 4: Persist to Database ─────────────────────────
+                withdraw_req.status = "paid"
+                withdraw_req.action = "approved"
+
+                earnings_data = _affiliate_earnings_summary(withdraw_req.affiliate_id)
+                credits_used = earnings_data["total_credits"] - _total_paid_credits(withdraw_req.affiliate_id)
+                if credits_used < Decimal("0.00"):
+                    credits_used = Decimal("0.00")
+
+                PaymentHistory.objects.get_or_create(
+                    withdrawal_request=withdraw_req,
+                    defaults={
+                        "affiliate": withdraw_req.affiliate,
+                        "amount_paid": withdraw_req.amount,
+                        "credits_used": credits_used,
+                        "request_date": withdraw_req.requested_at,
+                        "paid_date": timezone.now(),
+                        "status": "paid",
+                        "payment_method": "RazorpayX API",
+                        "payment_id": razorpay_payout_id
+                    },
+                )
+                print(f"[RazorpayX] ✓ PaymentHistory saved. Payout complete for withdrawal_id={withdraw_req.id}")
+                messages.success(request, f"Payout successful! Razorpay ID: {razorpay_payout_id} | Status: {razorpay_status}")
+
+            except requests.exceptions.RequestException as e:
+                err_msg = str(e)
+                if e.response is not None:
+                    try:
+                        err_msg = e.response.json().get("error", {}).get("description", err_msg)
+                    except ValueError:
+                        pass
+                messages.error(request, f"Razorpay API Error: {err_msg}")
+                return redirect("withdrawal_requests")
+            except Exception as e:
+                messages.error(request, f"Payout Error: {str(e)}")
+                return redirect("withdrawal_requests")
 
     else:
         withdraw_req.status = "rejected"

@@ -41,7 +41,7 @@
 | **Backend** | Django 6.0, Django REST Framework |
 | **Database** | PostgreSQL 14+ |
 | **Media Storage** | Cloudinary |
-| **Payments** | Razorpay / RazorpayX |
+| **Payments** | Razorpay / RazorpayX (INR) & PayPal (USD) |
 | **Email** | Brevo (Transactional Email API) |
 | **Automation** | n8n (self-hosted) |
 | **Social APIs** | Facebook Graph API, Instagram Graph API, LinkedIn API |
@@ -191,6 +191,10 @@ INSTAGRAM_SESSION_COOKIE=''
 RAZORPAY_KEY_ID=''
 RAZORPAY_KEY_SECRET=''
 RAZORPAYX_ACCOUNT_NUMBER=''
+
+PAYPAL_CLIENT_ID=''
+PAYPAL_SECRET=''
+PAYPAL_MODE='sandbox'
 ```
 
 See [deployment.md §5](./deployment.md#5-environment-variables) for a full annotated reference.
@@ -235,6 +239,11 @@ See **[deployment.md](./deployment.md)** for the complete step-by-step guide cov
 1. Create a Razorpay account at [dashboard.razorpay.com](https://dashboard.razorpay.com)
 2. Enable **RazorpayX** for automated payouts
 3. Add API keys and account number to `.env`
+
+### PayPal
+1. Create a PayPal Developer account at [developer.paypal.com](https://developer.paypal.com)
+2. Create an App to get a `Client ID` and `Secret`
+3. Add to `.env` as `PAYPAL_CLIENT_ID` and `PAYPAL_SECRET`
 
 ### Apify
 1. Create an account at [apify.com](https://apify.com)

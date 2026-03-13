@@ -382,6 +382,7 @@ class AffiliatePaymentDetail(models.Model):
         ("upi", "UPI"),
         ("bank", "Bank Transfer"),
         ("upi_bank", "UPI + Bank Transfer"),
+        ("paypal", "PayPal"),
     ]
 
     affiliate = models.OneToOneField(
@@ -398,6 +399,7 @@ class AffiliatePaymentDetail(models.Model):
     account_holder_name = models.CharField(max_length=150, blank=True, default="")
     bank_account_number = models.CharField(max_length=40, blank=True, default="")
     ifsc_code = models.CharField(max_length=20, blank=True, default="")
+    paypal_email = models.EmailField(max_length=255, blank=True, null=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
