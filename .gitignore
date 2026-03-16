@@ -6,3 +6,12 @@ __pycache__/
 *.pyd
 .env
 venv/
+design-system/
+.venv/
+.vscode/
+.agent/
+media/
+api_tokens.py
+ui_ux_pro_max_dashboard_design.md
+
+

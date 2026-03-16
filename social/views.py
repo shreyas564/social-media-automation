@@ -149,36 +149,7 @@ def superAdmin(request):
         }
     )
 
-#super admin registration
-
-def admin_registration(request):
-    return render(request, 'adminregestration.html')
-
-def create_admin(request):
-    if request.method == "POST":
-        name = request.POST.get("username")
-        email = request.POST.get("email")
-        password = request.POST.get("password")
-
-        logger.info(f"Registration attempt for: {name}, {email}")
-
-        serialize_admin = AdminSerializer(data={
-            "name": name,
-            "email": email,
-            "password": password
-        }, context=request)
-
-        if serialize_admin.is_valid():
-            serialize_admin.save()
-        else:
-            return JsonResponse({
-                "success": False,
-                "message": "Invalid data provided"
-            }, status=400)
-
-        return redirect('/social/log-admin/')
-        
-    return JsonResponse({"error": "Invalid method"}, status=405)
+ALLOWED_SUPERADMIN_EMAIL = "shreyasparanjape@gmail.com"
 
 def log_admin(request):
     return render(request, 'superadminlogin.html')
@@ -194,10 +165,69 @@ def auth_admin(request):
             messages.error(request, "Invalid username or password")
             return redirect('log_admin')
 
+        # Only allow the authorised superadmin email
+        if user.email != ALLOWED_SUPERADMIN_EMAIL:
+            messages.error(request, "Access denied. You are not authorised to log in here.")
+            return redirect('log_admin')
+
         login(request, user)
-        return redirect('super_admin')  
+        return redirect('super_admin')
 
     return JsonResponse({"error": "Invalid method"}, status=405)
+
+
+@login_required(login_url='/social/log-admin/')
+def add_superadmin_page(request):
+    """Show the Add Superadmin form (superadmin-only)."""
+    if not hasattr(request.user, 'super_admin'):
+        messages.error(request, "Unauthorised access.")
+        return redirect('log_admin')
+    superadmins = SuperAdmin.objects.select_related('user').all()
+    return render(request, 'add_superadmin.html', {'superadmins': superadmins})
+
+
+@login_required(login_url='/social/log-admin/')
+def create_superadmin(request):
+    """Create a new Django User + SuperAdmin record (superadmin-only)."""
+    if not hasattr(request.user, 'super_admin'):
+        messages.error(request, "Unauthorised access.")
+        return redirect('log_admin')
+
+    if request.method == "POST":
+        name = request.POST.get("name", "").strip()
+        email = request.POST.get("email", "").strip()
+        username = request.POST.get("username", "").strip()
+        password = request.POST.get("password", "").strip()
+
+        if not all([name, email, username, password]):
+            messages.error(request, "All fields are required.")
+            return redirect('add_superadmin')
+
+        if User.objects.filter(username=username).exists():
+            messages.error(request, f"Username '{username}' is already taken.")
+            return redirect('add_superadmin')
+
+        if User.objects.filter(email=email).exists():
+            messages.error(request, f"Email '{email}' is already registered.")
+            return redirect('add_superadmin')
+
+        try:
+            with transaction.atomic():
+                new_user = User.objects.create_user(
+                    username=username,
+                    email=email,
+                    password=password,
+                    is_staff=True,
+                )
+                SuperAdmin.objects.create(user=new_user, name=name)
+            messages.success(request, f"Super Admin '{name}' created successfully.")
+        except Exception as e:
+            logger.error(f"Error creating superadmin: {e}")
+            messages.error(request, "Something went wrong. Please try again.")
+
+        return redirect('add_superadmin')
+
+    return redirect('add_superadmin')
 
 import cloudinary.uploader
 

@@ -12,10 +12,10 @@ urlpatterns = [
 
     # SUPER ADMIN URLS
     path("super-admin/", views.superAdmin, name="super_admin"),
-    path("admin-registration/", views.admin_registration, name="admin_registration"),
-    path("create-admin/", views.create_admin, name="create_admin"),
     path("log-admin/", views.log_admin, name="log_admin"),
     path("auth-admin/", views.auth_admin, name="auth_admin"),
+    path("add-superadmin/", views.add_superadmin_page, name="add_superadmin"),
+    path("create-superadmin/", views.create_superadmin, name="create_superadmin"),
 
     path("create-post/", views.create_post, name="create_post"),
     path("post-submitted/", views.post_submitted, name="post_submitted"), # type: ignore
