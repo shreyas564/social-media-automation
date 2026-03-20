@@ -16,6 +16,15 @@ class SuperAdmin(models.Model):
     fbtoken=models.CharField(max_length=300,blank=True, null=True)
     instatoken=models.CharField(max_length=300,blank=True, null=True)
     lntoken=models.TextField(blank=True, null=True)
+    # n8n & platform routing fields (multi-user support)
+    n8n_webhook_url = models.URLField(max_length=500, blank=True, null=True,
+        help_text="n8n webhook URL for this account's workflow")
+    fb_page_id = models.CharField(max_length=100, blank=True, null=True,
+        help_text="Facebook Page ID (e.g. 985055438020046)")
+    ig_account_id = models.CharField(max_length=100, blank=True, null=True,
+        help_text="Instagram Business Account ID (e.g. 17841478360956917)")
+    li_org_id = models.CharField(max_length=100, blank=True, null=True,
+        help_text="LinkedIn Organisation numeric ID (e.g. 110775771)")
     def __str__(self):
         return self.name
 

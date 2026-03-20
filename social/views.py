@@ -292,17 +292,25 @@ def post_submitted(request):
         created_by=super_admin
     )
 
-    # ⭐ Send to N8N
+    # ⭐ Send to N8N — use per-superadmin webhook URL and credentials
+    n8n_url = (super_admin.n8n_webhook_url or "").strip() or N8N_WEBHOOK_URL
     payload = {
         "media_url": media_url,
         "media_type": media_type,
         "caption": caption,
         "post_id": post.id,
-        "post_name": post_name
+        "post_name": post_name,
+        # ── per-user social credentials ──
+        "fb_token": (super_admin.fbtoken or "").strip(),
+        "ig_token": (super_admin.instatoken or "").strip(),
+        "ln_token": (super_admin.lntoken or "").strip(),
+        "fb_page_id": (super_admin.fb_page_id or "").strip(),
+        "ig_account_id": (super_admin.ig_account_id or "").strip(),
+        "li_org_id": (super_admin.li_org_id or "").strip(),
     }
 
     try:
-        requests.post(N8N_WEBHOOK_URL, json=payload, timeout=40)
+        requests.post(n8n_url, json=payload, timeout=40)
     except Exception as e:
         logger.error(f"N8N ERROR: {e}")
 
@@ -1646,7 +1654,11 @@ def verify_post_data(request, post_id):
 
 
 def setting(request):
-    return render(request, 'settings.html')
+    # Pass logged-in superadmin to template so credentials are pre-filled
+    super_admin = None
+    if request.user.is_authenticated:
+        super_admin = SuperAdmin.objects.filter(user=request.user).first()
+    return render(request, 'settings.html', {'super_admin': super_admin})
 
 
 @login_required
@@ -2088,14 +2100,18 @@ def update_admin_profile(request):
             messages.error(request, "SuperAdmin profile not found.")
             return redirect('profile')
 
-        super_admin.fbtoken=request.POST.get("fbtoken")
-        super_admin.instatoken=request.POST.get("instatoken")
-        super_admin.lntoken=request.POST.get("lntoken")
+        super_admin.fbtoken = request.POST.get("fbtoken", super_admin.fbtoken)
+        super_admin.instatoken = request.POST.get("instatoken", super_admin.instatoken)
+        super_admin.lntoken = request.POST.get("lntoken", super_admin.lntoken)
+        # ── per-user routing fields (multi-user n8n support) ──
+        super_admin.n8n_webhook_url = request.POST.get("n8n_webhook_url", super_admin.n8n_webhook_url)
+        super_admin.fb_page_id = request.POST.get("fb_page_id", super_admin.fb_page_id)
+        super_admin.ig_account_id = request.POST.get("ig_account_id", super_admin.ig_account_id)
+        super_admin.li_org_id = request.POST.get("li_org_id", super_admin.li_org_id)
         super_admin.save()
 
-        FBTOKEN=super_admin.fbtoken
-        print(FBTOKEN)
-        print(user)
+        global FBTOKEN
+        FBTOKEN = super_admin.fbtoken
 
         messages.success(request, "Profile updated successfully")
         return render(request, 'profile.html', {'super_admin': super_admin})
