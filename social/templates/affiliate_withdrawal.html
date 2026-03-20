@@ -1,0 +1,155 @@
+{% extends "affiliate_base.html" %}
+{% load static %}
+
+{% block title %}Withdrawal{% endblock %}
+{% block topbar_title %}Withdrawal requests{% endblock %}
+
+{% block content %}
+<div class="page-content">
+
+  <!-- Page header -->
+  <div class="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-4 anim-fade-up">
+    <div>
+      <h1 class="sf-page-title">Wallet Withdrawal</h1>
+      <p class="sf-page-sub">Request your payout and view current balance limits. All amounts are shown in {{ currency_symbol }}.</p>
+    </div>
+  </div>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags|default:'info' }} py-2" role="alert">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="sf-section anim-fade-up stagger-1">
+    <div class="sf-section-header">
+      <h2 class="sf-section-title"><i class="bi bi-cash-stack me-2 text-primary-sf"></i>Withdrawal Status</h2>
+    </div>
+    <div class="sf-section-body">
+      <div class="row g-4 mb-4">
+        <div class="col-md-4">
+          <div style="font-size: 13px; font-weight: 600; color: var(--text-2); margin-bottom: 4px;">Current Balance</div>
+          <div style="font-size: 1.7rem; font-weight: 700; color: var(--text);">{{ currency_symbol }}{{ current_balance|floatformat:2 }}</div>
+        </div>
+        <div class="col-md-4">
+          <div style="font-size: 13px; font-weight: 600; color: var(--text-2); margin-bottom: 4px;">Minimum Withdrawal</div>
+          <div style="font-size: 1.7rem; font-weight: 700; color: var(--text);">{{ currency_symbol }}{{ minimum_withdrawal|floatformat:2 }}</div>
+        </div>
+        <div class="col-md-4">
+          <div style="font-size: 13px; font-weight: 600; color: var(--text-2); margin-bottom: 4px;">Last Request Status</div>
+          <div class="mt-1">
+            {% if latest_request %}
+              {% if latest_request.status == "paid" %}
+                <span class="sf-badge badge-success px-3 py-2"><i class="bi bi-check-circle me-1"></i> Paid</span>
+              {% elif latest_request.action == "rejected" or latest_request.status == "rejected" %}
+                <span class="sf-badge badge-danger px-3 py-2"><i class="bi bi-x-circle me-1"></i> Rejected</span>
+              {% else %}
+                <span class="sf-badge badge-warning px-3 py-2"><i class="bi bi-clock-history me-1"></i> Pending</span>
+              {% endif %}
+            {% else %}
+              <span class="sf-badge badge-info px-3 py-2"><i class="bi bi-dash-circle me-1"></i> No Request</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      {% if latest_request %}
+        {% if latest_request.action == "rejected" or latest_request.status == "rejected" %}
+          <div class="alert alert-warning py-2 mb-3" role="alert">
+            Your last withdrawal request was rejected. You can submit a new request now.
+          </div>
+        {% endif %}
+      {% endif %}
+
+      <hr style="border-color: var(--border); margin: 24px 0;">
+
+      <form id="withdrawalForm" method="post" action="{% url 'request_withdrawal' %}">
+        {% csrf_token %}
+        <div class="sf-form-group mb-4">
+          <label for="withdrawal_amount" class="sf-label">Withdrawal Amount</label>
+          <div class="input-group">
+            <span class="input-group-text sf-input" style="width: auto; background: var(--surface-2); border-right: none; border-top-right-radius: 0; border-bottom-right-radius: 0;">{{ currency_symbol }}</span>
+            <input
+              type="number"
+              class="sf-input form-control"
+              id="withdrawal_amount"
+              name="withdrawal_amount"
+              min="{{ minimum_withdrawal }}"
+              max="{{ current_balance }}"
+              step="0.01"
+              placeholder="Enter amount"
+              required
+              style="border-left: none; border-top-left-radius: 0; border-bottom-left-radius: 0; outline: none;"
+            >
+          </div>
+          <div class="form-text" style="color: var(--text-2); font-size: 12.5px; margin-top: 6px;">
+            Enter an amount between {{ currency_symbol }}{{ minimum_withdrawal|floatformat:2 }} and {{ currency_symbol }}{{ current_balance|floatformat:2 }}.
+          </div>
+          <div id="withdrawalAmountError" class="text-danger small mt-1 d-none"></div>
+        </div>
+        <button type="submit" class="btn-primary-sf w-100" {% if not can_request %}disabled{% endif %}>
+          <i class="bi bi-send-check me-2"></i> Submit Withdrawal Request
+        </button>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  (function () {
+    const form = document.getElementById("withdrawalForm");
+    const amountInput = document.getElementById("withdrawal_amount");
+    const errorBox = document.getElementById("withdrawalAmountError");
+
+    if (!form || !amountInput || !errorBox) return;
+
+    const min = parseFloat(amountInput.min);
+    const max = parseFloat(amountInput.max);
+
+    function showError(message) {
+      errorBox.textContent = message;
+      errorBox.classList.remove("d-none");
+      amountInput.classList.add("is-invalid");
+    }
+
+    function clearError() {
+      errorBox.textContent = "";
+      errorBox.classList.add("d-none");
+      amountInput.classList.remove("is-invalid");
+    }
+
+    function validateAmount() {
+      const raw = (amountInput.value || "").trim();
+      if (!raw) {
+        showError("Please enter withdrawal amount.");
+        return false;
+      }
+
+      const value = parseFloat(raw);
+      if (Number.isNaN(value)) {
+        showError("Please enter a valid number.");
+        return false;
+      }
+
+      if (value < min || value > max) {
+        showError(`Amount must be between Rs ${min.toFixed(2)} and Rs ${max.toFixed(2)}.`);
+        return false;
+      }
+
+      clearError();
+      return true;
+    }
+
+    amountInput.addEventListener("input", validateAmount);
+    amountInput.addEventListener("blur", validateAmount);
+    form.addEventListener("submit", function (event) {
+      if (!validateAmount()) {
+        event.preventDefault();
+      }
+    });
+  })();
+</script>
+{% endblock %}

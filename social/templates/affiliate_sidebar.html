@@ -1,0 +1,88 @@
+<aside class="sidebar" id="appSidebar">
+  <!-- Brand -->
+  <a href="{% url 'affiliate_dashboard' %}" class="sidebar-brand">
+    <div class="sidebar-brand-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+        stroke-linejoin="round">
+        <path d="M12 2L2 22h20L12 2z" />
+      </svg>
+    </div>
+    <div class="sidebar-brand-text">
+      <div class="sidebar-brand-name">SocialFlow</div>
+      <div class="sidebar-brand-sub">Affiliate Portal</div>
+    </div>
+  </a>
+
+  <!-- Navigation -->
+  <nav class="sidebar-nav">
+    <!-- Desktop Sidebar Toggle -->
+    <a href="javascript:void(0);" class="sidebar-link js-sidebar-toggle d-none d-lg-flex" style="color: var(--sidebar-text); margin-bottom: 8px;">
+      <span class="nav-icon"><i class="bi bi-list" style="font-size: 22px;"></i></span>
+      <span class="nav-label" style="font-weight: 600;">Collapse Menu</span>
+    </a>
+
+    <div class="sidebar-section-label">Overview</div>
+
+    <a href="{% url 'affiliate_dashboard' %}" class="sidebar-link">
+      <span class="nav-icon"><i class="bi bi-house-door"></i></span>
+      <span class="nav-label">Campaign Feed</span>
+      <span class="active-dot"></span>
+    </a>
+
+    <!-- Post Details -->
+    <a href="{% url 'affiliate_post_details' %}" class="sidebar-link">
+      <span class="nav-icon"><i class="bi bi-card-list"></i></span>
+      <span class="nav-label">Post Details</span>
+      <span class="active-dot"></span>
+    </a>
+
+    <a href="{% url 'affiliate_post_stats' %}" class="sidebar-link">
+      <span class="nav-icon"><i class="bi bi-bar-chart"></i></span>
+      <span class="nav-label">Post Statistics</span>
+      <span class="active-dot"></span>
+    </a>
+
+    <div class="sidebar-section-label">Wallet & Earnings</div>
+
+    <a href="{% url 'affiliate_rewards_settings' %}" class="sidebar-link">
+      <span class="nav-icon"><i class="bi bi-gift"></i></span>
+      <span class="nav-label">Rewards Settings</span>
+      <span class="active-dot"></span>
+    </a>
+
+    <a href="{% url 'affiliate_withdrawal_page' %}" class="sidebar-link">
+      <span class="nav-icon"><i class="bi bi-cash-stack"></i></span>
+      <span class="nav-label">Withdrawal</span>
+      <span class="active-dot"></span>
+    </a>
+
+    <a href="{% url 'affiliate_payment_history' %}" class="sidebar-link">
+      <span class="nav-icon"><i class="bi bi-clock-history"></i></span>
+      <span class="nav-label">Payment History</span>
+      <span class="active-dot"></span>
+    </a>
+
+    <a href="{% url 'user_payment_details' %}" class="sidebar-link">
+      <span class="nav-icon"><i class="bi bi-credit-card-2-front"></i></span>
+      <span class="nav-label">Payment Methods</span>
+      <span class="active-dot"></span>
+    </a>
+
+    <div class="sidebar-section-label">Configuration</div>
+
+    <a href="{% url 'usersettings' %}" class="sidebar-link">
+      <span class="nav-icon"><i class="bi bi-person-badge"></i></span>
+      <span class="nav-label">Profile Settings</span>
+      <span class="active-dot"></span>
+    </a>
+
+  </nav>
+
+  <!-- Footer -->
+  <div class="sidebar-footer">
+    <a href="{% url 'affiliate_logout' %}" class="sidebar-link" style="color: #EF4444;">
+      <span class="nav-icon"><i class="bi bi-box-arrow-left"></i></span>
+      <span class="nav-label">Logout</span>
+    </a>
+  </div>
+</aside>

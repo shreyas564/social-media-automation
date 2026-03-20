@@ -1,0 +1,170 @@
+{% extends "affiliate_base.html" %}
+{% load static %}
+
+{% block title %}User Payment Details{% endblock %}
+{% block topbar_title %}Payment Methods{% endblock %}
+
+{% block content %}
+<div class="page-content">
+
+  <!-- Page header -->
+  <div class="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-4 anim-fade-up">
+    <div>
+      <h1 class="sf-page-title">Payout Preferences</h1>
+      <p class="sf-page-sub">Configure your banking and upi details to ensure smooth withdrawal processing.</p>
+    </div>
+  </div>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="sf-toast success" role="alert" style="margin-bottom: 24px;">
+        <i class="bi bi-info-circle-fill"></i>
+        <span>{{ message }}</span>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="sf-section anim-fade-up stagger-1">
+    <div class="sf-section-header">
+      <h2 class="sf-section-title"><i class="bi bi-bank me-2 text-primary-sf"></i>Account Details</h2>
+    </div>
+    <div class="sf-section-body">
+      <form method="post" action="{% url 'user_payment_details' %}">
+        {% csrf_token %}
+
+        <div class="sf-form-group mb-4">
+          <label class="sf-label">Preferred Payment Method</label>
+          <select class="sf-input form-select" name="preferred_payment_method" id="preferredMethod" style="max-width: 300px;">
+            <option value="upi" {% if payment_detail.preferred_payment_method == "upi" %}selected{% endif %}>UPI Only</option>
+            <option value="bank" {% if payment_detail.preferred_payment_method == "bank" %}selected{% endif %}>Bank Transfer Only</option>
+            <option value="upi_bank" {% if payment_detail.preferred_payment_method == "upi_bank" %}selected{% endif %}>UPI & Bank Transfer</option>
+            <option value="paypal" {% if payment_detail.preferred_payment_method == "paypal" %}selected{% endif %}>PayPal (USD)</option>
+          </select>
+        </div>
+
+        <div id="upiBlock" class="mb-4 p-4 rounded-3" style="background: var(--surface-2); border: 1px solid var(--border);">
+          <div style="font-size: 13px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">
+            <i class="bi bi-phone-vibrate me-1"></i> UPI Configuration
+          </div>
+          <div class="sf-form-group mb-0">
+            <label class="sf-label">UPI ID / Virtual Payment Address</label>
+            <input
+              type="text"
+              name="upi_id"
+              class="sf-input"
+              placeholder="e.g. yourname@ybl"
+              value="{{ payment_detail.upi_id }}"
+            >
+            <div class="mt-2" style="font-size: 12px; color: var(--text-2);">We will deposit directly into this UPI address via RazorpayX.</div>
+          </div>
+        </div>
+
+        <div id="bankBlock" class="mb-4 p-4 rounded-3" style="background: var(--surface-2); border: 1px solid var(--border);">
+          <div style="font-size: 13px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px;">
+            <i class="bi bi-building me-1"></i> Direct Bank Transfer
+          </div>
+          <div class="row g-4">
+            <div class="col-md-6 sf-form-group mb-0">
+              <label class="sf-label">Account Holder Name</label>
+              <input
+                type="text"
+                name="account_holder_name"
+                class="sf-input"
+                placeholder="Name as it appears on account"
+                value="{{ payment_detail.account_holder_name }}"
+              >
+            </div>
+            <div class="col-md-6 sf-form-group mb-0">
+              <label class="sf-label">Bank Account Number</label>
+              <input
+                type="text"
+                name="bank_account_number"
+                class="sf-input"
+                placeholder="Account digit string"
+                value="{{ payment_detail.bank_account_number }}"
+              >
+            </div>
+            <div class="col-md-6 sf-form-group mb-0">
+              <label class="sf-label">IFSC Code / Branch Code</label>
+              <input
+                type="text"
+                name="ifsc_code"
+                class="sf-input"
+                placeholder="e.g. SBIN0001234"
+                value="{{ payment_detail.ifsc_code }}"
+                style="text-transform: uppercase;"
+              >
+            </div>
+          </div>
+        </div>
+
+        <div id="paypalBlock" class="mb-4 p-4 rounded-3" style="background: var(--surface-2); border: 1px solid var(--border); display: none;">
+          <div style="font-size: 13px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">
+            <i class="bi bi-paypal me-1"></i> PayPal Configuration
+          </div>
+          <div class="sf-form-group mb-0">
+            <label class="sf-label">PayPal Email Address</label>
+            <input
+              type="email"
+              name="paypal_email"
+              class="sf-input"
+              placeholder="e.g. yourname@example.com"
+              value="{{ payment_detail.paypal_email }}"
+            >
+            <div class="mt-2" style="font-size: 12px; color: var(--text-2);">We will send USD payouts directly to this PayPal account.</div>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-2">
+          <button type="submit" class="btn-primary-sf px-4">
+            <i class="bi bi-shield-check me-2"></i> Save Securely
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const methodSelect = document.getElementById("preferredMethod");
+    const upiBlock = document.getElementById("upiBlock");
+    const bankBlock = document.getElementById("bankBlock");
+    const paypalBlock = document.getElementById("paypalBlock");
+
+    function toggleBlocks() {
+      const v = methodSelect.value;
+      
+      if (v === "upi" || v === "upi_bank") {
+        upiBlock.style.display = "";
+        setTimeout(() => { upiBlock.style.opacity = "1"; upiBlock.style.transform = "translateY(0)"; }, 10);
+      } else {
+        upiBlock.style.display = "none";
+      }
+
+      if (v === "bank" || v === "upi_bank") {
+        bankBlock.style.display = "";
+        setTimeout(() => { bankBlock.style.opacity = "1"; bankBlock.style.transform = "translateY(0)"; }, 10);
+      } else {
+        bankBlock.style.display = "none";
+      }
+
+      if (v === "paypal") {
+        paypalBlock.style.display = "";
+        setTimeout(() => { paypalBlock.style.opacity = "1"; paypalBlock.style.transform = "translateY(0)"; }, 10);
+      } else {
+        paypalBlock.style.display = "none";
+      }
+    }
+
+    upiBlock.style.transition = "all 0.3s ease";
+    bankBlock.style.transition = "all 0.3s ease";
+    paypalBlock.style.transition = "all 0.3s ease";
+    methodSelect.addEventListener("change", toggleBlocks);
+    toggleBlocks();
+  });
+</script>
+{% endblock %}

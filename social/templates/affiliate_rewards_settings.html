@@ -1,0 +1,71 @@
+{% extends "affiliate_base.html" %}
+{% load static %}
+
+{% block title %}Rewards Settings{% endblock %}
+{% block topbar_title %}Reward Rates{% endblock %}
+
+{% block content %}
+<div class="page-content">
+
+  <!-- Page header -->
+  <div class="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-4 anim-fade-up">
+    <div>
+      <h1 class="sf-page-title">Platform Reward Rates</h1>
+      <p class="sf-page-sub">Current engagement payout rates set by the SuperAdmin. All values in {{ currency_symbol }}.</p>
+    </div>
+  </div>
+
+  <div class="sf-section anim-fade-up stagger-1">
+    <div class="sf-section-header">
+      <h2 class="sf-section-title"><i class="bi bi-tags me-2 text-primary-sf"></i>Engagement Payout Table</h2>
+    </div>
+    <div class="table-responsive">
+      <table class="table sf-table align-middle mb-0">
+        <thead>
+          <tr>
+            <th style="width: 25%;">Social Platform</th>
+            <th class="text-center">Earnings Per Like</th>
+            <th class="text-center">Earnings Per Comment</th>
+            <th class="text-center">Earnings Per Share</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div class="d-flex align-items-center fw-bold" style="color: #E1306C; font-size: 15px;">
+                <i class="bi bi-instagram fs-4 me-2"></i> Instagram
+              </div>
+            </td>
+            <td class="text-center"><div class="sf-badge badge-warning" style="font-size: 13.5px;">{{ currency_symbol }}{{ rates.instagram.like|floatformat:2 }}</div></td>
+            <td class="text-center"><div class="sf-badge badge-warning" style="font-size: 13.5px;">{{ currency_symbol }}{{ rates.instagram.comment|floatformat:2 }}</div></td>
+            <td class="text-center"><div class="sf-badge badge-warning" style="font-size: 13.5px;">{{ currency_symbol }}{{ rates.instagram.share|floatformat:2 }}</div></td>
+          </tr>
+
+          <tr>
+            <td>
+              <div class="d-flex align-items-center fw-bold" style="color: #1877F2; font-size: 15px;">
+                <i class="bi bi-facebook fs-4 me-2"></i> Facebook
+              </div>
+            </td>
+            <td class="text-center"><div class="sf-badge badge-info" style="font-size: 13.5px;">{{ currency_symbol }}{{ rates.facebook.like|floatformat:2 }}</div></td>
+            <td class="text-center"><div class="sf-badge badge-info" style="font-size: 13.5px;">{{ currency_symbol }}{{ rates.facebook.comment|floatformat:2 }}</div></td>
+            <td class="text-center"><div class="sf-badge badge-info" style="font-size: 13.5px;">{{ currency_symbol }}{{ rates.facebook.share|floatformat:2 }}</div></td>
+          </tr>
+
+          <tr>
+            <td>
+              <div class="d-flex align-items-center fw-bold" style="color: #0A66C2; font-size: 15px;">
+                <i class="bi bi-linkedin fs-4 me-2"></i> LinkedIn
+              </div>
+            </td>
+            <td class="text-center"><div class="sf-badge badge-default" style="font-size: 13.5px;">{{ currency_symbol }}{{ rates.linkedin.like|floatformat:2 }}</div></td>
+            <td class="text-center"><div class="sf-badge badge-default" style="font-size: 13.5px;">{{ currency_symbol }}{{ rates.linkedin.comment|floatformat:2 }}</div></td>
+            <td class="text-center"><div class="sf-badge badge-default" style="font-size: 13.5px;">{{ currency_symbol }}{{ rates.linkedin.share|floatformat:2 }}</div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

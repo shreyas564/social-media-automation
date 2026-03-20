@@ -1,0 +1,17 @@
+# Created by venv; see https://docs.python.org/3/library/venv.html
+
+__pycache__/
+*.pycgit 
+*.pyo
+*.pyd
+.env
+venv/
+design-system/
+.venv/
+.vscode/
+.agent/
+media/
+api_tokens.py
+ui_ux_pro_max_dashboard_design.md
+
+

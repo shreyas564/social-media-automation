@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Settings{% endblock %}
+
+{% block content %} 
+
+<div class="row align-items-center py-2 px-3 border-bottom">
+    <div class="col-auto">
+        <i class="bi bi-person-circle fs-4 text-primary"></i>
+    </div>
+
+    <div class="col">
+        <a href="{% url 'profile' %}" class="h5 mb-0 text-decoration-none text-dark">Profile </a>
+        <small class="text-muted">{{ request.user.username }}</small>
+    </div>
+
+    <div class="col-auto">
+      
+    </div>
+</div>
+
+{% endblock %}

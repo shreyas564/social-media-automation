@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Profile{% endblock %}
+{% block topbar_title %}Profile{% endblock %}
+
+{% block content %}
+<div class="row g-4 anim-fade-up">
+
+  <!-- PROFILE SIDEBAR CARD -->
+  <div class="col-lg-4">
+    <div class="sf-card p-0 overflow-hidden anim-fade-up stagger-1">
+
+      <div style="background:linear-gradient(135deg,var(--brand-primary),var(--brand-accent));height:80px;position:relative;"></div>
+
+      <div style="margin-top:-38px;display:flex;justify-content:center;position:relative;z-index:2;">
+        <div style="width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,var(--brand-primary),var(--brand-accent));display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;color:white;border:4px solid var(--surface);box-shadow:var(--shadow-md);">
+{% if request.user.get_full_name %}{{ request.user.get_full_name|slice:":1"|upper }}{% else %}{{ request.user.username|slice:":1"|upper }}{% endif %}
+        </div>
+      </div>
+
+      <div style="padding:14px 24px 0;text-align:center;">
+        <h5 style="font-weight:700;margin:0 0 4px;font-size:16px;">{% if request.user.get_full_name %}{{ request.user.get_full_name }}{% else %}{{ request.user.username }}{% endif %}</h5>
+        <p style="color:var(--text-muted);font-size:13px;margin:0 0 16px;">{{ request.user.email }}</p>
+      </div>
+
+      <div style="padding:0 24px 24px;">
+        <div style="border-top:1px solid var(--border);padding-top:16px;display:flex;flex-direction:column;gap:10px;">
+
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:12px;color:var(--text-muted);font-weight:600;">Username</span>
+            <span style="font-size:13px;font-weight:600;color:var(--text);">{{ request.user.username }}</span>
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:12px;color:var(--text-muted);font-weight:600;">Joined</span>
+            <span style="font-size:13px;font-weight:600;color:var(--text);">{{ request.user.date_joined|date:"d M Y" }}</span>
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:12px;color:var(--text-muted);font-weight:600;">Last login</span>
+            <span style="font-size:13px;font-weight:600;color:var(--text);">{% if request.user.last_login %}{{ request.user.last_login|date:"d M Y" }}{% else %}Never{% endif %}</span>
+          </div>
+
+        </div>
+
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+          <a href="{% url 'change_password' %}" class="btn-sf btn-ghost-sf" style="width:100%;justify-content:center;">
+            <i class="bi bi-lock"></i> Change Password
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- PROFILE FORM -->
+  <div class="col-lg-8">
+    <form method="post" action="{% url 'update_profile' %}">
+      {% csrf_token %}
+
+      <!-- Basic Info -->
+      <div class="sf-section mb-4 anim-fade-up stagger-2">
+        <div class="sf-section-header">
+          <h2 class="sf-section-title"><i class="bi bi-person me-2 text-primary-sf"></i>Basic Information</h2>
+        </div>
+        <div class="sf-section-body">
+          <div class="row g-3">
+
+            <div class="col-12">
+              <label class="sf-label">Username</label>
+              <input type="text" class="sf-input" value="{{ request.user.username }}" readonly style="opacity:.6;cursor:not-allowed;">
+              <small style="font-size:11.5px;color:var(--text-muted);margin-top:4px;display:block;">Username cannot be changed.</small>
+            </div>
+
+            <div class="col-md-6">
+              <label class="sf-label">First Name</label>
+              <input type="text" class="sf-input" name="first_name" value="{{ request.user.first_name }}" placeholder="First name">
+            </div>
+
+            <div class="col-md-6">
+              <label class="sf-label">Last Name</label>
+              <input type="text" class="sf-input" name="last_name" value="{{ request.user.last_name }}" placeholder="Last name">
+            </div>
+
+            <div class="col-12">
+              <label class="sf-label">Email Address</label>
+              <input type="email" class="sf-input" name="email" value="{{ request.user.email }}" placeholder="Email address" required>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- API Tokens -->
+      <div class="sf-section mb-4 anim-fade-up stagger-3">
+        <div class="sf-section-header">
+          <h2 class="sf-section-title"><i class="bi bi-key me-2 text-primary-sf"></i>Platform API Tokens</h2>
+          <span class="sf-badge badge-warning">Required for edit/delete</span>
+        </div>
+        <div class="sf-section-body">
+
+          <div style="background:var(--info-bg);border:1px solid rgba(59,130,246,0.2);border-radius:var(--r-md);padding:12px 16px;margin-bottom:20px;font-size:13px;color:var(--info);display:flex;align-items:flex-start;gap:10px;">
+            <i class="bi bi-info-circle-fill" style="flex-shrink:0;margin-top:1px;"></i>
+            <div>
+              <strong>Facebook:</strong> You need a <strong>Page Access Token</strong> with <code>pages_manage_posts</code> permission.<br>
+              <strong>Instagram:</strong> Caption edits via API are not supported — manage these in the Instagram app.
+            </div>
+          </div>
+
+          <div class="row g-3">
+
+            <div class="col-12">
+              <label class="sf-label"><svg viewBox="0 0 24 24" width="14" height="14" fill="#1877F2" style="margin-right:5px;"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>Facebook Page Access Token</label>
+              <input type="text" class="sf-input" name="fbtoken" value="{{ super_admin.fbtoken }}" placeholder="Paste your Facebook Page Access Token here">
+            </div>
+
+            <div class="col-12">
+              <label class="sf-label"><i class="bi bi-instagram me-1" style="color:#E1306C;"></i>Instagram Access Token</label>
+              <input type="text" class="sf-input" name="instatoken" value="{{ super_admin.instatoken }}" placeholder="Paste your Instagram Access Token here">
+            </div>
+
+            <div class="col-12">
+              <label class="sf-label"><svg viewBox="0 0 24 24" width="14" height="14" fill="#0A66C2" style="margin-right:5px;"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>LinkedIn Access Token</label>
+              <input type="text" class="sf-input" name="lntoken" value="{{ super_admin.lntoken }}" placeholder="Paste your LinkedIn Access Token here">
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- n8n & Platform IDs -->
+      <div class="sf-section mb-4 anim-fade-up stagger-4">
+        <div class="sf-section-header">
+          <h2 class="sf-section-title"><i class="bi bi-diagram-3 me-2 text-primary-sf"></i>n8n Workflow &amp; Platform IDs</h2>
+          <span class="sf-badge badge-info">Multi-user routing</span>
+        </div>
+        <div class="sf-section-body">
+
+          <div style="background:var(--info-bg);border:1px solid rgba(59,130,246,0.2);border-radius:var(--r-md);padding:12px 16px;margin-bottom:20px;font-size:13px;color:var(--info);display:flex;align-items:flex-start;gap:10px;">
+            <i class="bi bi-info-circle-fill" style="flex-shrink:0;margin-top:1px;"></i>
+            <div>
+              Each SuperAdmin uses their <strong>own n8n webhook URL</strong> and platform IDs.
+              Posts will be routed to your specific n8n workflow instance using the tokens above and the IDs below.
+            </div>
+          </div>
+
+          <div class="row g-3">
+
+            <div class="col-12">
+              <label class="sf-label"><i class="bi bi-lightning-charge me-1" style="color:#ea580c;"></i>n8n Webhook URL</label>
+              <input type="url" class="sf-input" name="n8n_webhook_url"
+                     value="{{ super_admin.n8n_webhook_url|default:'' }}"
+                     placeholder="http://localhost:5678/webhook/social-post">
+              <small style="font-size:11.5px;color:var(--text-muted);margin-top:4px;display:block;">
+                The webhook URL of your n8n workflow (e.g. <code>http://localhost:5678/webhook/social-post</code>).
+                Leave blank to use the default shared webhook.
+              </small>
+            </div>
+
+            <div class="col-md-6">
+              <label class="sf-label">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="#1877F2" style="margin-right:5px;"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                Facebook Page ID
+              </label>
+              <input type="text" class="sf-input" name="fb_page_id"
+                     value="{{ super_admin.fb_page_id|default:'' }}"
+                     placeholder="e.g. 985055438020046">
+            </div>
+
+            <div class="col-md-6">
+              <label class="sf-label"><i class="bi bi-instagram me-1" style="color:#E1306C;"></i>Instagram Account ID</label>
+              <input type="text" class="sf-input" name="ig_account_id"
+                     value="{{ super_admin.ig_account_id|default:'' }}"
+                     placeholder="e.g. 17841478360956917">
+            </div>
+
+            <div class="col-12">
+              <label class="sf-label">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="#0A66C2" style="margin-right:5px;"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                LinkedIn Organisation ID
+              </label>
+              <input type="text" class="sf-input" name="li_org_id"
+                     value="{{ super_admin.li_org_id|default:'' }}"
+                     placeholder="e.g. 110775771">
+              <small style="font-size:11.5px;color:var(--text-muted);margin-top:4px;display:block;">
+                Numeric LinkedIn Organisation ID (not the slug name).
+              </small>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-end gap-2">
+        <a href="{% url 'super_admin' %}" class="btn-sf btn-ghost-sf">Cancel</a>
+        <button type="submit" class="btn-sf btn-primary-sf">
+          <i class="bi bi-check2-circle"></i> Save Profile
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% block title %}Post Statistics{% endblock %}
+{% block topbar_title %}Post Statistics{% endblock %}
+
+{% block content %}
+<!-- Page header -->
+<div class="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-4 anim-fade-up">
+  <div>
+    <h1 class="sf-page-title">Post Statistics</h1>
+    <p class="sf-page-sub">Track engagement across Instagram, Facebook, and LinkedIn for every post.</p>
+  </div>
+  <div class="d-flex gap-2 align-items-center flex-wrap">
+    <span class="sf-badge badge-primary" style="padding:6px 14px;font-size:12px;border-radius:10px;">
+      <i class="bi bi-grid-3x3-gap me-1"></i>{{ posts|length }} Posts
+    </span>
+    <form method="post" action="{% url 'sync_post_stats' %}" class="m-0">
+      {% csrf_token %}
+      <button type="submit" class="btn-sf btn-primary-sf">
+        <i class="bi bi-arrow-repeat"></i> Sync Latest Stats
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- Platform legend chips -->
+<div class="d-flex gap-2 flex-wrap mb-4 anim-fade-up" style="animation-delay:.06s;">
+  <span class="sf-badge" style="background:#E1306C12;color:#E1306C;padding:6px 12px;font-size:12px;"><i class="bi bi-instagram me-1"></i>Instagram</span>
+  <span class="sf-badge" style="background:#1877F212;color:#1877F2;padding:6px 12px;font-size:12px;"><i class="bi bi-facebook me-1"></i>Facebook</span>
+  <span class="sf-badge" style="background:#0A66C212;color:#0A66C2;padding:6px 12px;font-size:12px;"><i class="bi bi-linkedin me-1"></i>LinkedIn</span>
+  <span class="sf-badge badge-neutral" style="padding:6px 12px;font-size:12px;"><i class="bi bi-info-circle me-1"></i>Click a stat number to view scraped details</span>
+</div>
+
+<!-- Stats Table -->
+<div class="sf-section anim-fade-up" style="animation-delay:.1s;padding:0;overflow:hidden;">
+  <div class="table-responsive" style="max-height:72vh;">
+    <table style="width:100%;border-collapse:collapse;font-family:inherit;">
+
+      <!-- Header -->
+      <thead>
+        <!-- Platform group row -->
+        <tr>
+          <th rowspan="2" style="background:var(--surface-2);color:var(--text-muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:12px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:4;min-width:42px;">#</th>
+          <th rowspan="2" style="background:var(--surface-2);color:var(--text);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:12px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:4;min-width:160px;">Post Name</th>
+          <th rowspan="2" style="background:var(--surface-2);color:var(--text-muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:12px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:4;min-width:100px;">Links</th>
+          <th rowspan="2" style="background:var(--surface-2);color:var(--text-muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:12px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:4;min-width:90px;">Action</th>
+
+          <!-- Instagram group -->
+          <th colspan="3" style="background:#E1306C18;color:#E1306C;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;padding:10px 16px;text-align:center;border-bottom:1px solid rgba(225,48,108,0.15);border-left:2px solid rgba(225,48,108,0.25);position:sticky;top:0;z-index:4;">
+            <i class="bi bi-instagram me-1"></i>Instagram
+          </th>
+
+          <!-- Facebook group -->
+          <th colspan="3" style="background:#1877F218;color:#1877F2;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;padding:10px 16px;text-align:center;border-bottom:1px solid rgba(24,119,242,0.15);border-left:2px solid rgba(24,119,242,0.25);position:sticky;top:0;z-index:4;">
+            <i class="bi bi-facebook me-1"></i>Facebook
+          </th>
+
+          <!-- LinkedIn group -->
+          <th colspan="3" style="background:#0A66C218;color:#0A66C2;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;padding:10px 16px;text-align:center;border-bottom:1px solid rgba(10,102,194,0.15);border-left:2px solid rgba(10,102,194,0.25);position:sticky;top:0;z-index:4;">
+            <i class="bi bi-linkedin me-1"></i>LinkedIn
+          </th>
+        </tr>
+
+        <!-- Sub-column row -->
+        <tr>
+          <!-- Instagram sub-cols -->
+          <th style="background:#E1306C10;color:#E1306C;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:8px 10px;text-align:center;border-bottom:2px solid rgba(225,48,108,0.2);border-left:2px solid rgba(225,48,108,0.25);position:sticky;top:38px;z-index:3;">Likes</th>
+          <th style="background:#E1306C10;color:#E1306C;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:8px 10px;text-align:center;border-bottom:2px solid rgba(225,48,108,0.2);position:sticky;top:38px;z-index:3;">Comments</th>
+          <th style="background:#E1306C10;color:#E1306C;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:8px 10px;text-align:center;border-bottom:2px solid rgba(225,48,108,0.2);position:sticky;top:38px;z-index:3;">Shares</th>
+
+          <!-- Facebook sub-cols -->
+          <th style="background:#1877F210;color:#1877F2;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:8px 10px;text-align:center;border-bottom:2px solid rgba(24,119,242,0.2);border-left:2px solid rgba(24,119,242,0.25);position:sticky;top:38px;z-index:3;">Likes</th>
+          <th style="background:#1877F210;color:#1877F2;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:8px 10px;text-align:center;border-bottom:2px solid rgba(24,119,242,0.2);position:sticky;top:38px;z-index:3;">Comments</th>
+          <th style="background:#1877F210;color:#1877F2;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:8px 10px;text-align:center;border-bottom:2px solid rgba(24,119,242,0.2);position:sticky;top:38px;z-index:3;">Shares</th>
+
+          <!-- LinkedIn sub-cols -->
+          <th style="background:#0A66C210;color:#0A66C2;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:8px 10px;text-align:center;border-bottom:2px solid rgba(10,102,194,0.2);border-left:2px solid rgba(10,102,194,0.25);position:sticky;top:38px;z-index:3;">Likes</th>
+          <th style="background:#0A66C210;color:#0A66C2;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:8px 10px;text-align:center;border-bottom:2px solid rgba(10,102,194,0.2);position:sticky;top:38px;z-index:3;">Comments</th>
+          <th style="background:#0A66C210;color:#0A66C2;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:8px 10px;text-align:center;border-bottom:2px solid rgba(10,102,194,0.2);position:sticky;top:38px;z-index:3;">Shares</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for post in posts %}
+        <tr style="border-bottom:1px solid var(--border);transition:background .15s ease;"
+            onmouseover="this.style.background='var(--surface-2)'"
+            onmouseout="this.style.background=''">
+
+          <!-- # -->
+          <td style="padding:13px 16px;color:var(--text-muted);font-size:13px;font-weight:600;">{{ forloop.counter }}</td>
+
+          <!-- Post name -->
+          <td style="padding:13px 16px;max-width:190px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">
+            <div style="font-size:13.5px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{{ post.post_name }}">{{ post.post_name }}</div>
+            <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">{{ post.created_at|date:"d M Y" }}</div>
+          </td>
+
+          <!-- Platform icon links -->
+          <td style="padding:13px 16px;">
+            <div style="display:flex;gap:10px;align-items:center;">
+              {% if post.Ipost_url %}
+              <a href="{{ post.Ipost_url }}" target="_blank" title="Instagram Post" style="color:#E1306C;font-size:17px;transition:transform .15s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''"><i class="bi bi-instagram"></i></a>
+              {% else %}
+              <span title="No Instagram URL" style="color:var(--border);font-size:17px;"><i class="bi bi-instagram"></i></span>
+              {% endif %}
+
+              {% if post.Fposturl %}
+              <a href="{{ post.Fposturl }}" target="_blank" title="Facebook Post" style="color:#1877F2;font-size:17px;transition:transform .15s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''"><i class="bi bi-facebook"></i></a>
+              {% else %}
+              <span title="No Facebook URL" style="color:var(--border);font-size:17px;"><i class="bi bi-facebook"></i></span>
+              {% endif %}
+
+              {% if post.Lposturl %}
+              <a href="{{ post.Lposturl }}" target="_blank" title="LinkedIn Post" style="color:#0A66C2;font-size:17px;transition:transform .15s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''"><i class="bi bi-linkedin"></i></a>
+              {% else %}
+              <span title="No LinkedIn URL" style="color:var(--border);font-size:17px;"><i class="bi bi-linkedin"></i></span>
+              {% endif %}
+            </div>
+          </td>
+
+          <!-- Scrape action -->
+          <td style="padding:13px 16px;">
+            {% if post.Ipost_url or post.Fposturl or post.Lposturl %}
+            <form method="POST" action="{% url 'scrape_post' post.id %}" class="d-inline scrape-form">
+              {% csrf_token %}
+              <input type="hidden" name="platform" value="all">
+              <button type="submit" class="btn-sf btn-ghost-sf btn-sm-sf" title="Scrape all platforms">
+                <i class="bi bi-cloud-download"></i> Scrape
+              </button>
+            </form>
+            {% else %}
+            <span class="sf-badge badge-neutral" style="font-size:11px;">No URLs</span>
+            {% endif %}
+            <small class="scrape-status" style="display:block;margin-top:4px;font-size:11px;color:var(--text-muted);"></small>
+          </td>
+
+          <!-- Instagram stats -->
+          <td style="padding:13px 10px;text-align:center;border-left:2px solid rgba(225,48,108,0.15);">
+            <span style="font-size:14px;font-weight:700;color:#E1306C;">
+              {% if post.scraped_info.instagram.likes.exists %}
+              <a href="{% url 'post_details' post.id 'instagram' 'likes' %}" style="color:#E1306C;text-decoration:underline;text-underline-offset:2px;">{{ post.ig_likes|default:0 }}</a>
+              {% else %}
+              {{ post.ig_likes|default:0 }}
+              {% endif %}
+            </span>
+          </td>
+          <td style="padding:13px 10px;text-align:center;">
+            <span style="font-size:14px;font-weight:700;color:#E1306C;">
+              {% if post.scraped_info.instagram.comments.exists %}
+              <a href="{% url 'post_details' post.id 'instagram' 'comments' %}" style="color:#E1306C;text-decoration:underline;text-underline-offset:2px;">{{ post.ig_comments|default:0 }}</a>
+              {% else %}
+              {{ post.ig_comments|default:0 }}
+              {% endif %}
+            </span>
+          </td>
+          <td style="padding:13px 10px;text-align:center;"><span style="font-size:14px;font-weight:700;color:#E1306C;">{{ post.ig_shares|default:"—" }}</span></td>
+
+          <!-- Facebook stats -->
+          <td style="padding:13px 10px;text-align:center;border-left:2px solid rgba(24,119,242,0.15);">
+            <span style="font-size:14px;font-weight:700;color:#1877F2;">
+              {% if post.scraped_info.facebook.likes.exists %}
+              <a href="{% url 'post_details' post.id 'facebook' 'likes' %}" style="color:#1877F2;text-decoration:underline;text-underline-offset:2px;">{{ post.fb_likes|default:0 }}</a>
+              {% else %}
+              {{ post.fb_likes|default:0 }}
+              {% endif %}
+            </span>
+          </td>
+          <td style="padding:13px 10px;text-align:center;">
+            <span style="font-size:14px;font-weight:700;color:#1877F2;">
+              {% if post.scraped_info.facebook.comments.exists %}
+              <a href="{% url 'post_details' post.id 'facebook' 'comments' %}" style="color:#1877F2;text-decoration:underline;text-underline-offset:2px;">{{ post.fb_comments|default:0 }}</a>
+              {% else %}
+              {{ post.fb_comments|default:0 }}
+              {% endif %}
+            </span>
+          </td>
+          <td style="padding:13px 10px;text-align:center;"><span style="font-size:14px;font-weight:700;color:#1877F2;">{{ post.fb_shares|default:0 }}</span></td>
+
+          <!-- LinkedIn stats -->
+          <td style="padding:13px 10px;text-align:center;border-left:2px solid rgba(10,102,194,0.15);">
+            <span style="font-size:14px;font-weight:700;color:#0A66C2;">
+              {% if post.scraped_info.linkedin.likes.exists %}
+              <a href="{% url 'post_details' post.id 'linkedin' 'likes' %}" style="color:#0A66C2;text-decoration:underline;text-underline-offset:2px;">{{ post.li_likes|default:0 }}</a>
+              {% else %}
+              {{ post.li_likes|default:0 }}
+              {% endif %}
+            </span>
+          </td>
+          <td style="padding:13px 10px;text-align:center;">
+            <span style="font-size:14px;font-weight:700;color:#0A66C2;">
+              {% if post.scraped_info.linkedin.comments.exists %}
+              <a href="{% url 'post_details' post.id 'linkedin' 'comments' %}" style="color:#0A66C2;text-decoration:underline;text-underline-offset:2px;">{{ post.li_comments|default:0 }}</a>
+              {% else %}
+              {{ post.li_comments|default:0 }}
+              {% endif %}
+            </span>
+          </td>
+          <td style="padding:13px 10px;text-align:center;"><span style="font-size:14px;font-weight:700;color:#0A66C2;">{{ post.li_shares|default:0 }}</span></td>
+
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="13" style="padding:60px 24px;text-align:center;color:var(--text-muted);">
+            <i class="bi bi-bar-chart-line" style="font-size:2.5rem;display:block;margin-bottom:12px;opacity:.25;"></i>
+            <strong style="display:block;margin-bottom:6px;font-size:15px;color:var(--text);">No posts to track</strong>
+            <span style="font-size:13px;">Create posts first, then sync stats to see engagement data here.</span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

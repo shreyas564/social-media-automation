@@ -1,27 +1,116 @@
-<div class="col-md-2 sidebar p-3">
-  <h4 class="text-center mb-4">Super Admin</h4>
-
-  <a href="{% url 'super_admin' %}">
-    <i class="bi bi-speedometer2 me-2"></i> Dashboard
+<aside class="sidebar" id="appSidebar">
+  <!-- Brand -->
+  <a href="{% url 'super_admin' %}" class="sidebar-brand">
+    <div class="sidebar-brand-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+        stroke-linejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+        <polyline points="9 22 9 12 15 12 15 22" />
+      </svg>
+    </div>
+    <div class="sidebar-brand-text">
+      <div class="sidebar-brand-name">SocialFlow</div>
+      <div class="sidebar-brand-sub">Super Admin Portal</div>
+    </div>
   </a>
 
-  <a href="{% url 'posts_list' %}">
-    <i class="bi bi-megaphone me-2"></i> Posts
-  </a>
+  <!-- Navigation -->
+  <nav class="sidebar-nav">
+    <!-- Desktop Sidebar Toggle -->
+    <a href="javascript:void(0);" class="sidebar-link js-sidebar-toggle d-none d-lg-flex" style="color: var(--sidebar-text); margin-bottom: 8px;">
+      <span class="nav-icon"><i class="bi bi-list" style="font-size: 22px;"></i></span>
+      <span class="nav-label" style="font-weight: 600;">Collapse Menu</span>
+    </a>
 
-  <a href="#">
-    <i class="bi bi-people me-2"></i> Affiliate Users
-  </a>
+    <div class="sidebar-section-label">Overview</div>
 
-  <a href="#">
-    <i class="bi bi-person me-2"></i> Profile
-  </a>
+    <a href="{% url 'super_admin' %}" class="sidebar-link">
+      <span class="nav-icon"><i class="bi bi-speedometer2"></i></span>
+      <span class="nav-label">Dashboard</span>
+      <span class="active-dot"></span>
+    </a>
 
-  <a href="#">
-    <i class="bi bi-gear me-2"></i> Settings
-  </a>
+    <a href="{% url 'posts_list' %}" class="sidebar-link">
+      <span class="nav-icon"><i class="bi bi-grid-3x3-gap"></i></span>
+      <span class="nav-label">Posts</span>
+      <span class="active-dot"></span>
+    </a>
 
-  <a href="#">
-    <i class="bi bi-box-arrow-right me-2"></i> Logout
-  </a>
-</div>
+    <a href="{% url 'post_stats' %}" class="sidebar-link">
+      <span class="nav-icon"><i class="bi bi-bar-chart-line"></i></span>
+      <span class="nav-label">Post Statistics</span>
+      <span class="active-dot"></span>
+    </a>
+
+    <a href="{% url 'create_post' %}" class="sidebar-link">
+      <span class="nav-icon"><i class="bi bi-plus-square"></i></span>
+      <span class="nav-label">Create Post</span>
+      <span class="active-dot"></span>
+    </a>
+
+    <div class="sidebar-section-label">Affiliates</div>
+
+    <a href="{% url 'affiliate_users' %}" class="sidebar-link">
+      <span class="nav-icon"><i class="bi bi-people"></i></span>
+      <span class="nav-label">Affiliate Users</span>
+      <span class="active-dot"></span>
+    </a>
+
+    <a href="{% url 'affiliate_wallet' %}" class="sidebar-link">
+      <span class="nav-icon"><i class="bi bi-wallet2"></i></span>
+      <span class="nav-label">Affiliate Wallet</span>
+      <span class="active-dot"></span>
+    </a>
+
+    <a href="{% url 'withdrawal_requests' %}" class="sidebar-link">
+      <span class="nav-icon"><i class="bi bi-cash-stack"></i></span>
+      <span class="nav-label">Withdrawals</span>
+      <span class="active-dot"></span>
+    </a>
+
+    <a href="{% url 'payment_history' %}" class="sidebar-link">
+      <span class="nav-icon"><i class="bi bi-receipt-cutoff"></i></span>
+      <span class="nav-label">Payment History</span>
+      <span class="active-dot"></span>
+    </a>
+
+    <div class="sidebar-section-label">Configuration</div>
+
+    <a href="{% url 'payment_settings' %}" class="sidebar-link">
+      <span class="nav-icon"><i class="bi bi-sliders"></i></span>
+      <span class="nav-label">Payment Settings</span>
+      <span class="active-dot"></span>
+    </a>
+
+    <a href="{% url 'fbpage' %}" class="sidebar-link">
+      <span class="nav-icon">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor">
+          <path
+            d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+        </svg>
+      </span>
+      <span class="nav-label">Facebook Pages</span>
+      <span class="active-dot"></span>
+    </a>
+
+    <a href="{% url 'profile' %}" class="sidebar-link">
+      <span class="nav-icon"><i class="bi bi-person-gear"></i></span>
+      <span class="nav-label">Profile & Tokens</span>
+      <span class="active-dot"></span>
+    </a>
+
+    <a href="{% url 'add_superadmin' %}" class="sidebar-link">
+      <span class="nav-icon"><i class="bi bi-person-plus-fill"></i></span>
+      <span class="nav-label">Add Superadmin</span>
+      <span class="active-dot"></span>
+    </a>
+  </nav>
+
+  <!-- Footer -->
+  <div class="sidebar-footer">
+    <a href="{% url 'logout' %}" class="sidebar-link" style="color: #EF4444;">
+      <span class="nav-icon"><i class="bi bi-box-arrow-left"></i></span>
+      <span class="nav-label">Logout</span>
+    </a>
+  </div>
+</aside>
