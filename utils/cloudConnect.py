@@ -3,7 +3,7 @@ import cloudinary.uploader
 def upload_image_to_cloudinary(django_file):
     result = cloudinary.uploader.upload(
         django_file,
-        folder="n8nData"
+        folder="n8n"
         
     )
     return result["secure_url"]

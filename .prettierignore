@@ -1,0 +1,4 @@
+# Never format Django/Jinja templates - Prettier splits {{ }} across lines
+# which breaks Django's template engine rendering.
+**/templates/**/*.html
+social/templates/

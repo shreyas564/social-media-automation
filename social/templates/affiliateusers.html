@@ -1,61 +1,124 @@
 {% extends "base.html" %}
-
 {% block title %}Affiliate Users{% endblock %}
+{% block topbar_title %}Affiliate Users & Engagement{% endblock %}
 
 {% block content %}
-
-<h3 class="mb-4">Affiliate Users</h3>
-
-<div class="card shadow-sm">
-  <div class="card-body">
-
-    <div class="table-responsive">
-      <table class="table table-striped align-middle">
-        <thead class="table-dark">
-          <tr>
-            <th>#</th>
-            <th>Username</th>
-            <th>Email</th>
-            <th>Date Joined</th>
-            <th class="text-center">Actions</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {% for user in users %}
-          <tr>
-            <td>{{ forloop.counter }}</td>
-            <td>{{ user.username }}</td>
-            <td>{{ user.email }}</td>
-            <td>{{ user.date_joined|date:"d M Y" }}</td>
-            <td class="text-center">
-
-              <!-- Remove User -->
-              <form action="{% url 'remove_user' user.id %}"
-                    method="post"
-                    class="d-inline">
-                {% csrf_token %}
-                <button type="submit"
-                        class="btn btn-sm btn-danger"
-                        onclick="return confirm('Are you sure you want to remove this user?');">
-                  <i class="bi bi-trash"></i> Remove
-                </button>
-              </form>
-
-            </td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="5" class="text-center text-muted">
-              No users found.
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-
+<!-- Page Header -->
+<div class="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-4 anim-fade-up">
+  <div>
+    <h1 class="sf-page-title">Affiliate Users</h1>
+    <p class="sf-page-sub">Monitor engagement across Instagram, Facebook, and LinkedIn for all affiliates.</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap align-items-center">
+    <span class="sf-badge badge-primary" style="padding:6px 14px;font-size:12px;border-radius:10px;">
+      <i class="bi bi-people me-1"></i>{{ users_stats|length }} Users
+    </span>
   </div>
 </div>
 
+<div class="sf-section anim-fade-up" style="animation-delay:.07s;">
+  <div class="sf-section-header">
+    <h2 class="sf-section-title"><i class="bi bi-table me-2 text-primary-sf"></i>Engagement Table</h2>
+    <input id="userSearchInput" class="sf-input" style="max-width:240px;padding:7px 14px;"
+      placeholder="Search username…">
+  </div>
+
+  <div class="table-responsive" style="max-height:72vh;">
+    <table class="sf-table" style="min-width:900px;">
+      <thead>
+        <tr>
+          <th rowspan="2" style="min-width:40px;">#</th>
+          <th rowspan="2" style="min-width:140px;">Username</th>
+          <th colspan="3" class="text-center" style="color:#E1306C;border-left:1px solid var(--border);">
+            <i class="bi bi-instagram me-1"></i>Instagram
+          </th>
+          <th colspan="3" class="text-center" style="color:#1877F2;border-left:1px solid var(--border);">
+            <i class="bi bi-facebook me-1"></i>Facebook
+          </th>
+          <th colspan="3" class="text-center" style="color:#0A66C2;border-left:1px solid var(--border);">
+            <i class="bi bi-linkedin me-1"></i>LinkedIn
+          </th>
+          <th colspan="3" class="text-center" style="border-left:1px solid var(--border);">
+            <i class="bi bi-layers me-1"></i>Totals
+          </th>
+          <th rowspan="2" style="min-width:90px;">Joined</th>
+          <th rowspan="2" style="min-width:70px;">Credits</th>
+          <th rowspan="2" style="min-width:100px;">Balance</th>
+          <th rowspan="2" style="min-width:100px;">Withdrawn</th>
+        </tr>
+        <tr>
+          <th>Like</th>
+          <th>Share</th>
+          <th>Comment</th>
+          <th>Like</th>
+          <th>Share</th>
+          <th>Comment</th>
+          <th>Like</th>
+          <th>Share</th>
+          <th>Comment</th>
+          <th>Likes</th>
+          <th>Shares</th>
+          <th>Comments</th>
+        </tr>
+      </thead>
+      <tbody id="usersTableBody">
+        {% for item in users_stats %}
+        <tr class="user-row" data-username="{{ item.affiliate.username|lower }}">
+          <td style="color:var(--text-muted);">{{ forloop.counter }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div
+                style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--brand-primary),var(--brand-accent));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:white;flex-shrink:0;">
+                {{ item.affiliate.username|slice:":1"|upper }}
+              </div>
+              <strong style="font-size:13.5px;">{{ item.affiliate.username }}</strong>
+            </div>
+          </td>
+          <td>{{ item.ig_like }}</td>
+          <td>{{ item.ig_share }}</td>
+          <td>{{ item.ig_comment }}</td>
+          <td>{{ item.fb_like }}</td>
+          <td>{{ item.fb_share }}</td>
+          <td>{{ item.fb_comment }}</td>
+          <td>{{ item.li_like }}</td>
+          <td>{{ item.li_share }}</td>
+          <td>{{ item.li_comment }}</td>
+          <td><strong>{{ item.total_likes }}</strong></td>
+          <td><strong>{{ item.total_shares }}</strong></td>
+          <td><strong>{{ item.total_comments }}</strong></td>
+          <td style="color:var(--text-muted);font-size:12.5px;">{{ item.affiliate.created_at|date:"d M Y" }}</td>
+          <td><strong>{{ item.credits_before_joining_date }}</strong></td>
+          <td>
+            <span class="sf-badge badge-success">{{ currency_symbol }}{{ item.amount_total|floatformat:2 }}</span>
+          </td>
+          <td>
+            <span class="sf-badge badge-neutral">{{ currency_symbol }}{{ item.total_withdrawal|floatformat:2 }}</span>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="18" style="text-align:center;padding:48px 24px;color:var(--text-muted);">
+            <i class="bi bi-people" style="font-size:2rem;display:block;margin-bottom:10px;opacity:0.3;"></i>
+            No affiliate users found.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const input = document.getElementById("userSearchInput");
+    const rows = document.querySelectorAll("#usersTableBody tr.user-row");
+    if (!input) return;
+    input.addEventListener("input", function () {
+      const term = this.value.trim().toLowerCase();
+      rows.forEach(row => {
+        row.style.display = row.dataset.username.includes(term) ? "" : "none";
+      });
+    });
+  })();
+</script>
 {% endblock %}

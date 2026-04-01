@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Affiliate Users{% endblock %}
+
+{% block content %}
+
+<h3 class="mb-4">Affiliate Users</h3>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+
+    <div class="table-responsive">
+      <table class="table table-striped align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th>#</th>
+            <th>Facebook Page Name</th>
+            <th>Facebook Page id</th>
+            <th class="text-center">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for page in pages %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ page.pageName }}</td>
+            <td>{{ page.pageId }}</td>
+            <td class="text-center">
+
+              {% comment %} <!-- Remove User -->
+              <form action="{% url 'remove_user' user.id %}"
+                    method="post"
+                    class="d-inline">
+                {% csrf_token %}
+                <button type="submit"
+                        class="btn btn-sm btn-danger"
+                        onclick="return confirm('Are you sure you want to remove this user?');">
+                  <i class="bi bi-trash"></i> Remove
+                </button>
+              </form> {% endcomment %}
+
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="text-center text-muted">
+              No Pages found.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

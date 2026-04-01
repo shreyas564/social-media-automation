@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Profile{% endblock %}
+
+{% block content %}
+<div class="card mt-4">
+  <div class="card-body">
+
+    <h5>Edit Profile</h5>
+    <form method="POST" action="{% url 'update_affiliate_profile' %}">
+      {% csrf_token %}
+      <input class="form-control mb-2" name="username" value="{{ affiliate.username }}" required>
+      <input class="form-control mb-2" name="instagram_secret" placeholder="Instagram Secret">
+      <input class="form-control mb-2" name="facebook_secret" placeholder="Facebook Secret">
+      <input class="form-control mb-2" name="linkedin_secret" placeholder="LinkedIn Secret">
+      <input class="form-control mb-2" name="twitter_secret" placeholder="Twitter Secret">
+      <button class="btn btn-success">Update Profile</button>
+    </form>
+
+    <hr id="password">
+
+    <h5>Change Password</h5>
+    <form method="POST" action="{% url 'change_affiliate_password' %}">
+      {% csrf_token %}
+      <input type="password" class="form-control mb-2" name="old_password" placeholder="Old Password" required>
+      <input type="password" class="form-control mb-2" name="new_password" placeholder="New Password" required>
+      <input type="password" class="form-control mb-2" name="confirm_password" placeholder="Confirm Password" required>
+      <button class="btn btn-warning">Change Password</button>
+    </form>
+
+  </div>
+</div>
+{% endblock %}

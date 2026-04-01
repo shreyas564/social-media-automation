@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Affiliate Wallet{% endblock %}
+{% block topbar_title %}Affiliate Wallet{% endblock %}
+
+{% block content %}
+
+<!-- Page header -->
+<div class="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-4 anim-fade-up">
+  <div>
+    <h1 class="sf-page-title">Affiliate Wallet Ledger</h1>
+    <p class="sf-page-sub">Per-affiliate wallet summary synced with affiliate-side balance logic.</p>
+  </div>
+</div>
+
+<div class="sf-section anim-fade-up stagger-1">
+  <div class="sf-section-header">
+    <h2 class="sf-section-title"><i class="bi bi-wallet2 me-2 text-primary-sf"></i>All Affiliates Summary</h2>
+  </div>
+  <div class="table-responsive">
+    <table class="sf-table table-saas">
+      <thead>
+        <tr>
+          <th>Affiliate Name</th>
+          <th style="text-align:right;">Current Balance</th>
+          <th style="text-align:right;">Pending Withdrawal</th>
+          <th style="text-align:right;">Total Withdrawn</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in wallet_rows %}
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--brand-primary),var(--brand-accent));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:white;flex-shrink:0;">
+                {{ row.affiliate.username|slice:":1"|upper }}
+              </div>
+              <strong style="font-size:13.5px;color:var(--text);">{{ row.affiliate.username }}</strong>
+            </div>
+          </td>
+          <td style="text-align:right;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;">
+            <span style="color:var(--text-muted);margin-right:2px;font-weight:500;">{{ currency_symbol }}</span>{{ row.current_balance|floatformat:2 }}
+          </td>
+          <td style="text-align:right;font-weight:600;color:var(--warn);font-variant-numeric:tabular-nums;">
+            <span style="color:var(--warn);opacity:0.6;margin-right:2px;font-weight:500;">{{ currency_symbol }}</span>{{ row.pending_withdrawal|floatformat:2 }}
+          </td>
+          <td style="text-align:right;font-weight:600;color:var(--success);font-variant-numeric:tabular-nums;">
+            <span style="color:var(--success);opacity:0.6;margin-right:2px;font-weight:500;">{{ currency_symbol }}</span>{{ row.total_withdrawn|floatformat:2 }}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="4">
+            <div class="sf-empty">
+              <i class="bi bi-wallet2 sf-empty-icon"></i>
+              <h6>No wallet data found</h6>
+              <p>There are no affiliates in the system yet.</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

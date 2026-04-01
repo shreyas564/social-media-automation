@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block title %}{{ type|title }} · {{ platform|title }} · {{ post.post_name|default:"Post" }}{% endblock %}
+{% block topbar_title %}Post Engagement Details{% endblock %}
+
+{% block content %}
+
+<!-- Platform colour variables for this page -->
+<style>
+  {% if platform == "instagram" %}
+  :root { --plat: #E1306C; --plat-bg: rgba(225,48,108,0.06); --plat-border: rgba(225,48,108,0.18); }
+  {% elif platform == "facebook" %}
+  :root { --plat: #1877F2; --plat-bg: rgba(24,119,242,0.06); --plat-border: rgba(24,119,242,0.18); }
+  {% else %}
+  :root { --plat: #0A66C2; --plat-bg: rgba(10,102,194,0.06); --plat-border: rgba(10,102,194,0.18); }
+  {% endif %}
+</style>
+
+<!-- ── Breadcrumb back link ── -->
+<div class="mb-4 anim-fade-up">
+  <a href="{% url 'post_stats' %}" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--text-muted);text-decoration:none;transition:color .15s;" onmouseover="this.style.color='var(--brand-primary)'" onmouseout="this.style.color='var(--text-muted)'">
+    <i class="bi bi-arrow-left"></i> Back to Post Statistics
+  </a>
+</div>
+
+<!-- ── Hero header ── -->
+<div class="sf-card mb-4 anim-fade-up" style="border-left:4px solid var(--plat);animation-delay:.05s;">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+
+    <!-- Left: post info -->
+    <div style="flex:1;min-width:0;">
+      <!-- Platform + type label -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+        <span style="display:inline-flex;align-items:center;gap:6px;background:var(--plat-bg);border:1px solid var(--plat-border);color:var(--plat);border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">
+          {% if platform == "instagram" %}<i class="bi bi-instagram"></i>
+          {% elif platform == "facebook" %}<i class="bi bi-facebook"></i>
+          {% else %}<i class="bi bi-linkedin"></i>{% endif %}
+          {{ platform|title }}
+        </span>
+        <span style="display:inline-flex;align-items:center;gap:5px;background:var(--surface-2);border:1px solid var(--border);color:var(--text-2);border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">
+          {% if type == "comments" %}<i class="bi bi-chat-dots"></i>{% else %}<i class="bi bi-heart"></i>{% endif %}
+          {{ type|title }}
+        </span>
+      </div>
+
+      <h2 style="font-size:18px;font-weight:800;color:var(--text);margin:0 0 6px;letter-spacing:-.2px;">{{ post.post_name|default:"Untitled Post" }}</h2>
+      <p style="font-size:13.5px;color:var(--text-2);margin:0 0 10px;line-height:1.55;">{{ post.caption|default:"-"|truncatechars:160 }}</p>
+
+      {% if post_url %}
+      <a href="{{ post_url }}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--plat);text-decoration:none;background:var(--plat-bg);border:1px solid var(--plat-border);border-radius:8px;padding:6px 12px;transition:opacity .15s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">
+        <i class="bi bi-box-arrow-up-right"></i> View Original Post
+      </a>
+      {% endif %}
+    </div>
+
+    <!-- Right: KPI chips -->
+    <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;flex-shrink:0;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+        <div class="sf-card" style="padding:12px 18px;text-align:center;min-width:90px;background:var(--plat-bg);border-color:var(--plat-border);">
+          <div style="font-size:22px;font-weight:800;color:var(--plat);">{{ affiliates_found|length }}</div>
+          <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;">Affiliates</div>
+        </div>
+        <div class="sf-card" style="padding:12px 18px;text-align:center;min-width:90px;">
+          <div style="font-size:22px;font-weight:800;color:var(--text);">{{ others_found|length }}</div>
+          <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;">Others</div>
+        </div>
+      </div>
+      {% if scraped_at %}
+      <span style="font-size:11.5px;color:var(--text-muted);font-weight:500;"><i class="bi bi-clock-history me-1"></i>Scraped {{ scraped_at|date:"d M Y, H:i" }}</span>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Affiliate Users Section ── -->
+<div class="sf-section mb-4 anim-fade-up" style="animation-delay:.1s;">
+  <div class="sf-section-header">
+    <h2 class="sf-section-title">
+      <i class="bi bi-person-check-fill me-2" style="color:var(--success);"></i>
+      Affiliate Users
+      <span class="sf-badge badge-success ms-2">{{ affiliates_found|length }}</span>
+    </h2>
+    <input id="affiliateSearch" class="sf-input" style="max-width:240px;padding:7px 14px;" placeholder="Search username{% if type == 'comments' %} or comment{% endif %}…">
+  </div>
+
+  {% if affiliates_found %}
+  <div class="table-responsive" style="max-height:360px;">
+    <table class="sf-table">
+      <thead>
+        <tr>
+          <th style="width:48px;">#</th>
+          <th>Username</th>
+          {% if type == "comments" %}<th>Comment</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody id="affiliateRows">
+        {% for item in affiliates_found %}
+        <tr class="detail-row" data-username="{{ item.username|lower }}" data-comment="{{ item.comment_text|default:''|lower }}">
+          <td style="color:var(--text-muted);font-size:13px;">{{ forloop.counter }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--plat),var(--brand-accent));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:white;flex-shrink:0;">{{ item.username|slice:":1"|upper }}</div>
+              <strong style="font-size:13.5px;color:var(--text);">{{ item.username }}</strong>
+              <span class="sf-badge badge-success" style="font-size:10px;">Affiliate</span>
+            </div>
+          </td>
+          {% if type == "comments" %}
+          <td style="color:var(--text-2);font-size:13px;max-width:380px;">{{ item.comment_text|default:"—"|truncatechars:120 }}</td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="padding:48px 24px;text-align:center;color:var(--text-muted);">
+    <i class="bi bi-person-check" style="font-size:2.2rem;display:block;margin-bottom:10px;opacity:.25;"></i>
+    <strong style="display:block;margin-bottom:5px;color:var(--text);">No affiliate engagement found</strong>
+    <span style="font-size:13px;">None of your affiliates have {{ type }} on this post yet.</span>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ── Other Users Section ── -->
+<div class="sf-section anim-fade-up" style="animation-delay:.15s;">
+  <div class="sf-section-header">
+    <h2 class="sf-section-title">
+      <i class="bi bi-people me-2 text-primary-sf"></i>
+      Other Users
+      <span class="sf-badge badge-neutral ms-2">{{ others_found|length }}</span>
+    </h2>
+    <input id="otherSearch" class="sf-input" style="max-width:240px;padding:7px 14px;" placeholder="Search username{% if type == 'comments' %} or comment{% endif %}…">
+  </div>
+
+  {% if others_found %}
+  <div class="table-responsive" style="max-height:360px;">
+    <table class="sf-table">
+      <thead>
+        <tr>
+          <th style="width:48px;">#</th>
+          <th>Username</th>
+          {% if type == "comments" %}<th>Comment</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody id="otherRows">
+        {% for item in others_found %}
+        <tr class="detail-row" data-username="{{ item.username|lower }}" data-comment="{{ item.comment_text|default:''|lower }}">
+          <td style="color:var(--text-muted);font-size:13px;">{{ forloop.counter }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:28px;height:28px;border-radius:50%;background:var(--surface-3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:var(--text-muted);flex-shrink:0;border:1px solid var(--border);">{{ item.username|slice:":1"|upper }}</div>
+              <strong style="font-size:13.5px;color:var(--text);">{{ item.username }}</strong>
+            </div>
+          </td>
+          {% if type == "comments" %}
+          <td style="color:var(--text-2);font-size:13px;max-width:380px;">{{ item.comment_text|default:"—"|truncatechars:120 }}</td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="padding:48px 24px;text-align:color:var(--text-muted);">
+    <i class="bi bi-people" style="font-size:2.2rem;display:block;margin-bottom:10px;opacity:.25;text-align:center;"></i>
+    <strong style="display:block;margin-bottom:5px;color:var(--text);text-align:center;">No other users found</strong>
+    <span style="font-size:13px;display:block;text-align:center;">No non-affiliate users have {{ type }} on this post yet.</span>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+  function wireFilter(inputId, tbodyId) {
+    const input = document.getElementById(inputId);
+    const tbody = document.getElementById(tbodyId);
+    if (!input || !tbody) return;
+    input.addEventListener("input", function () {
+      const term = this.value.trim().toLowerCase();
+      tbody.querySelectorAll("tr.detail-row").forEach(function (row) {
+        const text = (row.dataset.username || "") + " " + (row.dataset.comment || "");
+        row.style.display = text.includes(term) ? "" : "none";
+      });
+    });
+  }
+  wireFilter("affiliateSearch", "affiliateRows");
+  wireFilter("otherSearch", "otherRows");
+</script>
+{% endblock %}

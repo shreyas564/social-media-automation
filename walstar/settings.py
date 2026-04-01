@@ -13,16 +13,25 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from pathlib import Path
 import os
 import cloudinary
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Apify Configuration
+APIFY_TOKEN = os.getenv('APIFY_TOKEN')
+INSTAGRAM_SESSION_COOKIE = os.getenv('INSTAGRAM_SESSION_COOKIE')  # Optional
 
 cloudinary.config(
-    cloud_name="dclz1tlmh",
-    api_key="237827795133481",
-    api_secret="umWZSPPYbyjL6N9cyr22ZUzzy7w",
+    cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
+    api_key=os.getenv('CLOUDINARY_API_KEY'),
+    api_secret=os.getenv('CLOUDINARY_API_SECRET'),
     secure=True
 )
 
-
-print("Configured cloudinary successfully")
+import logging
+logger = logging.getLogger(__name__)
+logger.info("Configured cloudinary successfully")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -32,12 +41,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-ct#2jrpr)^m!s2$+p8kdhc6^hai-itxn2)!7zhx5(%^e%#!ab5'
+SECRET_KEY = os.getenv('SECRET_KEY', 'default-insecure-key')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 
 
 # Application definition
@@ -75,6 +84,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'social.context_processors.admin_notifications',
+                'social.context_processors.global_settings',
             ],
         },
     },
@@ -89,11 +100,11 @@ WSGI_APPLICATION = 'walstar.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'walstar',
-        'USER': 'postgres',
-        'PASSWORD': 'root',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': os.getenv('DB_NAME', 'walstar'),
+        'USER': os.getenv('DB_USER', 'walstar'),
+        'PASSWORD': os.getenv('DB_PASSWORD', ''),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
 
@@ -122,7 +133,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Kolkata'
 
 USE_I18N = True
 
@@ -139,8 +150,17 @@ STATIC_URL = 'static/'
 STATICFIELS_DIRS=[os.path.join(BASE_DIR,'static')]
 
 CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': 'dclz1tlmh',
-    'API_KEY': '237827795133481',
-    'API_SECRET': 'umWZSPPYbyjL6N9cyr22ZUzzy7w'
+    'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
+    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET')
 }
 
+FB_PAGE_TOKEN = os.getenv("FB_PAGE_TOKEN")
+
+# Production Security Settings
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True

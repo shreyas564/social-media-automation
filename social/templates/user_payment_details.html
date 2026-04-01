@@ -1,0 +1,137 @@
+{% extends "affiliate_base.html" %}
+{% block title %}User Payment Details{% endblock %}
+
+{% block content %}
+<style>
+  .payd-head {
+    border: 1px solid #dbe4f2;
+    border-radius: 16px;
+    background: linear-gradient(130deg, #f8fbff, #eef4ff 58%, #e8f2ff);
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+
+  .payd-card {
+    border-radius: 16px;
+    border: 1px solid #dbe4f2;
+    box-shadow: 0 12px 28px rgba(16, 40, 74, 0.1);
+    overflow: hidden;
+  }
+
+  .sec-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a3b62;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  .field-note {
+    color: #607288;
+    font-size: 12px;
+  }
+</style>
+
+<div class="payd-head">
+  <h4 class="mb-1">User Payment Details</h4>
+  <p class="text-muted mb-0">Set your preferred payout details for smooth withdrawal processing.</p>
+</div>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags|default:'info' }} py-2" role="alert">
+      {{ message }}
+    </div>
+  {% endfor %}
+{% endif %}
+
+<div class="card payd-card">
+  <div class="card-body p-4">
+    <form method="post">
+      {% csrf_token %}
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Preferred Payment Method</label>
+        <select class="form-select" name="preferred_payment_method" id="preferredMethod">
+          <option value="upi" {% if payment_detail.preferred_payment_method == "upi" %}selected{% endif %}>UPI</option>
+          <option value="bank" {% if payment_detail.preferred_payment_method == "bank" %}selected{% endif %}>Bank Transfer</option>
+          <option value="upi_bank" {% if payment_detail.preferred_payment_method == "upi_bank" %}selected{% endif %}>UPI + Bank Transfer</option>
+        </select>
+      </div>
+
+      <div id="upiBlock" class="mb-3">
+        <div class="sec-title">UPI Details</div>
+        <label class="form-label">UPI ID</label>
+        <input
+          type="text"
+          name="upi_id"
+          class="form-control"
+          placeholder="example@upi"
+          value="{{ payment_detail.upi_id }}"
+        >
+        <div class="field-note mt-1">Use your active UPI ID.</div>
+      </div>
+
+      <div id="bankBlock" class="mb-2">
+        <div class="sec-title">Bank Details</div>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Account Holder Name</label>
+            <input
+              type="text"
+              name="account_holder_name"
+              class="form-control"
+              placeholder="Account holder name"
+              value="{{ payment_detail.account_holder_name }}"
+            >
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Bank Account Number</label>
+            <input
+              type="text"
+              name="bank_account_number"
+              class="form-control"
+              placeholder="Bank account number"
+              value="{{ payment_detail.bank_account_number }}"
+            >
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">IFSC Code</label>
+            <input
+              type="text"
+              name="ifsc_code"
+              class="form-control"
+              placeholder="e.g. SBIN0001234"
+              value="{{ payment_detail.ifsc_code }}"
+            >
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-check2-circle me-1"></i> Save Payment Details
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const methodSelect = document.getElementById("preferredMethod");
+    const upiBlock = document.getElementById("upiBlock");
+    const bankBlock = document.getElementById("bankBlock");
+
+    function toggleBlocks() {
+      const v = methodSelect.value;
+      upiBlock.style.display = (v === "upi" || v === "upi_bank") ? "" : "none";
+      bankBlock.style.display = (v === "bank" || v === "upi_bank") ? "" : "none";
+    }
+
+    methodSelect.addEventListener("change", toggleBlocks);
+    toggleBlocks();
+  })();
+</script>
+{% endblock %}
